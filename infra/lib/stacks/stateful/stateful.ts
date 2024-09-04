@@ -6,10 +6,12 @@ import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 
 type StatefulStackProps = StackProps & {
-  stage: 'dev' | 'prod';
+  stage: string;
   appName: string;
   googleClientId: string;
   googleClientSecret: string;
+  sesEmail: string;
+  emailQueueName: string;
 };
 
 export class StatefulStack extends Stack {
@@ -22,7 +24,10 @@ export class StatefulStack extends Stack {
       entry: 'cmd/auth/custom-auth-flow/define-challenge/main.go',
       runtime: lambda.Runtime.PROVIDED_AL2,
       timeout: Duration.seconds(30),
-      memorySize: 128
+      memorySize: 128,
+      environment: {
+        EMAIL_QUEUE_NAME: props.emailQueueName
+      }
     });
 
     const createChallengeHandler = new GoFunction(this, 'CreateChallenge', {

@@ -15,7 +15,7 @@ type Response struct {
 	Body       string            `json:"body"`
 }
 
-func handler(ctx context.Context, request events.APIGatewayProxyRequest) (Response, error) {
+func handler(_ context.Context, request events.APIGatewayProxyRequest) (Response, error) {
 	fmt.Println("Hi %s!", request)
 
 	// Create a simple response body
@@ -31,6 +31,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (Respon
 }
 
 func main() {
+
 
 	triggerHandler := lambda.NewHandler(handler)
 
