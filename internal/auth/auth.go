@@ -50,6 +50,8 @@ func CreateAuthChallenge(_ context.Context, event cognitoLambdaEvent) (cognitoLa
 		return nil, err
 	}
 
+	// TODO - sqs helper fn to send messages
+
 	sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		DelaySeconds: *aws.Int32(1),
 		QueueUrl:     urlResult.QueueUrl,

@@ -16,6 +16,9 @@ func SendEmail(_ context.Context, event events.SQSMessage) error {
 	// }
 	// https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/
 
+	// TODO - read sqs message
+	// TODO - send email through ses
+
 	fmt.Println("sqs event: ", event)
 
 	return nil

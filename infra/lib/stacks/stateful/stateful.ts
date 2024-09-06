@@ -116,8 +116,8 @@ export class StatefulStack extends Stack {
         scopes: [cognito.OAuthScope.EMAIL, cognito.OAuthScope.OPENID, cognito.OAuthScope.PROFILE]
       },
       authFlows: {
-        custom: true,
-        userSrp: true
+        custom: true
+        // userSrp: true
       }
     });
 
