@@ -3,7 +3,40 @@
 *.d.ts
 node_modules
 
+.npmignore
+.DS_Store
+
 # CDK asset staging directory
 .cdk.staging
 cdk.out
 
+
+### go ignore
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+.DS_Store
+.env.local
+.idea
+
+/static/css/style.css
+/static/css/style.min.css
+
+/tmp
+/bin
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# env file
+.env

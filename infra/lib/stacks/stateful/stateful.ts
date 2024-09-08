@@ -15,6 +15,8 @@ type StatefulStackProps = StackProps & {
 };
 
 export class StatefulStack extends Stack {
+  // TODO - give lambda execution role permissions and set AWS_REGION=ap-south-1
+
   // go lambda triggers
 
   constructor(scope: Construct, id: string, props: StatefulStackProps) {
