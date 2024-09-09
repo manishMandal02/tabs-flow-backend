@@ -5,24 +5,28 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/config"
 )
 
-type Database struct {
+type DDB struct {
 	Client    *dynamodb.Client
 	TableName string
 }
 
-func New(tableName string) *Database {
+func New() *DDB {
 
-	dbTableName := tableName
-
-	if tableName == "" {
-		dbTableName = config.DDBTableName
+	return &DDB{
+		Client:    newDBB(),
+		TableName: config.DDBTableName,
 	}
+}
 
-	return &Database{
-		Client: dynamodb.New(dynamodb.Options{
-			Region: config.AWSRegion,
-		}),
-		TableName: dbTableName,
-	}
+// func NewWithTableName(tableName string) *DDB {
+// 	return &DDB{
+// 		Client:    newDBB(),
+// 		TableName: tableName,
+// 	}
+// }
 
+func newDBB() *dynamodb.Client {
+	return dynamodb.New(dynamodb.Options{
+		Region: config.AWSRegion,
+	})
 }

@@ -13,7 +13,7 @@ var (
 	DDBTableName string
 )
 
-func init() {
+func Init() {
 	_, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		log.Fatalf("failed to load configuration, %v", err)
