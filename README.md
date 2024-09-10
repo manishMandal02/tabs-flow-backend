@@ -9,6 +9,7 @@
 - [Architecture](#architecture)
 - [Entities](#entities)
 - [Data Access Patterns](#data-access-patterns-dynamodb)
+- [Table Design (DynamoDB)](#-table-design-dynamodb)
 - [Services](#services)
 - [Getting Started](#getting-started)
 - [Development](#development)
@@ -41,18 +42,18 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 ## Entities
 
-| Entity         | Description               | Attributes                                                 |
-| -------------- | ------------------------- | ---------------------------------------------------------- |
-| User           | user profile              | Id, email, FullName, ProfilePic,                           |
-| Preferences    | app preferences           | UserId, CmdPalette{}, Note{}, AutoDiscard{}, etc.          |
-| Space          | workspaces                | Id, UserId, Title, Emoji, Theme, ActiveTab                 |
-| Tab            | tabs within space         | SpaceId, Index, Title, URL, FaviconURL, GroupId            |
-| Group          | tab groups                | Id, SpaceId, Title, Color, Collapsed                       |
-| Note           | user notes                | Id, UserId, SpaceId,, Title, Note, RemainderAt, UpdatedAt  |
-| SnoozedTab     | snoozed tabs in space     | SpaceId, Title, URL, FaviconURL, SnoozedUntil              |
-| UsageAnalytics | space usage analytics     | UserId, SpaceUsage{}                                       |
-| Notification   | notification & remainders | Id, UserId, Type, Timestamp, Note{}, SnoozedTab{}          |
-| Subscription   | user subscriptions        | UserId, Plan, StartDate, EndState, Validity, TrailEndDate, |
+| Entity         | Description               | Attributes                                                    |
+| -------------- | ------------------------- | ------------------------------------------------------------- |
+| User           | user profile              | Id, email, FullName, ProfilePic,                              |
+| Preferences    | app preferences           | UserId, CmdPalette{}, Notes{}, AutoDiscard{}, OpenSpace, etc. |
+| Space          | workspaces                | Id, UserId, Title, Emoji, Theme, WindowId ActiveTabIndex      |
+| Tab            | tabs within space         | SpaceId, Index, Title, URL, FaviconURL, GroupId               |
+| Group          | tab groups                | Id, SpaceId, Title, Color, Collapsed                          |
+| Note           | user notes                | Id, UserId, SpaceId,, Title, Note, RemainderAt, UpdatedAt     |
+| SnoozedTab     | snoozed tabs in space     | SpaceId, Title, URL, FaviconURL, SnoozedUntil                 |
+| UsageAnalytics | space usage analytics     | UserId, SpaceUsage{}                                          |
+| Notification   | notification & remainders | UserId, Type, Timestamp, Note{}, SnoozedTab{}                 |
+| Subscription   | user subscriptions        | UserId, Plan, StartDate, EndState, Validity, TrailEndDat,     |
 
 ## Data Access Patterns (DynamoDB)
 
@@ -65,11 +66,29 @@ Our serverless architecture leverages various AWS services to create a scalable 
 | Get Tabs by spaceId          | Tabs               |
 | Get Groups by spaceId        | Tabs               |
 | Get SnoozedTabs by spaceId   | SnoozedTabs        |
-| Get Notes by spaceId         | Notes              |
 | Get Notes by userId          | Notes              |
 | Get Notifications by userId  | Notifications      |
 | Get Subscription by userId   | Subscription       |
 | Get UsageAnalytics by userId | UsageAnalytics     |
+
+## Table Design (DynamoDB)
+
+| Primary/Hash Key | Sort Key                               | Item Attributes                                          |
+| ---------------- | -------------------------------------- | -------------------------------------------------------- |
+| UserId           | U#Profile                              | Id, Email, FullName, ProfilePic                          |
+|                  | U#Notification#{timestamp}             | Type, Timestamp, Note{}, SnoozedTab{}                    |
+|                  | U#Subscription                         | Plan, StartDate, EndState, Validity, TrailEndDate        |
+|                  | U#UsageAnalytics                       | SpaceUsage{}                                             |
+|                  | P#General                              | IsDisabled, DiscardAfter, WhitelistedDomains             |
+|                  | P#Note                                 | IsDisabled, BubblePos, ShowOnAllSites                    |
+|                  | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                     |
+|                  | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
+|                  | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
+|                  | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex |
+|                  | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }             |
+|                  | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                            |
+|                  | S#SnoozedTabs#{SpaceId}#{SnoozedUntil} | Title, URL, FaviconURL, SnoozedUntil                     |
+|                  | N#{NoteId}                             | SpaceId, Title, Note, RemainderAt, UpdatedAt             |
 
 ## Services
 

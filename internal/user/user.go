@@ -1,26 +1,31 @@
 package user
 
 type User struct {
-	ID         string `json:"id"`
-	FullName   string `json:"full_name"`
+	Id         string `json:"id"`
+	FullName   string `json:"fullName"`
 	Email      string `json:"email"`
-	ProfilePic string `json:"profile_pic"`
+	ProfilePic string `json:"profilePic"`
 }
 
-func newUser(id, fullName, email, profilePic string) *User {
-	return &User{
-		ID:         id,
-		FullName:   fullName,
-		Email:      email,
-		ProfilePic: profilePic,
-	}
-}
-
-// func (u *User) ToMap() map[string]interface{} {
-// 	return map[string]interface{}{
-// 		"id":          u.ID,
-// 		"full_name":   u.FullName,
-// 		"email":       u.Email,
-// 		"profile_pic": u.ProfilePic,
+// func newUser(id, fullName, email, profilePic string) *User {
+// 	return &User{
+// 		ID:         id,
+// 		FullName:   fullName,
+// 		Email:      email,
+// 		ProfilePic: profilePic,
 // 	}
 // }
+
+var errMsg = struct {
+	GetUser      string
+	UserNotFound string
+	CreateUser   string
+	UpdateUser   string
+	DeleteUser   string
+}{
+	GetUser:      "error getting user",
+	UserNotFound: "user not found",
+	CreateUser:   "error creating user",
+	UpdateUser:   "error updating user",
+	DeleteUser:   "error deleting user",
+}

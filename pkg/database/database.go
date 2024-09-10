@@ -30,3 +30,45 @@ func newDBB() *dynamodb.Client {
 		Region: config.AWSRegion,
 	})
 }
+
+// sort keys
+
+type keySuffix func(s string) string
+
+func generateKey(base string) keySuffix {
+	return func(id string) string {
+		return base + id
+	}
+}
+
+var SortKey = struct {
+	Profile        string
+	Subscription   string
+	UsageAnalytics string
+	P_General      string
+	P_Note         string
+	P_CmdPalette   string
+	P_LinkPreview  string
+	P_AutoDiscard  string
+	Notifications  keySuffix
+	Space          keySuffix
+	TabsInSpace    keySuffix
+	GroupsInSpace  keySuffix
+	SnoozedTabs    keySuffix
+	Note           keySuffix
+}{
+	Profile:        "P#Profile",
+	Subscription:   "U#Subscription",
+	UsageAnalytics: "U#UsageAnalytics",
+	P_General:      "P#General",
+	P_Note:         "P#Note",
+	P_CmdPalette:   "P#CmdPalette",
+	P_LinkPreview:  "P#LinkPreview",
+	P_AutoDiscard:  "P#AutoDiscard",
+	Notifications:  generateKey("U#Notification#"),
+	Space:          generateKey("S#Info#"),
+	TabsInSpace:    generateKey("S#Tabs#"),
+	GroupsInSpace:  generateKey("S#Groups#"),
+	SnoozedTabs:    generateKey("S#SnoozedTabs#"),
+	Note:           generateKey("N#Note#"),
+}

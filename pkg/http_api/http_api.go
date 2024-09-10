@@ -17,6 +17,12 @@ type ErrorBody struct {
 	ErrorMsg *string `json:"error,omitempty"`
 }
 
+type RespBody struct {
+	Message string      `json:"message"`
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data"`
+}
+
 func APIResponse(statusCode int, body interface{}) *events.APIGatewayProxyResponse {
 	resp := events.APIGatewayProxyResponse{Headers: map[string]string{"Content-Type": "application/json"}}
 	resp.StatusCode = statusCode

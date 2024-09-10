@@ -1,13 +1,27 @@
 package user
 
 import (
-	"encoding/json"
-	"strings"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
+
+// TODO - handle get user by email in auth lambda, as it requires cognito access
+
+// if req.Body != "" && strings.Contains(req.Body, "email") {
+// // get user by email
+// 	var evBody struct {
+// 		Email string `json:"email"`
+// 	}
+
+// 	err := json.Unmarshal([]byte(req.Body), &evBody)
+
+// 	if err != nil {
+// 		return http_api.APIResponse(500, `{"message":  "invalid email" }`)
+// 	}
+
+// 	return handler.userByEmail(evBody.Email)
+// }
 
 func Routes(req events.APIGatewayProxyRequest) *events.APIGatewayProxyResponse {
 
@@ -18,62 +32,34 @@ func Routes(req events.APIGatewayProxyRequest) *events.APIGatewayProxyResponse {
 	handler := newUserHandler(ur)
 
 	if req.Resource != "/users" {
-		return handler.notFound()
+		return http_api.APIResponse(404, http_api.RespBody{Message: http_api.ErrorMethodNotAllowed, Success: false})
 	}
 
 	if req.HTTPMethod == "GET" {
-		if req.Body != "" && strings.Contains(req.Body, "email") {
-			// get user by email
-			var evBody struct {
-				Email string `json:"email"`
-			}
-
-			err := json.Unmarshal([]byte(req.Body), &evBody)
-
-			if err != nil {
-				return http_api.APIResponse(500, `{"message":  "invalid email" }`)
-			}
-
-			return handler.userByEmail(evBody.Email)
-		}
 		// get user by id
 		return handler.userById("s")
 	}
 
 	if req.HTTPMethod == "POST" {
-		//TODO - validate req body
-		var createUser User
-
-		err := json.Unmarshal([]byte(req.Body), &createUser)
-
-		if err != nil {
-			return http_api.APIResponse(500, `{"message":  "error creating user" }`)
-		}
 
 		// create user
-		return handler.createUser(&createUser)
+		return handler.createUser(req.Body)
 	}
 
 	if req.HTTPMethod == "Patch" {
-		//TODO - validate req body
-		var updateUser User
+		return handler.updateUser(req.Body)
+	}
 
-		err := json.Unmarshal([]byte(req.Body), &updateUser)
-
-		if err != nil {
-			return http_api.APIResponse(500, `{"message":  "error updating user" }`)
-		}
-
-		return handler.updateUser(&updateUser)
+	if req.HTTPMethod == "DELETE" {
+		return handler.deleteUser("s")
 
 	}
 
-	return handler.notFound()
+	return http_api.APIResponse(404, http_api.RespBody{Message: http_api.ErrorMethodNotAllowed, Success: false})
 }
 
 // user api routes
 // GET users/{id}
-// GET users/find ~body: {email}
 // POST users
 // PUT users/{id}
 // DELETE users/{id}

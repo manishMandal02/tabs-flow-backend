@@ -1,61 +1,85 @@
 package user
 
 import (
+	"encoding/json"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
 type userHandler struct {
-	ur userRepository
+	r userRepository
 }
 
-var errors = map[string]string{
-	"error_creating_user": "error creating user",
-}
-
-func newUserHandler(ur userRepository) *userHandler {
+func newUserHandler(r userRepository) *userHandler {
 	return &userHandler{
-		ur: ur,
+		r: r,
 	}
 }
 
 func (h *userHandler) userById(id string) *events.APIGatewayProxyResponse {
-	user, err := h.ur.getUserByID(id)
+	user, err := h.r.getUserByID(id)
 	if err != nil {
-		return http_api.APIResponse(500, http_api.ErrorCouldNotMarshalItem)
+		return http_api.APIResponse(500, http_api.RespBody{Message: http_api.ErrorCouldNotMarshalItem, Success: false})
 	}
 
-	return http_api.APIResponse(200, user)
+	return http_api.APIResponse(200, http_api.RespBody{Success: true, Data: user})
+
 }
 
-func (h *userHandler) userByEmail(email string) *events.APIGatewayProxyResponse {
-	user, err := h.ur.getUserByEmail(email)
-	if err != nil {
-		return http_api.APIResponse(500, http_api.ErrorCouldNotMarshalItem)
-	}
-	return http_api.APIResponse(200, user)
-}
+func (h *userHandler) createUser(body string) *events.APIGatewayProxyResponse {
 
-func (h *userHandler) createUser(user *User) *events.APIGatewayProxyResponse {
-	err := h.ur.createUser(user)
+	//TODO - validate req body
+
+	var user *User
+
+	err := json.Unmarshal([]byte(body), &user)
 
 	if err != nil {
-		return http_api.APIResponse(500, "{'message':  'Error creating user' }")
-	}
-	return http_api.APIResponse(200, "user created")
-}
+		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.CreateUser, Success: false})
 
-func (h *userHandler) updateUser(user *User) *events.APIGatewayProxyResponse {
-	err := h.ur.updateUser(user)
+	}
+
+	err = h.r.upsertUser(user)
 
 	if err != nil {
-		return http_api.APIResponse(500, "{'message':  'Error creating user' }")
+		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.CreateUser, Success: false})
+
 	}
-	return http_api.APIResponse(200, "user created")
+
+	return http_api.APIResponse(201, http_api.RespBody{Success: true, Message: "user created"})
+
 }
 
-// not found handler
-func (h *userHandler) notFound() *events.APIGatewayProxyResponse {
+func (h *userHandler) updateUser(body string) *events.APIGatewayProxyResponse {
 
-	return http_api.APIResponse(404, http_api.ErrorMethodNotAllowed)
+	//TODO - validate req body
+	var user *User
+
+	err := json.Unmarshal([]byte(body), &user)
+
+	if err != nil {
+		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.UpdateUser, Success: false})
+	}
+
+	err = h.r.upsertUser(user)
+
+	if err != nil {
+		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.UpdateUser, Success: false})
+	}
+
+	return http_api.APIResponse(201, http_api.RespBody{Success: true, Message: "user updated"})
+
+}
+
+func (h *userHandler) deleteUser(id string) *events.APIGatewayProxyResponse {
+	err := h.r.deleteUser(id)
+
+	if err != nil {
+		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.DeleteUser, Success: false})
+
+	}
+
+	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "user deleted"})
+
 }
