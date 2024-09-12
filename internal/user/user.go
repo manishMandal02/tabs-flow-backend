@@ -1,10 +1,10 @@
 package user
 
 type User struct {
-	Id         string `json:"id"`
-	FullName   string `json:"fullName"`
-	Email      string `json:"email"`
-	ProfilePic string `json:"profilePic"`
+	Id         string `json:"id" dynamodbav:"pk"`
+	FullName   string `json:"fullName" dynamodbav:"FullName"`
+	Email      string `json:"email" dynamodbav:"Email"`
+	ProfilePic string `json:"profilePic" dynamodbav:"ProfilePic"`
 }
 
 // func newUser(id, fullName, email, profilePic string) *User {

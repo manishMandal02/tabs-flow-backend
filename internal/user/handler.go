@@ -73,7 +73,7 @@ func (h *userHandler) updateUser(body string) *events.APIGatewayProxyResponse {
 }
 
 func (h *userHandler) deleteUser(id string) *events.APIGatewayProxyResponse {
-	err := h.r.deleteUser(id)
+	err := h.r.deleteAccount(id)
 
 	if err != nil {
 		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.DeleteUser, Success: false})

@@ -41,7 +41,12 @@ func generateKey(base string) keySuffix {
 	}
 }
 
-var SortKey = struct {
+const (
+	PK_NAME string = "PK"
+	SK_NAME string = "SK"
+)
+
+var SORT_KEY = struct {
 	Profile        string
 	Subscription   string
 	UsageAnalytics string

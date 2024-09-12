@@ -9,7 +9,7 @@
 - [Architecture](#architecture)
 - [Entities](#entities)
 - [Data Access Patterns](#data-access-patterns-dynamodb)
-- [Table Design (DynamoDB)](#-table-design-dynamodb)
+- [Table Design (DynamoDB)](#table-design-dynamodb)
 - [Services](#services)
 - [Getting Started](#getting-started)
 - [Development](#development)
