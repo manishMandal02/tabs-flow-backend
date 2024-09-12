@@ -37,8 +37,6 @@ func (h *userHandler) upsertUser(body string, isCreateReq bool) *events.APIGatew
 
 	var user *User
 
-	err := user.fromJSON(body)
-
 	errResponseMsg := errMsg.CreateUser
 	successResponseMsg := "user created"
 
@@ -47,12 +45,14 @@ func (h *userHandler) upsertUser(body string, isCreateReq bool) *events.APIGatew
 		successResponseMsg = "user updated"
 	}
 
+	err := user.fromJSON(body)
+
 	if err != nil {
 		logger.Error(fmt.Sprintf("error decoding user from JSON body: %v", body), err)
 		return http_api.APIResponse(400, http_api.RespBody{Message: errResponseMsg, Success: false})
 	}
 
-	h.userById(user.Id)
+	err = user.validate()
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("error validating user: %v", body), err)
