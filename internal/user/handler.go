@@ -1,10 +1,12 @@
 package user
 
 import (
-	"encoding/json"
+	"errors"
+	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 type userHandler struct {
@@ -20,55 +22,51 @@ func newUserHandler(r userRepository) *userHandler {
 func (h *userHandler) userById(id string) *events.APIGatewayProxyResponse {
 	user, err := h.r.getUserByID(id)
 	if err != nil {
-		return http_api.APIResponse(500, http_api.RespBody{Message: http_api.ErrorCouldNotMarshalItem, Success: false})
+		if errors.Is(err, errors.New(errMsg.UserNotFound)) {
+			return http_api.APIResponse(404, http_api.RespBody{Message: errMsg.UserNotFound, Success: false})
+		}
+
+		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.GetUser, Success: false})
 	}
 
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Data: user})
 
 }
 
-func (h *userHandler) createUser(body string) *events.APIGatewayProxyResponse {
-
-	//TODO - validate req body
+func (h *userHandler) upsertUser(body string, isCreateReq bool) *events.APIGatewayProxyResponse {
 
 	var user *User
 
-	err := json.Unmarshal([]byte(body), &user)
+	err := user.fromJSON(body)
+
+	errResponseMsg := errMsg.CreateUser
+	successResponseMsg := "user created"
+
+	if !isCreateReq {
+		errResponseMsg = errMsg.UpdateUser
+		successResponseMsg = "user updated"
+	}
 
 	if err != nil {
-		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.CreateUser, Success: false})
+		logger.Error(fmt.Sprintf("error decoding user from JSON body: %v", body), err)
+		return http_api.APIResponse(400, http_api.RespBody{Message: errResponseMsg, Success: false})
+	}
 
+	h.userById(user.Id)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("error validating user: %v", body), err)
+		return http_api.APIResponse(400, http_api.RespBody{Message: err.Error(), Success: false})
 	}
 
 	err = h.r.upsertUser(user)
 
 	if err != nil {
-		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.CreateUser, Success: false})
+		return http_api.APIResponse(500, http_api.RespBody{Message: errResponseMsg, Success: false})
 
 	}
 
-	return http_api.APIResponse(201, http_api.RespBody{Success: true, Message: "user created"})
-
-}
-
-func (h *userHandler) updateUser(body string) *events.APIGatewayProxyResponse {
-
-	//TODO - validate req body
-	var user *User
-
-	err := json.Unmarshal([]byte(body), &user)
-
-	if err != nil {
-		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.UpdateUser, Success: false})
-	}
-
-	err = h.r.upsertUser(user)
-
-	if err != nil {
-		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.UpdateUser, Success: false})
-	}
-
-	return http_api.APIResponse(201, http_api.RespBody{Success: true, Message: "user updated"})
+	return http_api.APIResponse(201, http_api.RespBody{Message: successResponseMsg, Success: true})
 
 }
 
@@ -77,9 +75,7 @@ func (h *userHandler) deleteUser(id string) *events.APIGatewayProxyResponse {
 
 	if err != nil {
 		return http_api.APIResponse(500, http_api.RespBody{Message: errMsg.DeleteUser, Success: false})
-
 	}
 
-	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "user deleted"})
-
+	return http_api.APIResponse(200, http_api.RespBody{Message: "user deleted", Success: true})
 }

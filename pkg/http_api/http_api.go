@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	ErrorMethodNotAllowed      = "Method not allowed"
-	ErrorEmptyLambdaEvent      = "Empty lambda event"
-	ErrorCouldNotMarshalItem   = "Could not marshal item"
-	ErrorCouldNotUnMarshalItem = "Could not  unmarshal item"
+	ErrorInvalidRequest        = "invalid request"
+	ErrorMethodNotAllowed      = "method not allowed"
+	ErrorEmptyLambdaEvent      = "empty lambda event"
+	ErrorCouldNotMarshalItem   = "could not marshal item"
+	ErrorCouldNotUnMarshalItem = "could not  unmarshal item"
 )
 
 type ErrorBody struct {

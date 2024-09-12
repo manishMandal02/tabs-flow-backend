@@ -3,7 +3,7 @@ package logger
 import "fmt"
 
 func Error(msg string, err error) {
-	fmt.Println("❌ Logger: %v. Error: %v ", msg, err)
+	fmt.Println("❌ Logger: %v\n [Error]: %v ", msg, err)
 }
 
 func Dev(msg interface{}) {

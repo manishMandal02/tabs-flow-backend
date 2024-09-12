@@ -32,26 +32,39 @@ func Routes(req events.APIGatewayProxyRequest) *events.APIGatewayProxyResponse {
 	handler := newUserHandler(ur)
 
 	if req.Resource != "/users" {
-		return http_api.APIResponse(404, http_api.RespBody{Message: http_api.ErrorMethodNotAllowed, Success: false})
+		return http_api.APIResponse(404, http_api.RespBody{Message: http_api.ErrorInvalidRequest, Success: false})
 	}
 
 	if req.HTTPMethod == "GET" {
+		id := req.PathParameters["id"]
+
+		if id == "" {
+			return http_api.APIResponse(400, http_api.RespBody{Message: http_api.ErrorInvalidRequest, Success: false})
+		}
+
 		// get user by id
 		return handler.userById("s")
 	}
 
 	if req.HTTPMethod == "POST" {
-
 		// create user
-		return handler.createUser(req.Body)
+		return handler.upsertUser(req.Body, true)
 	}
 
 	if req.HTTPMethod == "Patch" {
-		return handler.updateUser(req.Body)
+		// update user
+		return handler.upsertUser(req.Body, false)
 	}
 
 	if req.HTTPMethod == "DELETE" {
-		return handler.deleteUser("s")
+		id := req.PathParameters["id"]
+
+		if id == "" {
+			return http_api.APIResponse(400, http_api.RespBody{Message: http_api.ErrorInvalidRequest, Success: false})
+		}
+
+		// delete user
+		return handler.deleteUser(id)
 
 	}
 
