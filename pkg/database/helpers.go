@@ -10,11 +10,10 @@ import (
 )
 
 // types
-type getAllSKsFunc func(db *DDB, pk string) ([]string, error)
 
 // the only exported variable in this file
 var Helpers = struct {
-	GetAllSKs getAllSKsFunc
+	GetAllSKs func(db *DDB, pk string) ([]string, error)
 }{
 	GetAllSKs: getAllSKs,
 }

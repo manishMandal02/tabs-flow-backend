@@ -71,24 +71,32 @@ Our serverless architecture leverages various AWS services to create a scalable 
 | Get Subscription by userId   | Subscription       |
 | Get UsageAnalytics by userId | UsageAnalytics     |
 
-## Table Design (DynamoDB)
+## Main Table Design (DynamoDB)
 
-| Primary/Hash Key | Sort Key                               | Item Attributes                                          |
-| ---------------- | -------------------------------------- | -------------------------------------------------------- |
-| UserId           | U#Profile                              | Id, Email, FullName, ProfilePic                          |
-|                  | U#Notification#{timestamp}             | Type, Timestamp, Note{}, SnoozedTab{}                    |
-|                  | U#Subscription                         | Plan, StartDate, EndState, Validity, TrailEndDate        |
-|                  | U#UsageAnalytics                       | SpaceUsage{}                                             |
-|                  | P#General                              | IsDisabled, DiscardAfter, WhitelistedDomains             |
-|                  | P#Note                                 | IsDisabled, BubblePos, ShowOnAllSites                    |
-|                  | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                     |
-|                  | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
-|                  | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
-|                  | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex |
-|                  | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }             |
-|                  | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                            |
-|                  | S#SnoozedTabs#{SpaceId}#{SnoozedUntil} | Title, URL, FaviconURL, SnoozedUntil                     |
-|                  | N#{NoteId}                             | SpaceId, Title, Note, RemainderAt, UpdatedAt             |
+| Partition Key | Sort Key                               | Item Attributes                                          |
+| ------------- | -------------------------------------- | -------------------------------------------------------- |
+| UserId        | U#Profile                              | Id, Email, FullName, ProfilePic                          |
+|               | U#Notification#{timestamp}             | Type, Timestamp, Note{}, SnoozedTab{}                    |
+|               | U#Subscription                         | Plan, StartDate, EndState, Validity, TrailEndDate        |
+|               | U#UsageAnalytics                       | SpaceUsage{}                                             |
+|               | P#General                              | IsDisabled, DiscardAfter, WhitelistedDomains             |
+|               | P#Note                                 | IsDisabled, BubblePos, ShowOnAllSites                    |
+|               | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                     |
+|               | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
+|               | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
+|               | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex |
+|               | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }             |
+|               | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                            |
+|               | S#SnoozedTabs#{SpaceId}#{SnoozedUntil} | Title, URL, FaviconURL, SnoozedUntil                     |
+|               | N#{NoteId}                             | SpaceId, Title, Note, RemainderAt, UpdatedAt             |
+
+## Sessions Table Design (DynamoDB)
+
+| Partition Key | Sort Key            | Item Attributes                   |
+| ------------- | ------------------- | --------------------------------- |
+| EmailId       | UserId#{userId}     |                                   |
+|               | OTP#{otp}           | TTL_Expiry                        |
+|               | Session#{sessionId} | CreatedAt, TTL_Expiry, ClientInfo |
 
 ## Services
 

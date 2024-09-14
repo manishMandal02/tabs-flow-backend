@@ -4,6 +4,8 @@ import { App } from 'aws-cdk-lib';
 import { StatefulStack } from '../lib/stacks/stateful';
 import { APIServiceStack } from '../lib/stacks/api-service/api-service';
 
+// TODO - Add TTL for Session Table while creating the table
+
 const app = new App();
 
 // TODO - figure the multi region and environments deployment

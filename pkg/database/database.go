@@ -10,29 +10,35 @@ type DDB struct {
 	TableName string
 }
 
+// new instance of main table
 func New() *DDB {
-
 	return &DDB{
 		Client:    newDBB(),
-		TableName: config.DDBTableName,
+		TableName: config.DDB_MAIN_TABLE_NAME,
 	}
 }
 
-// func NewWithTableName(tableName string) *DDB {
-// 	return &DDB{
-// 		Client:    newDBB(),
-// 		TableName: tableName,
-// 	}
-// }
+// new instance of session table
+func NewSessionTable() *DDB {
+	return &DDB{
+		Client:    newDBB(),
+		TableName: config.DDB_SESSIONS_TABLE_NAME,
+	}
+}
 
+// new db client helper internal helper
 func newDBB() *dynamodb.Client {
 	return dynamodb.New(dynamodb.Options{
-		Region: config.AWSRegion,
+		Region: config.AWS_REGION,
 	})
 }
 
-// sort keys
+const (
+	PK_NAME string = "PK"
+	SK_NAME string = "SK"
+)
 
+// sort keys
 type keySuffix func(s string) string
 
 func generateKey(base string) keySuffix {
@@ -40,11 +46,6 @@ func generateKey(base string) keySuffix {
 		return base + id
 	}
 }
-
-const (
-	PK_NAME string = "PK"
-	SK_NAME string = "SK"
-)
 
 var SORT_KEY = struct {
 	Profile        string
@@ -76,4 +77,14 @@ var SORT_KEY = struct {
 	GroupsInSpace:  generateKey("S#Groups#"),
 	SnoozedTabs:    generateKey("S#SnoozedTabs#"),
 	Note:           generateKey("N#Note#"),
+}
+
+var SORT_KEY_SESSIONS = struct {
+	Session keySuffix
+	OTP     keySuffix
+	UserId  keySuffix
+}{
+	Session: generateKey("Session#"),
+	OTP:     generateKey("OTP#"),
+	UserId:  generateKey("UserId#"),
 }

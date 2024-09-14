@@ -48,12 +48,16 @@ func Routes(req events.APIGatewayProxyRequest) *events.APIGatewayProxyResponse {
 
 	if req.HTTPMethod == "POST" {
 		// create user
-		return handler.upsertUser(req.Body, true)
+		return handler.createUser(req.Body)
 	}
 
 	if req.HTTPMethod == "Patch" {
+		id := req.PathParameters["id"]
+		if id == "" {
+			return http_api.APIResponse(400, http_api.RespBody{Message: http_api.ErrorInvalidRequest, Success: false})
+		}
 		// update user
-		return handler.upsertUser(req.Body, false)
+		return handler.updateUser(id, req.Body)
 	}
 
 	if req.HTTPMethod == "DELETE" {

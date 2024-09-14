@@ -14,6 +14,11 @@ type User struct {
 	ProfilePic string `json:"profilePic" dynamodbav:"ProfilePic" validate:"url"`
 }
 
+type userWithSK struct {
+	*User
+	SK string `json:"sk" dynamodbav:"SK"`
+}
+
 // func newUser(id, fullName, email, profilePic string) *User {
 // 	return &User{
 // 		ID:         id,
@@ -55,9 +60,9 @@ var errMsg = struct {
 	UpdateUser   string
 	DeleteUser   string
 }{
-	GetUser:      "error getting user",
-	UserNotFound: "user not found",
-	CreateUser:   "error creating user",
-	UpdateUser:   "error updating user",
-	DeleteUser:   "error deleting user",
+	GetUser:      "Error getting user",
+	UserNotFound: "User not found",
+	CreateUser:   "Error creating user",
+	UpdateUser:   "Error updating user",
+	DeleteUser:   "Error deleting user",
 }

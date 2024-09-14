@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	AWSRegion    string
-	DDBTableName string
+	AWS_REGION              string
+	DDB_MAIN_TABLE_NAME     string
+	DDB_SESSIONS_TABLE_NAME string
 )
 
 func Init() {
@@ -19,7 +20,8 @@ func Init() {
 		log.Fatalf("failed to load configuration, %v", err)
 	}
 
-	AWSRegion = os.Getenv("AWS_REGION")
-	DDBTableName = os.Getenv("DDB_TABLE_NAME")
+	AWS_REGION = os.Getenv("AWS_REGION")
+	DDB_MAIN_TABLE_NAME = os.Getenv("DDB_TABLE_NAME")
+	DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
 
 }

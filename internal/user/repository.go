@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
@@ -14,7 +15,8 @@ import (
 
 type userRepository interface {
 	getUserByID(id string) (*User, error)
-	upsertUser(user *User) error
+	insertUser(user *User) error
+	updateUser(id, name string) error
 	deleteAccount(id string) error
 }
 
@@ -32,18 +34,13 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	var err error
 	var user User
 	var response *dynamodb.GetItemOutput
-
-	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build expression for query for user_id: %v", id), err)
-		return nil, err
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{Value: id},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
 	}
-
 	response, err = r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		TableName: &r.db.TableName,
-		Key: map[string]types.AttributeValue{
-			database.PK_NAME: &types.AttributeValueMemberS{Value: id},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
-		},
+		Key:       key,
 	})
 
 	if err != nil {
@@ -67,13 +64,10 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	return &user, nil
 }
 
-func (r *userRepo) upsertUser(user *User) error {
-	profile := struct {
-		user User
-		sk   string
-	}{
-
-		sk: database.SORT_KEY.Profile,
+func (r *userRepo) insertUser(user *User) error {
+	profile := userWithSK{
+		User: user,
+		SK:   database.SORT_KEY.Profile,
 	}
 
 	item, err := attributevalue.MarshalMap(profile)
@@ -91,6 +85,36 @@ func (r *userRepo) upsertUser(user *User) error {
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't put item for user: %v", user.Id), err)
 		return errors.New(errMsg.CreateUser)
+	}
+
+	return nil
+}
+
+func (r *userRepo) updateUser(id, name string) error {
+	// build update expression
+	updateExpr := expression.Set(expression.Name("Name"), expression.Value(name))
+	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't build expression for updateUser query for the user_id: %v", id), err)
+		return errors.New(errMsg.UpdateUser)
+	}
+
+	// execute the query
+	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName: &r.db.TableName,
+		Key: map[string]types.AttributeValue{
+			database.PK_NAME: &types.AttributeValueMemberS{Value: id},
+			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
+		},
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't updateUser, user_id: %v", id), err)
+		return errors.New(errMsg.UpdateUser)
 	}
 
 	return nil
