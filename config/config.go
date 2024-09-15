@@ -10,8 +10,10 @@ import (
 
 var (
 	AWS_REGION              string
+	SQS_QUEUE_URL           string
 	DDB_MAIN_TABLE_NAME     string
 	DDB_SESSIONS_TABLE_NAME string
+	OTP_EXPIRY_TIME_IN_MIN  int32
 )
 
 func Init() {
@@ -21,7 +23,8 @@ func Init() {
 	}
 
 	AWS_REGION = os.Getenv("AWS_REGION")
+	SQS_QUEUE_URL = os.Getenv("SQS_QUEUE_URL")
 	DDB_MAIN_TABLE_NAME = os.Getenv("DDB_TABLE_NAME")
 	DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
-
+	OTP_EXPIRY_TIME_IN_MIN = 5
 }

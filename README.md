@@ -96,7 +96,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
 | ------------- | ------------------- | --------------------------------- |
 | EmailId       | UserId#{userId}     |                                   |
 |               | OTP#{otp}           | TTL_Expiry                        |
-|               | Session#{sessionId} | CreatedAt, TTL_Expiry, ClientInfo |
+|               | Session#{sessionId} | CreatedAt, TTL_Expiry, DeviceInfo |
 
 ## Services
 
