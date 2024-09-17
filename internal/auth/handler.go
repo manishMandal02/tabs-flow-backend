@@ -13,11 +13,6 @@ import (
 	"github.com/mssola/useragent"
 )
 
-//* Handlers
-// TODO - Send OTP: send SQS message with email & otp
-// TODO - Verify OTP:
-// TODO - Generate JWT Token
-// TODO - verify JWT Token:
 // if userId not found in Session table, add user profile (U#Profile) to main table
 
 type AuthHandler struct {
@@ -145,7 +140,13 @@ func (h *AuthHandler) generateSession(email, userAgent string) error {
 	return nil
 }
 
-// remove jwt token
 func (h *AuthHandler) logout() *lambda_events.APIGatewayV2HTTPResponse {
+	// TODO - remove jwt token & delete session
+	return nil
+}
+
+func (h *AuthHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequest) *lambda_events.APIGatewayCustomAuthorizerResponse {
+	token := ev.AuthorizationToken
+
 	return nil
 }
