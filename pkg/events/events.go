@@ -1,29 +1,11 @@
-package eventTypes
+package events
 
 import (
-	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/manishMandal02/tabsflow-backend/config"
-	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
-
-type Queue struct {
-	client *sqs.Client
-	url    string
-}
-
-func NewQueue() *Queue {
-	client := sqs.New(sqs.Options{
-		Region: config.AWS_REGION,
-	})
-	return &Queue{
-		client: client,
-		url:    config.SQS_QUEUE_URL,
-	}
-}
 
 type EventType int
 
@@ -34,8 +16,9 @@ const (
 	SCHEDULE_TASK
 )
 
-type IEvent interface {
+type Event interface {
 	GetEventType() EventType
+	ToMsgAttributes() map[string]types.MessageAttributeValue
 }
 
 // String method to get the string representation of the Event
@@ -43,44 +26,73 @@ func (e EventType) String() string {
 	return [...]string{"SEND_OTP", "USER_REGISTERED", "PASSWORD_RESET"}[e]
 }
 
-type SEND_OTP_EVENT struct {
-	EventType EventType `json:"eventType"`
-	Payload   struct {
-		Email string `json:"email"`
-		OTP   string `json:"otp"`
-	}
+type SendOTP_Payload struct {
+	Email string `json:"email"`
+	OTP   string `json:"otp"`
 }
 
-func (e SEND_OTP_EVENT) GetEventType() EventType {
-	return e.EventType
+func (e SendOTP_Payload) GetEventType() EventType {
+	return SEND_OTP
 }
 
-// sqs helper fn to send messages
-func (q *Queue) AddMsgToQueue(ev IEvent) error {
-	res, err := q.client.SendMessage(context.TODO(), &sqs.SendMessageInput{
-		DelaySeconds: *aws.Int32(1),
-		QueueUrl:     &q.url,
-		MessageBody:  aws.String("Send OTP to user"),
-		MessageAttributes: map[string]types.MessageAttributeValue{
-			"Email": {
-				DataType:    aws.String("String"),
-				StringValue: aws.String("user@example.com"),
-			},
-			"EventType": {
-				DataType:    aws.String("String"),
-				StringValue: aws.String("OTP"),
-			},
-			"Payload": {
-				DataType:    aws.String("String"),
-				StringValue: aws.String(ev.GetEventType().String()),
-			},
+func (e SendOTP_Payload) ToMsgAttributes() map[string]types.MessageAttributeValue {
+	return map[string]types.MessageAttributeValue{
+		"EventType": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(SEND_OTP.String()),
 		},
-	})
-
-	if err != nil || res.MessageId == nil {
-		logger.Error("Error sending message to SQS queue: %v", err)
-		return err
+		"Email": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(e.Email),
+		},
+		"OTP": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(e.OTP),
+		},
 	}
+}
 
-	return nil
+func (e UserRegisteredPayload) GetEventType() EventType {
+	return USER_REGISTERED
+}
+
+type UserRegisteredPayload struct {
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	TrailEndDate string `json:"trailEndDate"`
+}
+
+func (e UserRegisteredPayload) ToMsgAttributes() map[string]types.MessageAttributeValue {
+	return map[string]types.MessageAttributeValue{
+		"EventType": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(USER_REGISTERED.String()),
+		},
+		"Email": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(e.Email),
+		},
+		"Name": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(e.Name),
+		},
+		"TrailEndDate": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(e.TrailEndDate),
+		},
+	}
+}
+
+// ParseEventType converts a string to EventType
+func ParseEventType(s string) (EventType, error) {
+	switch s {
+	case "SEND_OTP":
+		return SEND_OTP, nil
+	case "USER_REGISTERED":
+		return USER_REGISTERED, nil
+	case "PASSWORD_RESET":
+		return SCHEDULE_TASK, nil
+	default:
+		return EventType(-1), fmt.Errorf("unknown event type: %s", s)
+	}
 }

@@ -40,10 +40,12 @@ var errMsg = struct {
 	verifyToken     string
 	createSession   string
 	validateSession string
+	googleAuth      string
 }{
 	sendOTP:         "Error sending OTP",
 	validateOTP:     "Error validating OTP",
 	inValidOTP:      "Invalid OTP",
+	googleAuth:      "Error authenticating with google",
 	createSession:   "Error creating session",
 	validateSession: "Error validating session",
 }

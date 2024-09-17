@@ -21,10 +21,10 @@ type userRepository interface {
 }
 
 type userRepo struct {
-	db database.DDB
+	db *database.DDB
 }
 
-func newUserRepository(db database.DDB) userRepository {
+func newUserRepository(db *database.DDB) userRepository {
 	return &userRepo{
 		db: db,
 	}
@@ -126,7 +126,7 @@ func (r *userRepo) deleteAccount(id string) error {
 	// DynamoDB allows a maximum batch size of 25 items.
 	batchSize := 25
 
-	allSKs, err := database.Helpers.GetAllSKs(&r.db, id)
+	allSKs, err := database.Helpers.GetAllSKs(r.db, id)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't get all dynamic sort keys for user_id: %v", id), err)

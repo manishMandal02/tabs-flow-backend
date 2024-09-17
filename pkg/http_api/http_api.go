@@ -24,8 +24,8 @@ type RespBody struct {
 	Data    interface{} `json:"data"`
 }
 
-func APIResponse(statusCode int, body interface{}) *events.APIGatewayProxyResponse {
-	resp := events.APIGatewayProxyResponse{Headers: map[string]string{"Content-Type": "application/json"}}
+func APIResponse(statusCode int, body interface{}) *events.APIGatewayV2HTTPResponse {
+	resp := events.APIGatewayV2HTTPResponse{Headers: map[string]string{"Content-Type": "application/json"}}
 	resp.StatusCode = statusCode
 
 	stringBody, _ := json.Marshal(body)

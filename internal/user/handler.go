@@ -20,7 +20,7 @@ func newUserHandler(r userRepository) *userHandler {
 	}
 }
 
-func (h *userHandler) userById(id string) *events.APIGatewayProxyResponse {
+func (h *userHandler) userById(id string) *events.APIGatewayV2HTTPResponse {
 	user, err := h.r.getUserByID(id)
 	if err != nil {
 		if errors.Is(err, errors.New(errMsg.UserNotFound)) {
@@ -34,7 +34,7 @@ func (h *userHandler) userById(id string) *events.APIGatewayProxyResponse {
 
 }
 
-func (h *userHandler) createUser(body string) *events.APIGatewayProxyResponse {
+func (h *userHandler) createUser(body string) *events.APIGatewayV2HTTPResponse {
 
 	var user *User
 
@@ -63,7 +63,7 @@ func (h *userHandler) createUser(body string) *events.APIGatewayProxyResponse {
 
 }
 
-func (h *userHandler) updateUser(id, body string) *events.APIGatewayProxyResponse {
+func (h *userHandler) updateUser(id, body string) *events.APIGatewayV2HTTPResponse {
 
 	var err error
 	var n struct {
@@ -86,7 +86,7 @@ func (h *userHandler) updateUser(id, body string) *events.APIGatewayProxyRespons
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "user updated"})
 }
 
-func (h *userHandler) deleteUser(id string) *events.APIGatewayProxyResponse {
+func (h *userHandler) deleteUser(id string) *events.APIGatewayV2HTTPResponse {
 	err := h.r.deleteAccount(id)
 
 	if err != nil {

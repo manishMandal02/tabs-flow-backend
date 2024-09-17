@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/aws/aws-lambda-go/events"
+	lambda_events "github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/config"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 	"github.com/mssola/useragent"
 )
@@ -28,7 +30,7 @@ func newAuthHandler(repo authRepository) *AuthHandler {
 	}
 }
 
-func (h *AuthHandler) sendOTP(body string) *events.APIGatewayProxyResponse {
+func (h *AuthHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPResponse {
 	var b struct {
 		Email string `json:"email"`
 	}
@@ -44,7 +46,19 @@ func (h *AuthHandler) sendOTP(body string) *events.APIGatewayProxyResponse {
 		TTL_Expiry: config.OTP_EXPIRY_TIME_IN_MIN,
 	})
 
-	// TODO -
+	if err != nil {
+		return http_api.APIResponse(500, http_api.RespBody{Success: false, Message: "Error sending OTP"})
+	}
+
+	// send email message to SQS queue
+	event := &events.SendOTP_Payload{
+		Email: b.Email,
+		OTP:   otp,
+	}
+
+	sqs := events.NewQueue()
+
+	err = sqs.AddMsgToQueue(event)
 
 	if err != nil {
 		return http_api.APIResponse(500, http_api.RespBody{Success: false, Message: "Error sending OTP"})
@@ -53,8 +67,51 @@ func (h *AuthHandler) sendOTP(body string) *events.APIGatewayProxyResponse {
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "OTP sent successfully"})
 }
 
-func (h *AuthHandler) VerifyOTP(opt int32) error {
-	return nil
+func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
+	// TODO - handle verify otp
+
+	ua := useragent.New(userAgent)
+
+	var b struct {
+		Email string `json:"email"`
+		OTP   string `json:"otp"`
+	}
+	decoder := json.NewDecoder(strings.NewReader(body))
+	err := decoder.Decode(&b)
+	if err != nil {
+		logger.Error("Error decoding request body for verify otp", err)
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.validateOTP})
+	}
+	valid, err := h.r.validateOTP(b.Email, b.OTP)
+
+	if err != nil {
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.validateOTP})
+	}
+
+	if !valid {
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.inValidOTP})
+	}
+
+	// TODO - handle creating user session (session table) and user id in main table
+	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "OTP verified successfully"})
+}
+
+func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
+
+	ua := useragent.New(userAgent)
+
+	// TODO - handle google auth
+	var b struct {
+		Email string `json:"email"`
+	}
+	decoder := json.NewDecoder(strings.NewReader(body))
+	err := decoder.Decode(&b)
+	if err != nil {
+		logger.Error("Error decoding request body for google auth", err)
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.googleAuth})
+	}
+
+	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "Login successful"})
 }
 
 func (h *AuthHandler) generatedToken() error {
@@ -89,6 +146,6 @@ func (h *AuthHandler) generateSession(email, userAgent string) error {
 }
 
 // remove jwt token
-func (h *AuthHandler) logout() error {
+func (h *AuthHandler) logout() *lambda_events.APIGatewayV2HTTPResponse {
 	return nil
 }
