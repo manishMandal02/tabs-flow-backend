@@ -14,14 +14,19 @@ import (
 )
 
 type emailOTP struct {
-	Email      string `json:"email"`
+	Email      string `json:"email" dynamodbav:"PK"`
 	OTP        string `json:"otp"`
-	TTL_Expiry int32  `json:"ttlExpiry"`
+	TTL_Expiry int64  `json:"ttlExpiry"`
+}
+
+type emailWithUserId struct {
+	Email  string `json:"email" dynamodbav:"PK"`
+	UserId string `json:"userId" dynamodbav:"SK"`
 }
 
 type session struct {
-	Id         string      `json:"id" dynamodbav:"PK"`
-	Email      string      `json:"email" dynamodbav:"SK"`
+	Email      string      `json:"email" dynamodbav:"PK"`
+	Id         string      `json:"id" dynamodbav:"SK"`
 	TTL_Expiry int64       `json:"ttlExpiry" dynamodbav:"TTL_Expiry"`
 	DeviceInfo *DeviceInfo `json:"deviceInfo" dynamodbav:"DeviceInfo"`
 }
@@ -37,32 +42,37 @@ var errMsg = struct {
 	sendOTP         string
 	validateOTP     string
 	inValidOTP      string
-	verifyToken     string
 	createToken     string
 	createSession   string
+	deleteSession   string
 	validateSession string
 	googleAuth      string
 	tokenExpired    string
 	invalidToken    string
 	invalidSession  string
+	logout          string
 }{
 	sendOTP:         "Error sending OTP",
 	validateOTP:     "Error validating OTP",
 	inValidOTP:      "Invalid OTP",
 	googleAuth:      "Error authenticating with google",
 	createSession:   "Error creating session",
+	deleteSession:   "Error deleting session",
 	createToken:     "Error creating token",
 	validateSession: "Error validating session",
 	tokenExpired:    "Token expired",
 	invalidToken:    "Invalid token",
 	invalidSession:  "Invalid session",
+	logout:          "Error logging out",
 }
 
 type authRepository interface {
 	saveOTP(data *emailOTP) error
+	attachUserId(data *emailWithUserId) error
 	validateOTP(email, otp string) (bool, error)
 	validateSession(email, id string) (bool, error)
 	createSession(s *session) error
+	deleteSession(email, sessionId string) error
 }
 
 type authRepo struct {
@@ -138,6 +148,25 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 	return true, nil
 }
 
+func (r *authRepo) attachUserId(data *emailWithUserId) error {
+	// primary key - partition+sort key
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{Value: data.Email},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.UserId(data.UserId)},
+	}
+
+	_, err := r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: &r.db.TableName,
+		Item:      key,
+	})
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't attach user id to email: %#v", data.Email), err)
+		return errors.New(errMsg.createSession)
+	}
+
+	return nil
+}
+
 func (r *authRepo) createSession(s *session) error {
 
 	item := map[string]types.AttributeValue{
@@ -161,6 +190,25 @@ func (r *authRepo) createSession(s *session) error {
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't create session for email: %#v", s.Email), err)
 		return errors.New(errMsg.createSession)
+	}
+
+	return nil
+}
+
+func (r *authRepo) deleteSession(email, id string) error {
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{Value: email},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.Session(id)},
+	}
+
+	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+		TableName: &r.db.TableName,
+		Key:       key,
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't delete session for user with email: %#v", email), err)
+		return errors.New(errMsg.deleteSession)
 	}
 
 	return nil

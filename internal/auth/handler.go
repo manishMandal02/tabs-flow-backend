@@ -42,7 +42,7 @@ func (h *AuthHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPRespon
 	err := h.r.saveOTP(&emailOTP{
 		OTP:        otp,
 		Email:      b.Email,
-		TTL_Expiry: config.OTP_EXPIRY_TIME_IN_MIN,
+		TTL_Expiry: time.Now().Add(time.Minute * time.Duration(config.OTP_EXPIRY_TIME_IN_MIN)).Unix(),
 	})
 
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.inValidOTP})
 	}
 
-	// TODO -  if new user, send user id and a new user flag to frontend. else send user id
+	// TODO -  check if new user, send user id and a new user flag to frontend. else send user id
 
 	// create new session and set to cookie
 	newToken, err := createNewSession(b.Email, userAgent, h.r)
@@ -100,12 +100,27 @@ func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 		"access_token": newToken,
 	}
 
-	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully"}, newCookies)
+	newUserId := utils.GenerateID()
+
+	err = h.r.attachUserId(&emailWithUserId{
+		Email:  b.Email,
+		UserId: newUserId,
+	})
+
+	if err != nil {
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+	}
+
+	resData := struct {
+		UserId string `json:"userId"`
+	}{
+		UserId: newUserId,
+	}
+
+	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData}, newCookies)
 }
 
 func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
-
-	ua := useragent.New(userAgent)
 
 	// TODO - handle google auth
 	var b struct {
@@ -121,9 +136,41 @@ func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatew
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "Login successful"})
 }
 
-func (h *AuthHandler) logout() *lambda_events.APIGatewayV2HTTPResponse {
-	// TODO - remove jwt token & delete session
-	return nil
+func (h *AuthHandler) logout(cookieStr, body string) *lambda_events.APIGatewayV2HTTPResponse {
+
+	newCookies := map[string]string{
+		"access_token": "",
+	}
+
+	logoutResponse := http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Logged out"}, newCookies)
+
+	cookies := parseCookies(cookieStr)
+
+	token := cookies["access_token"]
+
+	claims, err := validateToken(token)
+
+	if err != nil {
+		logger.Error(errMsg.validateSession, err)
+		return logoutResponse
+	}
+
+	email, okEmail := claims["email"].(string)
+	sId, okSID := claims["session_id"].(string)
+
+	if !okEmail || !okSID {
+		logger.Error(errMsg.validateSession, errors.New(errMsg.invalidToken))
+		return logoutResponse
+	}
+
+	err = h.r.deleteSession(email, sId)
+
+	if err != nil {
+		logger.Error(errMsg.deleteSession, err)
+		return logoutResponse
+	}
+
+	return logoutResponse
 }
 
 func (h *AuthHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
@@ -178,7 +225,6 @@ func (h *AuthHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 }
 
 // helpers
-// TODO - generate jwt token
 func generateToken(email, sessionId string) (string, error) {
 	// Create a new JWT token with claims
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
