@@ -2,9 +2,13 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
@@ -63,10 +67,6 @@ func (h *AuthHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPRespon
 }
 
 func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
-	// TODO - handle verify otp
-
-	ua := useragent.New(userAgent)
-
 	var b struct {
 		Email string `json:"email"`
 		OTP   string `json:"otp"`
@@ -87,8 +87,20 @@ func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.inValidOTP})
 	}
 
-	// TODO - handle creating user session (session table) and user id in main table
-	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "OTP verified successfully"})
+	// TODO -  if new user, send user id and a new user flag to frontend. else send user id
+
+	// create new session and set to cookie
+	newToken, err := createNewSession(b.Email, userAgent, h.r)
+
+	if err != nil {
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+	}
+
+	newCookies := map[string]string{
+		"access_token": newToken,
+	}
+
+	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully"}, newCookies)
 }
 
 func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
@@ -109,44 +121,186 @@ func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatew
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "Login successful"})
 }
 
-func (h *AuthHandler) generatedToken() error {
-	return nil
-}
-
-func (h *AuthHandler) validateToken() error {
-	return nil
-}
-
-func (h *AuthHandler) generateSession(email, userAgent string) error {
-	sId := utils.GenerateRandomString(20)
-
-	ua := useragent.New(userAgent)
-
-	browser, _ := ua.Browser()
-
-	deviceInfo := &DeviceInfo{
-		Browser:  browser,
-		OS:       ua.OS(),
-		Platform: ua.Platform(),
-		IsMobile: ua.Mobile(),
-	}
-	session := &session{
-		Id:         sId,
-		Email:      email,
-		TTL_Expiry: 10,
-		DeviceInfo: deviceInfo,
-	}
-
-	return nil
-}
-
 func (h *AuthHandler) logout() *lambda_events.APIGatewayV2HTTPResponse {
 	// TODO - remove jwt token & delete session
 	return nil
 }
 
-func (h *AuthHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequest) *lambda_events.APIGatewayCustomAuthorizerResponse {
-	token := ev.AuthorizationToken
+func (h *AuthHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
+	cookies := parseCookies(ev.Headers["Cookie"])
 
-	return nil
+	claims, err := validateToken(cookies["access_token"])
+
+	if err != nil {
+		logger.Error("Error validating JWT token", errors.New(errMsg.invalidToken))
+		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.invalidToken)
+	}
+
+	email, emailOK := claims["email"].(string)
+	sId, sIdOK := claims["session_id"].(string)
+	expiryTime, expiryOK := claims["exp"].(int64)
+
+	if !emailOK || !sIdOK || !expiryOK {
+		logger.Error("Error getting token claims", errors.New(errMsg.invalidToken))
+		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.invalidToken)
+	}
+
+	if expiryTime > time.Now().Unix() {
+		// token valid, allow access
+		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, nil), nil
+	}
+
+	// validate session
+	isValid, err := h.r.validateSession(email, sId)
+
+	if err != nil {
+		logger.Error("Error validating session", errors.New(errMsg.validateSession))
+		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.validateSession)
+	}
+
+	// if session, valid then refresh token and allow access
+	if !isValid {
+		logger.Error("Error validating session", errors.New(errMsg.validateSession))
+		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.validateSession)
+	}
+
+	newToken, err := createNewSession(email, ev.Headers["User-Agent"], h.r)
+
+	if err != nil {
+		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.createToken)
+	}
+
+	newCookies := map[string]string{
+		"access_token": newToken,
+	}
+
+	return generatePolicy("user", "Allow", ev.MethodArn, newCookies), nil
+}
+
+// helpers
+// TODO - generate jwt token
+func generateToken(email, sessionId string) (string, error) {
+	// Create a new JWT token with claims
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		// Subject (user identifier)
+		"sub": email,
+		// Audience (user role)
+		"session_id": sessionId,
+		// Issuer
+		"iss": "tabsflow-app",
+		// Expiration time
+		"exp": time.Now().AddDate(0, 0, config.JWT_TOKEN_EXPIRY_IN_DAYS).Unix(),
+		// Issued at
+		"iat": time.Now().Unix(),
+	})
+
+	tokenStr, err := claims.SignedString(config.JWT_SECRET_KEY)
+
+	if err != nil {
+		logger.Error("Error generating JWT token", err)
+		return "", err
+	}
+
+	return tokenStr, nil
+}
+
+// validate jwt token
+func validateToken(tokenStr string) (jwt.MapClaims, error) {
+
+	token, err := jwt.Parse(tokenStr, func(_ *jwt.Token) (interface{}, error) {
+		return config.JWT_SECRET_KEY, nil
+	})
+
+	if err != nil {
+		logger.Error("Error parsing JWT token", err)
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	// get session id from token
+	claims, _ := token.Claims.(jwt.MapClaims)
+
+	return claims, nil
+}
+
+// generate authorizer policy
+func generatePolicy(principalId, effect, resource string, cookies map[string]string) lambda_events.APIGatewayCustomAuthorizerResponse {
+	authResponse := lambda_events.APIGatewayCustomAuthorizerResponse{PrincipalID: principalId}
+
+	if effect != "" && resource != "" {
+		authResponse.PolicyDocument = lambda_events.APIGatewayCustomAuthorizerPolicy{
+			Version: "2012-10-17",
+			Statement: []lambda_events.IAMPolicyStatement{
+				{
+					Action:   []string{"execute-api:Invoke"},
+					Effect:   effect,
+					Resource: []string{resource},
+				},
+			},
+		}
+	}
+
+	if cookies != nil {
+		cookieStrings := make([]string, 0, len(cookies))
+		for key, value := range cookies {
+			cookieStrings = append(cookieStrings, fmt.Sprintf("%s=%s; HttpOnly; Secure; SameSite=Strict", key, value))
+		}
+		authResponse.Context = map[string]interface{}{
+			"Set-Cookie": strings.Join(cookieStrings, ", "),
+		}
+	}
+
+	return authResponse
+}
+
+// parse cookie
+func parseCookies(cookieHeader string) map[string]string {
+	cookies := make(map[string]string)
+	if cookieHeader == "" {
+		return cookies
+	}
+	pairs := strings.Split(cookieHeader, ";")
+	for _, pair := range pairs {
+		parts := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+		if len(parts) == 2 {
+			cookies[parts[0]] = parts[1]
+		}
+	}
+	return cookies
+}
+
+func createNewSession(email, userAgent string, aR authRepository) (string, error) {
+	ua := useragent.New(userAgent)
+
+	browser, _ := ua.Browser()
+
+	session := session{
+		Email:      email,
+		Id:         utils.GenerateRandomString(20),
+		TTL_Expiry: time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
+		DeviceInfo: &DeviceInfo{
+			Browser:  browser,
+			OS:       ua.OS(),
+			Platform: ua.Platform(),
+			IsMobile: ua.Mobile(),
+		},
+	}
+	err := aR.createSession(&session)
+
+	if err != nil {
+		logger.Error("Error creating session", errors.New(errMsg.createSession))
+		return "", err
+	}
+
+	newToken, err := generateToken(email, session.Id)
+
+	if err != nil {
+		logger.Error("Error creating token", errors.New(errMsg.createToken))
+		return "", err
+	}
+
+	return newToken, nil
 }

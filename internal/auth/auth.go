@@ -20,10 +20,10 @@ type emailOTP struct {
 }
 
 type session struct {
-	Id         string `json:"id"`
-	Email      string `json:"email"`
-	TTL_Expiry int32  `json:"ttlExpiry"`
-	DeviceInfo *DeviceInfo
+	Id         string      `json:"id" dynamodbav:"PK"`
+	Email      string      `json:"email" dynamodbav:"SK"`
+	TTL_Expiry int64       `json:"ttlExpiry" dynamodbav:"TTL_Expiry"`
+	DeviceInfo *DeviceInfo `json:"deviceInfo" dynamodbav:"DeviceInfo"`
 }
 
 type DeviceInfo struct {
@@ -38,16 +38,24 @@ var errMsg = struct {
 	validateOTP     string
 	inValidOTP      string
 	verifyToken     string
+	createToken     string
 	createSession   string
 	validateSession string
 	googleAuth      string
+	tokenExpired    string
+	invalidToken    string
+	invalidSession  string
 }{
 	sendOTP:         "Error sending OTP",
 	validateOTP:     "Error validating OTP",
 	inValidOTP:      "Invalid OTP",
 	googleAuth:      "Error authenticating with google",
 	createSession:   "Error creating session",
+	createToken:     "Error creating token",
 	validateSession: "Error validating session",
+	tokenExpired:    "Token expired",
+	invalidToken:    "Invalid token",
+	invalidSession:  "Invalid session",
 }
 
 type authRepository interface {
@@ -174,23 +182,20 @@ func (r *authRepo) validateSession(email, id string) (bool, error) {
 		return false, errors.New(errMsg.validateSession)
 	}
 
-	if response.Item == nil || response.Item["TTL_Expiry"] == nil {
-		return false, errors.New(errMsg.validateSession)
-	}
+	var userSession session
 
-	// check if OTP has expired
-	var ttl struct {
-		TTL_Expiry int32
-	}
-
-	err = attributevalue.UnmarshalMap(response.Item, &ttl)
+	err = attributevalue.UnmarshalMap(response.Item, &userSession)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't unmarshal session expiry from db for email: %#v", email), err)
 		return false, errors.New(errMsg.validateSession)
 	}
 
-	if ttl.TTL_Expiry < int32(time.Now().Unix()) {
+	if userSession.Id == "" {
+		return false, errors.New(errMsg.validateSession)
+	}
+
+	if userSession.TTL_Expiry < time.Now().Unix() {
 		return false, errors.New(errMsg.validateSession)
 	}
 
