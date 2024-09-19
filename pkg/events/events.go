@@ -64,19 +64,19 @@ type UserRegisteredPayload struct {
 
 func (e UserRegisteredPayload) ToMsgAttributes() map[string]types.MessageAttributeValue {
 	return map[string]types.MessageAttributeValue{
-		"EventType": {
+		"event_type": {
 			DataType:    aws.String("String"),
 			StringValue: aws.String(USER_REGISTERED.String()),
 		},
-		"Email": {
+		"email": {
 			DataType:    aws.String("String"),
 			StringValue: aws.String(e.Email),
 		},
-		"Name": {
+		"name": {
 			DataType:    aws.String("String"),
 			StringValue: aws.String(e.Name),
 		},
-		"TrailEndDate": {
+		"trail_end_date": {
 			DataType:    aws.String("String"),
 			StringValue: aws.String(e.TrailEndDate),
 		},

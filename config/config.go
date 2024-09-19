@@ -16,6 +16,8 @@ var (
 	DDB_SESSIONS_TABLE_NAME string
 	ZEPTO_MAIL_API_KEY      string
 
+	ZEPTO_MAIL_API_URL = "https://api.zeptomail.com/v1.1/email"
+
 	OTP_EXPIRY_TIME_IN_MIN   = 5
 	JWT_TOKEN_EXPIRY_IN_DAYS = 10
 	USER_SESSION_EXPIRY_DAYS = 10

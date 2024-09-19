@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-	// Initialize
+
+	// load config
 	config.Init()
 
 	lambda.Start(auth.Routes)

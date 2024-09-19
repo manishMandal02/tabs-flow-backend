@@ -25,9 +25,11 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 			Address: ev.Attributes["email"],
 		}
 
+		z := newZeptoMail()
+
 		otp := ev.Attributes["otp"]
 
-		err := sendOTPMail(otp, to)
+		err := z.sendOTPMail(otp, to)
 
 		if err != nil {
 			return err
@@ -36,23 +38,25 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 		return nil
 
 	case events.USER_REGISTERED:
-		// TODO handle send welcome email
+		z := newZeptoMail()
+
+		to := &nameAddr{
+			Name:    ev.Attributes["name"],
+			Address: ev.Attributes["email"],
+		}
+
+		trailEndDate := ev.Attributes["trail_end_date"]
+
+		z.sendWelcomeMail(to, trailEndDate)
+
+		if err != nil {
+			return err
+		}
+		// TODO - remove message/event from sqs
+
 		return nil
 	default:
 		logger.Error(fmt.Sprintf("Unknown sqs event: %v", eT), fmt.Errorf("unknown event"))
 	}
 	return nil
 }
-
-/*
-curl "https://api.zeptomail.in/v1.1/email" \
-        -X POST \
-        -H "Accept: application/json" \
-        -H "Content-Type: application/json" \
-        -H "Authorization:Zoho-enczapikey KEY" \
-        -d '{
-        "from": {"address": "support@tabsflow.com"},
-        "to": [{"email_address": {"address": "hello@manishmandal.com","name": "Manish"}}],
-        "subject":"Test Email",
-        "htmlbody":"<div><b> Test email sent successfully. </b></div>"}'
-*/
