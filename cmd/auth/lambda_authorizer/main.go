@@ -10,5 +10,5 @@ func main() {
 	// Initialize
 	config.Init()
 
-	lambda.Start(auth.Routes)
+	lambda.Start(auth.LambdaAuthorizer)
 }

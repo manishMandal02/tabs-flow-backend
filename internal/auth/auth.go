@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
@@ -50,6 +52,7 @@ var errMsg = struct {
 	tokenExpired    string
 	invalidToken    string
 	invalidSession  string
+	getUserId       string
 	logout          string
 }{
 	sendOTP:         "Error sending OTP",
@@ -63,12 +66,14 @@ var errMsg = struct {
 	tokenExpired:    "Token expired",
 	invalidToken:    "Invalid token",
 	invalidSession:  "Invalid session",
+	getUserId:       "Error getting user id",
 	logout:          "Error logging out",
 }
 
 type authRepository interface {
 	saveOTP(data *emailOTP) error
 	attachUserId(data *emailWithUserId) error
+	userIdByEmail(email string) (string, error)
 	validateOTP(email, otp string) (bool, error)
 	validateSession(email, id string) (bool, error)
 	createSession(s *session) error
@@ -165,6 +170,57 @@ func (r *authRepo) attachUserId(data *emailWithUserId) error {
 	}
 
 	return nil
+}
+
+func (r *authRepo) userIdByEmail(email string) (string, error) {
+	// primary key - partition+sort key
+
+	keyEx := expression.Key("PK").Equal(expression.Value(email))
+	keyEx.And(expression.Key("SK").BeginsWith(database.SORT_KEY_SESSIONS.UserId("")))
+
+	expr, err := expression.NewBuilder().WithKeyCondition(keyEx).Build()
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't build getUserID expression for email: %#v", email), err)
+		return "", errors.New(errMsg.createSession)
+	}
+
+	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 &r.db.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+	})
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't get user id from db for email: %#v", email), err)
+		return "", errors.New(errMsg.getUserId)
+	}
+
+	if len(response.Items) == 0 {
+		return "", errors.New("user not found")
+	}
+
+	var s struct {
+		UserId string `json:"userId" dynamodbav:"SK"`
+	}
+
+	err = attributevalue.UnmarshalMap(response.Items[0], &s)
+
+	if err != nil || s.UserId == "" {
+		logger.Error(fmt.Sprintf("Couldn't unmarshal user id from db for email: %#v", email), err)
+		return "", errors.New(errMsg.getUserId)
+	}
+
+	// get user id from sort key
+	userId := strings.Split(s.UserId, "#")[1]
+
+	if userId == "" {
+		logger.Error(fmt.Sprintf("Couldn't get user id from sort_key: %#v", s.UserId), err)
+		return "", errors.New(errMsg.getUserId)
+	}
+
+	return userId, nil
+
 }
 
 func (r *authRepo) createSession(s *session) error {

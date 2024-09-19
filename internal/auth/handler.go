@@ -77,6 +77,7 @@ func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 		logger.Error("Error decoding request body for verify otp", err)
 		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.validateOTP})
 	}
+
 	valid, err := h.r.validateOTP(b.Email, b.OTP)
 
 	if err != nil {
@@ -86,8 +87,6 @@ func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 	if !valid {
 		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.inValidOTP})
 	}
-
-	// TODO -  check if new user, send user id and a new user flag to frontend. else send user id
 
 	// create new session and set to cookie
 	newToken, err := createNewSession(b.Email, userAgent, h.r)
@@ -100,43 +99,108 @@ func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 		"access_token": newToken,
 	}
 
-	newUserId := utils.GenerateID()
+	//  check if user exits
+	userId, err := h.r.userIdByEmail(b.Email)
 
-	err = h.r.attachUserId(&emailWithUserId{
-		Email:  b.Email,
-		UserId: newUserId,
-	})
-
-	if err != nil {
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+	type respData struct {
+		UserId  string `json:"userId"`
+		NewUser bool   `json:"isNewUser"`
 	}
 
-	resData := struct {
-		UserId string `json:"userId"`
-	}{
-		UserId: newUserId,
+	if err != nil {
+		// new user
+		newUserId := utils.GenerateID()
+
+		err = h.r.attachUserId(&emailWithUserId{
+			Email:  b.Email,
+			UserId: newUserId,
+		})
+
+		if err != nil {
+			return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+		}
+
+		resData := &respData{
+			UserId:  newUserId,
+			NewUser: true,
+		}
+
+		return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData}, newCookies)
+	}
+
+	// old user
+	resData := &respData{
+		UserId:  userId,
+		NewUser: false,
 	}
 
 	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData}, newCookies)
 }
 
 func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
-
-	// TODO - handle google auth
 	var b struct {
 		Email string `json:"email"`
 	}
+
 	decoder := json.NewDecoder(strings.NewReader(body))
+
 	err := decoder.Decode(&b)
 	if err != nil {
 		logger.Error("Error decoding request body for google auth", err)
 		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.googleAuth})
 	}
 
-	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "Login successful"})
+	// create new session and set to cookie
+	newToken, err := createNewSession(b.Email, userAgent, h.r)
+
+	if err != nil {
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+	}
+
+	newCookies := map[string]string{
+		"access_token": newToken,
+	}
+
+	//  check if user exits
+	userId, err := h.r.userIdByEmail(b.Email)
+
+	type respData struct {
+		UserId  string `json:"userId"`
+		NewUser bool   `json:"isNewUser"`
+	}
+
+	if err != nil {
+		// new user
+		newUserId := utils.GenerateID()
+
+		err = h.r.attachUserId(&emailWithUserId{
+			Email:  b.Email,
+			UserId: newUserId,
+		})
+
+		if err != nil {
+			return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+		}
+
+		resData := &respData{
+			UserId:  newUserId,
+			NewUser: true,
+		}
+
+		return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Google auth successful", Data: resData}, newCookies)
+	}
+
+	// old user
+	resData := &respData{
+		UserId:  userId,
+		NewUser: false,
+	}
+
+	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Google auth successful", Data: resData}, newCookies)
+
 }
 
-func (h *AuthHandler) logout(cookieStr []string, body string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *AuthHandler) logout(cookieStr []string) *lambda_events.APIGatewayV2HTTPResponse {
 
 	newCookies := map[string]string{
 		"access_token": "",
@@ -365,3 +429,5 @@ func createNewSession(email, userAgent string, aR authRepository) (string, error
 
 	return newToken, nil
 }
+
+// helper

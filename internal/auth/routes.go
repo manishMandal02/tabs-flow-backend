@@ -8,9 +8,18 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-// user agent
-// req.requestContext.http.userAgent
+// custom API_GW lambda authorizer
+func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
+	db := database.New()
 
+	ar := newAuthRepository(db)
+
+	handler := newAuthHandler(ar)
+
+	return handler.lambdaAuthorizer(ev)
+}
+
+// handle API routes
 func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGatewayV2HTTPResponse {
 
 	db := database.New()
@@ -26,23 +35,23 @@ func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGateway
 	reqMethod := req.RequestContext.HTTP.Method
 
 	if reqMethod == "GET" {
-		if req.RawPath == "/users/logout" {
-			return handler.logout(req.Cookies, req.Body)
+		if req.RawPath == "/auth/logout" {
+			return handler.logout(req.Cookies)
 		}
 
-		if req.RawPath == "/users/verify-otp" {
+		if req.RawPath == "/auth/verify-otp" {
 			ua := req.RequestContext.HTTP.UserAgent
 			return handler.verifyOTP(req.Body, ua)
 		}
 	}
 
 	if reqMethod == "POST" {
-		if req.RawPath == "/users/login" {
+		if req.RawPath == "/auth/google" {
 			ua := req.RequestContext.HTTP.UserAgent
 			return handler.googleAuth(req.Body, ua)
 		}
 
-		if req.RawPath == "/users/send-otp" {
+		if req.RawPath == "/auth/send-otp" {
 			return handler.sendOTP(req.Body)
 		}
 	}
