@@ -136,7 +136,7 @@ func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatew
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "Login successful"})
 }
 
-func (h *AuthHandler) logout(cookieStr, body string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *AuthHandler) logout(cookieStr []string, body string) *lambda_events.APIGatewayV2HTTPResponse {
 
 	newCookies := map[string]string{
 		"access_token": "",
@@ -144,7 +144,7 @@ func (h *AuthHandler) logout(cookieStr, body string) *lambda_events.APIGatewayV2
 
 	logoutResponse := http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Logged out"}, newCookies)
 
-	cookies := parseCookies(cookieStr)
+	cookies := parseCookiesPair(cookieStr)
 
 	token := cookies["access_token"]
 
@@ -174,7 +174,7 @@ func (h *AuthHandler) logout(cookieStr, body string) *lambda_events.APIGatewayV2
 }
 
 func (h *AuthHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
-	cookies := parseCookies(ev.Headers["Cookie"])
+	cookies := parseCookiesStr(ev.Headers["Cookie"])
 
 	claims, err := validateToken(cookies["access_token"])
 
@@ -303,13 +303,28 @@ func generatePolicy(principalId, effect, resource string, cookies map[string]str
 }
 
 // parse cookie
-func parseCookies(cookieHeader string) map[string]string {
+func parseCookiesStr(cookieHeader string) map[string]string {
 	cookies := make(map[string]string)
 	if cookieHeader == "" {
 		return cookies
 	}
 	pairs := strings.Split(cookieHeader, ";")
 	for _, pair := range pairs {
+		parts := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+		if len(parts) == 2 {
+			cookies[parts[0]] = parts[1]
+		}
+	}
+	return cookies
+}
+
+func parseCookiesPair(cookiePairs []string) map[string]string {
+	cookies := make(map[string]string)
+	if len(cookiePairs) < 1 {
+		return cookies
+	}
+
+	for _, pair := range cookiePairs {
 		parts := strings.SplitN(strings.TrimSpace(pair), "=", 2)
 		if len(parts) == 2 {
 			cookies[parts[0]] = parts[1]

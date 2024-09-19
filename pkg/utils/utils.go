@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"math"
 	"math/big"
+	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
@@ -37,4 +39,23 @@ func GenerateOTP() string {
 		panic(err)
 	}
 	return fmt.Sprintf("%0*d", maxDigits, bi)
+}
+
+func MakeHTTPRequest(method, url string, headers map[string]string, body []byte) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return resp, nil
 }

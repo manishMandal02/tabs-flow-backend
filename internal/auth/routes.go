@@ -27,7 +27,7 @@ func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGateway
 
 	if reqMethod == "GET" {
 		if req.RawPath == "/users/logout" {
-			return handler.logout()
+			return handler.logout(req.Cookies, req.Body)
 		}
 
 		if req.RawPath == "/users/verify-otp" {

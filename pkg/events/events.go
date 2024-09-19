@@ -37,15 +37,15 @@ func (e SendOTP_Payload) GetEventType() EventType {
 
 func (e SendOTP_Payload) ToMsgAttributes() map[string]types.MessageAttributeValue {
 	return map[string]types.MessageAttributeValue{
-		"EventType": {
+		"event_type": {
 			DataType:    aws.String("String"),
 			StringValue: aws.String(SEND_OTP.String()),
 		},
-		"Email": {
+		"email": {
 			DataType:    aws.String("String"),
 			StringValue: aws.String(e.Email),
 		},
-		"OTP": {
+		"otp": {
 			DataType:    aws.String("String"),
 			StringValue: aws.String(e.OTP),
 		},

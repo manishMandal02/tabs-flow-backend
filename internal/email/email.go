@@ -2,7 +2,6 @@ package email
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
@@ -21,43 +20,27 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 
 	switch eT {
 	case events.SEND_OTP:
-		// TODO handle send OTP email
+		to := &nameAddr{
+			Name:    ev.Attributes["email"],
+			Address: ev.Attributes["email"],
+		}
+
+		otp := ev.Attributes["otp"]
+
+		err := sendOTPMail(otp, to)
+
+		if err != nil {
+			return err
+		}
+		// TODO - remove message/event from sqs
 		return nil
+
 	case events.USER_REGISTERED:
 		// TODO handle send welcome email
 		return nil
 	default:
 		logger.Error(fmt.Sprintf("Unknown sqs event: %v", eT), fmt.Errorf("unknown event"))
 	}
-
-	var emailEvent events.SendOTP_Payload
-
-	jsonStr, err := json.Marshal(ev.Attributes)
-
-	if err != nil {
-		logger.Error("Error un_marshaling email event", err)
-		return err
-	}
-
-	if err = json.Unmarshal(jsonStr, &emailEvent); err != nil {
-		logger.Error("Error marshaling email event", err)
-		return err
-	}
-
-	// TODO - send email
-
-	// TODO - load config from env
-	// cfg, err := config.LoadDefaultConfig(context.TODO())
-	// if err != nil {
-	// 	log.Fatalf("failed to load configuration, %v", err)
-	// }
-	// https://aws.github.io/aws-sdk-go-v2/docs/configuring-sdk/
-
-	// TODO - read sqs message
-	// TODO - send email through ses
-
-	fmt.Println("sqs event: ", emailEvent)
-
 	return nil
 }
 
