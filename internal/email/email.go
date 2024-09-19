@@ -34,7 +34,15 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 		if err != nil {
 			return err
 		}
-		// TODO - remove message/event from sqs
+		// remove message from sqs
+		q := events.NewQueue()
+
+		err = q.DeleteMessage(ev.ReceiptHandle)
+
+		if err != nil {
+			return err
+		}
+
 		return nil
 
 	case events.USER_REGISTERED:
@@ -52,9 +60,16 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 		if err != nil {
 			return err
 		}
-		// TODO - remove message/event from sqs
+		// remove message from sqs
+		q := events.NewQueue()
 
+		err = q.DeleteMessage(ev.ReceiptHandle)
+
+		if err != nil {
+			return err
+		}
 		return nil
+
 	default:
 		logger.Error(fmt.Sprintf("Unknown sqs event: %v", eT), fmt.Errorf("unknown event"))
 	}

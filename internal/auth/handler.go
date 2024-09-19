@@ -57,7 +57,7 @@ func (h *AuthHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPRespon
 
 	sqs := events.NewQueue()
 
-	err = sqs.AddMsgToQueue(event)
+	err = sqs.AddMessage(event)
 
 	if err != nil {
 		return http_api.APIResponse(500, http_api.RespBody{Success: false, Message: "Error sending OTP"})

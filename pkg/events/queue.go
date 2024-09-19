@@ -27,7 +27,7 @@ func NewQueue() *Queue {
 }
 
 // sqs helper fn to send messages
-func (q *Queue) AddMsgToQueue(ev Event) error {
+func (q *Queue) AddMessage(ev Event) error {
 
 	res, err := q.client.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		DelaySeconds:      *aws.Int32(1),
@@ -38,6 +38,21 @@ func (q *Queue) AddMsgToQueue(ev Event) error {
 
 	if err != nil || res.MessageId == nil {
 		logger.Error(fmt.Sprintf("Error sending message to SQS queue for event_type: %v", ev.GetEventType().String()), err)
+		return err
+	}
+
+	return nil
+}
+
+func (q *Queue) DeleteMessage(r string) error {
+
+	_, err := q.client.DeleteMessage(context.TODO(), &sqs.DeleteMessageInput{
+		QueueUrl:      &q.url,
+		ReceiptHandle: aws.String(""),
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Error deleting message from SQS queue for receipt_handle: %v", r), err)
 		return err
 	}
 
