@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import { App } from 'aws-cdk-lib';
+import { ServiceStack } from '../lib/stacks/services/services-stack';
 import { StatefulStack } from '../lib/stacks/stateful';
-import { APIServiceStack } from '../lib/stacks/api-service/api-service';
 
 // TODO - Add TTL for Session Table while creating the table
 
@@ -18,7 +18,7 @@ const config = {
   emailQueueName: 'EmailQueue'
 };
 
-new StatefulStack(app, 'StatefulStack', {
+const statefulStack = new StatefulStack(app, 'StatefulStack', {
   terminationProtection: false,
   env: {
     account: process.env.AWS_ACCOUNT ?? '054037097197',
@@ -27,13 +27,14 @@ new StatefulStack(app, 'StatefulStack', {
   ...config
 });
 
-new APIServiceStack(app, 'APIServiceStack', {
+new ServiceStack(app, 'ServiceStack', {
   terminationProtection: false,
+  ...config,
   env: {
     account: process.env.AWS_ACCOUNT ?? '054037097197',
     region: process.env.AWS_REGION ?? 'ap-south-1'
   },
-  ...config
+  database: statefulStack.database
 });
 
 // synthesize stacks;

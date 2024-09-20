@@ -40,3 +40,4 @@ go.work.sum
 
 # env file
 .env
+infra/lib/stacks/services/auth.ts

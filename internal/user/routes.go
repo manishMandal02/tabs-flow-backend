@@ -8,23 +8,6 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-// TODO - handle get user by email in auth lambda, as it requires cognito access
-
-// if req.Body != "" && strings.Contains(req.Body, "email") {
-// // get user by email
-// 	var evBody struct {
-// 		Email string `json:"email"`
-// 	}
-
-// 	err := json.Unmarshal([]byte(req.Body), &evBody)
-
-// 	if err != nil {
-// 		return http_api.APIResponse(500, `{"message":  "invalid email" }`)
-// 	}
-
-// 	return handler.userByEmail(evBody.Email)
-// }
-
 func Routes(req events.APIGatewayV2HTTPRequest) *events.APIGatewayV2HTTPResponse {
 
 	db := database.New()
@@ -78,9 +61,3 @@ func Routes(req events.APIGatewayV2HTTPRequest) *events.APIGatewayV2HTTPResponse
 
 	return http_api.APIResponse(404, http_api.RespBody{Message: http_api.ErrorMethodNotAllowed, Success: false})
 }
-
-// user api routes
-// GET users/{id}
-// POST users
-// PUT users/{id}
-// DELETE users/{id}

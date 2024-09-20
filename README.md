@@ -26,13 +26,12 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 - **Cloud Provider**: AWS
   - CDK (Infrastructure as Code)
   - API Gateway (REST APIs)
-  - Cognito (Authentication & Authorization)
   - Lambda (Compute Services)
   - DynamoDB (Main Data Store)
   - SQS (Asynchronous Tasks)
-  - SES (Transactional Emails)
   - CloudWatch (Monitoring & Logging)
   - EventBridge (Scheduling Future Tasks)
+- **Zoho ZeptoMail**: Transactional Emails
 
 ## Architecture
 
@@ -92,11 +91,11 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 ## Sessions Table Design (DynamoDB)
 
-| Partition Key (PK) | Sort Key (SK)       | Item Attributes                   |
-| ------------------ | ------------------- | --------------------------------- |
-| EmailId            | UserId#{userId}     |                                   |
-|                    | OTP#{otp}           | TTL_Expiry                        |
-|                    | Session#{sessionId} | CreatedAt, TTL_Expiry, DeviceInfo |
+| Partition Key (PK) | Sort Key (SK)       | Item Attributes            |
+| ------------------ | ------------------- | -------------------------- |
+| EmailId            | UserId#{userId}     |                            |
+|                    | OTP#{otp}           | TTL                        |
+|                    | Session#{sessionId} | CreatedAt, TTL, DeviceInfo |
 
 ## Services
 
@@ -104,10 +103,10 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 - Handles authentication and authorization
 - Features:
-  - Google OAuth integration
-  - API Gateway Authorizer
+  - Google OAuth
   - Email-based OTP verification
-  - JWT session management
+  - API Gateway Lambda Authorizer
+  - session management with JWT
 
 ### User Service
 

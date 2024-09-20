@@ -19,17 +19,17 @@ import (
 
 // if userId not found in Session table, add user profile (U#Profile) to main table
 
-type AuthHandler struct {
+type authHandler struct {
 	r authRepository
 }
 
-func newAuthHandler(repo authRepository) *AuthHandler {
-	return &AuthHandler{
+func newAuthHandler(repo authRepository) *authHandler {
+	return &authHandler{
 		r: repo,
 	}
 }
 
-func (h *AuthHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPResponse {
 	var b struct {
 		Email string `json:"email"`
 	}
@@ -40,9 +40,9 @@ func (h *AuthHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPRespon
 	otp := utils.GenerateOTP()
 
 	err := h.r.saveOTP(&emailOTP{
-		OTP:        otp,
-		Email:      b.Email,
-		TTL_Expiry: time.Now().Add(time.Minute * time.Duration(config.OTP_EXPIRY_TIME_IN_MIN)).Unix(),
+		OTP:   otp,
+		Email: b.Email,
+		TTL:   time.Now().Add(time.Minute * time.Duration(config.OTP_EXPIRY_TIME_IN_MIN)).Unix(),
 	})
 
 	if err != nil {
@@ -66,7 +66,7 @@ func (h *AuthHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPRespon
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "OTP sent successfully"})
 }
 
-func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
 	var b struct {
 		Email string `json:"email"`
 		OTP   string `json:"otp"`
@@ -137,7 +137,7 @@ func (h *AuthHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData}, newCookies)
 }
 
-func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) googleAuth(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
 	var b struct {
 		Email string `json:"email"`
 	}
@@ -200,7 +200,35 @@ func (h *AuthHandler) googleAuth(body, userAgent string) *lambda_events.APIGatew
 
 }
 
-func (h *AuthHandler) logout(cookieStr []string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) getUserId(body string) *lambda_events.APIGatewayV2HTTPResponse {
+
+	var b struct {
+		Email string `json:"email"`
+	}
+
+	decoder := json.NewDecoder(strings.NewReader(body))
+	err := decoder.Decode(&b)
+
+	if err != nil {
+		logger.Error("Error decoding request body for get_user_id", err)
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.getUserId})
+	}
+	userId, err := h.r.userIdByEmail(b.Email)
+
+	if err != nil {
+		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.getUserId})
+	}
+
+	resData := &struct {
+		UserId string `json:"userId"`
+	}{
+		UserId: userId,
+	}
+
+	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "User id", Data: resData})
+}
+
+func (h *authHandler) logout(cookieStr []string) *lambda_events.APIGatewayV2HTTPResponse {
 
 	newCookies := map[string]string{
 		"access_token": "",
@@ -237,7 +265,7 @@ func (h *AuthHandler) logout(cookieStr []string) *lambda_events.APIGatewayV2HTTP
 	return logoutResponse
 }
 
-func (h *AuthHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
+func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
 	cookies := parseCookiesStr(ev.Headers["Cookie"])
 
 	claims, err := validateToken(cookies["access_token"])
@@ -403,10 +431,10 @@ func createNewSession(email, userAgent string, aR authRepository) (string, error
 	browser, _ := ua.Browser()
 
 	session := session{
-		Email:      email,
-		Id:         utils.GenerateRandomString(20),
-		TTL_Expiry: time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
-		DeviceInfo: &DeviceInfo{
+		Email: email,
+		Id:    utils.GenerateRandomString(20),
+		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
+		DeviceInfo: &deviceInfo{
 			Browser:  browser,
 			OS:       ua.OS(),
 			Platform: ua.Platform(),

@@ -43,6 +43,11 @@ func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGateway
 			ua := req.RequestContext.HTTP.UserAgent
 			return handler.verifyOTP(req.Body, ua)
 		}
+
+		if req.RawPath == "/auth/user-id" {
+			return handler.getUserId(req.Body)
+		}
+
 	}
 
 	if reqMethod == "POST" {
