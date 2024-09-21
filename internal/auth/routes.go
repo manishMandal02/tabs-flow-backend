@@ -10,7 +10,7 @@ import (
 
 // custom API_GW lambda authorizer
 func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
-	db := database.New()
+	db := database.NewSessionTable()
 
 	ar := newAuthRepository(db)
 
@@ -22,7 +22,7 @@ func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeReq
 // handle API routes
 func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGatewayV2HTTPResponse {
 
-	db := database.New()
+	db := database.NewSessionTable()
 
 	ar := newAuthRepository(db)
 
@@ -35,9 +35,6 @@ func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGateway
 	reqMethod := req.RequestContext.HTTP.Method
 
 	if reqMethod == "GET" {
-		if req.RawPath == "/auth/logout" {
-			return handler.logout(req.Cookies)
-		}
 
 		if req.RawPath == "/auth/verify-otp" {
 			ua := req.RequestContext.HTTP.UserAgent
@@ -46,6 +43,9 @@ func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGateway
 
 		if req.RawPath == "/auth/user-id" {
 			return handler.getUserId(req.Body)
+		}
+		if req.RawPath == "/auth/logout" {
+			return handler.logout(req.Cookies)
 		}
 
 	}

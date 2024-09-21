@@ -11,7 +11,7 @@ import (
 var (
 	AWS_REGION              string
 	JWT_SECRET_KEY          string
-	SQS_QUEUE_URL           string
+	EMAIL_SQS_QUEUE_URL     string
 	DDB_MAIN_TABLE_NAME     string
 	DDB_SESSIONS_TABLE_NAME string
 	ZEPTO_MAIL_API_KEY      string
@@ -31,7 +31,7 @@ func Init() {
 
 	AWS_REGION = os.Getenv("AWS_REGION")
 	JWT_SECRET_KEY = os.Getenv("JWT_SECRET_KEY")
-	SQS_QUEUE_URL = os.Getenv("SQS_QUEUE_URL")
+	EMAIL_SQS_QUEUE_URL = os.Getenv("EMAIL_SQS_QUEUE_URL")
 	DDB_MAIN_TABLE_NAME = os.Getenv("DDB_TABLE_NAME")
 	ZEPTO_MAIL_API_KEY = os.Getenv("ZEPTO_MAIL_API_KEY")
 	DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")

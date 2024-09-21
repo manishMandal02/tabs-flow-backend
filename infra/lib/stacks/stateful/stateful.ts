@@ -4,38 +4,50 @@ import { config } from '../../../config';
 
 type StatefulStackProps = StackProps & {
   stage: string;
-  appName: string;
-  googleClientId: string;
-  googleClientSecret: string;
-  sesEmail: string;
-  emailQueueName: string;
 };
 
 export class StatefulStack extends Stack {
   // go lambda triggers
 
-  database: aws_dynamodb.Table;
+  mainDB: aws_dynamodb.Table;
+  sessionsDB: aws_dynamodb.Table;
 
   constructor(scope: Construct, id: string, props: StatefulStackProps) {
     super(scope, id, props);
 
-    const tableName = `${config.DDB.MainTableName} ${props.stage}`;
+    const mainTableName = `${config.dynamoDB.MainTableName} ${props.stage}`;
+    const sessionsTableName = `${config.dynamoDB.SessionsTable} ${props.stage}`;
 
-    const table = new aws_dynamodb.Table(this, tableName, {
-      tableName: tableName,
+    const mainTable = new aws_dynamodb.Table(this, mainTableName, {
+      tableName: mainTableName,
       billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: {
-        name: config.DDB.PrimaryKey,
+        name: config.dynamoDB.PrimaryKey,
         type: aws_dynamodb.AttributeType.STRING
       },
       sortKey: {
-        name: config.DDB.SortKey,
+        name: config.dynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING
       },
-      timeToLiveAttribute: config.DDB.TTL,
       removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
     });
 
-    this.database = table;
+    const sessionsTable = new aws_dynamodb.Table(this, sessionsTableName, {
+      tableName: sessionsTableName,
+      billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+      partitionKey: {
+        name: config.dynamoDB.PrimaryKey,
+        type: aws_dynamodb.AttributeType.STRING
+      },
+      sortKey: {
+        name: config.dynamoDB.SortKey,
+        type: aws_dynamodb.AttributeType.STRING
+      },
+      timeToLiveAttribute: config.dynamoDB.TTL,
+      removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+    });
+
+    this.mainDB = mainTable;
+    this.sessionsDB = sessionsTable;
   }
 }

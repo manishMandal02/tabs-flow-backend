@@ -101,61 +101,76 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 ### Auth Service
 
-- Handles authentication and authorization
-- Features:
-  - Google OAuth
-  - Email-based OTP verification
-  - API Gateway Lambda Authorizer
-  - session management with JWT
+- Handles authn & authz: Google OAuth, OPT verification, and session management.
+- API Endpoints: /auth
+  - Get: /verify-otp
+  - Get: /user-id
+  - Get: /logout
+  - POST: /google
+  - POST: /send-otp
+- Env variables:
+  - AWS_REGION
+  - JWT_SECRET_KEY
+  - EMAIL_SQS_QUEUE_URL
+  - DDB_MAIN_TABLE_NAME
+  - DDB_SESSIONS_TABLE_NAME
 
 ### User Service
 
 - Manages user-related operations
-- Endpoints:
-  - GET/PUT: Profile
-  - GET/PUT: Preferences
-  - GET/PUT: Subscription
+- API Endpoints: /users
+
+  - GET/PUT: /profile
+  - GET/PUT: /preferences
+  - GET/PUT: /subscription
+
+- Env variables:
+  - AWS_REGION
+  - JWT_SECRET_KEY
+  - EMAIL_SQS_QUEUE_URL
+  - DDB_MAIN_TABLE_NAME
+  - DDB_SESSIONS_TABLE_NAME
 
 ### Spaces Service
 
 - Manages tabs, spaces, and groups
-- Endpoints:
-  - GET/PUT: Spaces
-  - GET/PUT: Tabs
-  - GET/PUT: Groups
+- API Endpoints: /spaces
+  - GET/PUT: /spaces
+  - GET/PUT: /tabs
+  - GET/PUT: /groups
 
 ### Sync Service
 
 - Synchronizes local data with the cloud
-- Endpoints:
-  - POST: Sync data
+- API Endpoints: /sync
+  - POST: /{userId}
 
 ### UsageAnalytics Service
 
 - Tracks and manages space usage data
-- Endpoints:
-  - GET: Retrieve space usage data
-  - PATCH: Update user space usage
+- API Endpoints: /user-analytics
+  - GET: /{userId}
+  - PATCH: /{userId}
 
 ### Notification Service
 
 - Handles notification management
-- Endpoints:
-  - GET: Retrieve notifications
-  - POST: Create notification
-  - DELETE: Delete notification
+- API Endpoints: /notifications
+  - GET: /{userId}
+  - POST: /{userId}
+  - DELETE: /{userId}
 
 ### Email Service
 
 - Sends transactional emails
 - No direct API access
-- Polls an SQS queue (Email Queue) for messages to send emails
+- Polls an SQS queue for messages to send emails (e.g., welcome emails)
 
 ### Scheduler Service
 
 - Schedules tasks for future execution
 - No direct API access
-- Polls an SQS queue (Scheduler Queue) for messages to schedule tasks (e.g., note reminders)
+- Polls an SQS queue for messages to schedule tasks (e.g., note reminders)
 
 ### Monitoring Service
 

@@ -10,12 +10,7 @@ const app = new App();
 
 // TODO - figure the multi region and environments deployment
 const config = {
-  stage: 'dev',
-  appName: 'TabsFlow',
-  googleClientId: 'foo',
-  googleClientSecret: 'bar',
-  sesEmail: 'support@tabflows.com',
-  emailQueueName: 'EmailQueue'
+  stage: 'dev'
 };
 
 const statefulStack = new StatefulStack(app, 'StatefulStack', {
@@ -34,7 +29,8 @@ new ServiceStack(app, 'ServiceStack', {
     account: process.env.AWS_ACCOUNT ?? '054037097197',
     region: process.env.AWS_REGION ?? 'ap-south-1'
   },
-  database: statefulStack.database
+  mainDB: statefulStack.mainDB,
+  sessionsDB: statefulStack.sessionsDB
 });
 
 // synthesize stacks;

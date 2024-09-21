@@ -9,14 +9,16 @@ import { config } from '../../../config';
 
 type EmailServiceProps = {
   stage: string;
-  ZEPTO_MAIL_API_KEY: string;
 };
 
 export class EmailService extends Construct {
+  queueURL: string;
   constructor(scope: Construct, id: string, props: EmailServiceProps) {
     super(scope, id);
 
-    const queueName = `${config.AppName.toLowerCase()}_emailsv-${props.stage}`;
+    const { AWS_REGION, ZEPTO_MAIL_API_KEY, EMAIL_SQS_QUEUE_URL } = config.Env;
+
+    const queueName = `${config.AppName.toLowerCase()}_emails-${props.stage}`;
     //- sqs queue
     const dlqEmail = new sqs.Queue(this, queueName + '-dlq', {
       visibilityTimeout: Duration.seconds(300)
@@ -35,10 +37,12 @@ export class EmailService extends Construct {
     const emailServiceFunction = new GoFunction(this, `${id}-${props.stage}`, {
       entry: 'cmd/email/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
-      timeout: Duration.seconds(30),
-      memorySize: 128,
+      timeout: config.lambda.Timeout,
+      memorySize: config.lambda.MemorySize,
       environment: {
-        ZEPTO_MAIL_API_KEY: props.ZEPTO_MAIL_API_KEY
+        AWS_REGION,
+        ZEPTO_MAIL_API_KEY,
+        EMAIL_SQS_QUEUE_URL
       }
     });
 
@@ -47,5 +51,7 @@ export class EmailService extends Construct {
 
     // add sqs as event source
     emailServiceFunction.addEventSource(new eventSources.SqsEventSource(emailQueue));
+
+    this.queueURL = emailQueue.queueUrl;
   }
 }
