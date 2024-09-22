@@ -1,4 +1,9 @@
 import { Duration } from 'aws-cdk-lib';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const Dev = {
   Stage: 'dev'
@@ -17,8 +22,9 @@ const dynamoDB = {
 };
 
 const lambda = {
+  MemorySize: 128,
   Timeout: Duration.seconds(20),
-  MemorySize: 128
+  LogRetention: RetentionDays.ONE_MONTH
 };
 
 const common = {
@@ -36,12 +42,8 @@ const getEnv = (key: string) => {
 };
 
 const Env = {
-  AWS_REGION: getEnv('AWS_REGION'),
   JWT_SECRET_KEY: getEnv('JWT_SECRET_KEY'),
-  ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY'),
-  EMAIL_SQS_QUEUE_URL: getEnv('EMAIL_SQS_QUEUE_URL'),
-  DDB_MAIN_TABLE_NAME: getEnv('DDB_MAIN_TABLE_NAME'),
-  DDB_SESSIONS_TABLE_NAME: getEnv('DDB_SESSIONS_TABLE_NAME')
+  ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY')
 };
 
 export const config = {

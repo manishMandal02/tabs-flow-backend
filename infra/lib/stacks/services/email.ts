@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { Duration, aws_lambda } from 'aws-cdk-lib';
+import { Duration, aws_iam, aws_lambda } from 'aws-cdk-lib';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
 import * as eventSources from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -9,6 +9,7 @@ import { config } from '../../../config';
 
 type EmailServiceProps = {
   stage: string;
+  lambdaRole: aws_iam.Role;
 };
 
 export class EmailService extends Construct {
@@ -16,7 +17,7 @@ export class EmailService extends Construct {
   constructor(scope: Construct, id: string, props: EmailServiceProps) {
     super(scope, id);
 
-    const { AWS_REGION, ZEPTO_MAIL_API_KEY, EMAIL_SQS_QUEUE_URL } = config.Env;
+    const { ZEPTO_MAIL_API_KEY } = config.Env;
 
     const queueName = `${config.AppName.toLowerCase()}_emails-${props.stage}`;
     //- sqs queue
@@ -35,14 +36,15 @@ export class EmailService extends Construct {
     });
 
     const emailServiceFunction = new GoFunction(this, `${id}-${props.stage}`, {
-      entry: 'cmd/email/main.go',
+      entry: '../cmd/email/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,
       memorySize: config.lambda.MemorySize,
+      logRetention: config.lambda.LogRetention,
+      role: props.lambdaRole,
       environment: {
-        AWS_REGION,
         ZEPTO_MAIL_API_KEY,
-        EMAIL_SQS_QUEUE_URL
+        EMAIL_SQS_QUEUE_URL: emailQueue.queueUrl
       }
     });
 
