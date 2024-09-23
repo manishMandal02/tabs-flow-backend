@@ -12,6 +12,7 @@ type UserServiceProps = {
   db: aws_dynamodb.Table;
   lambdaRole: aws_iam.Role;
   emailQueueURL: string;
+  apiAuthorizer: aws_apigateway.RequestAuthorizer;
 };
 
 export class UserService extends Construct {
@@ -19,12 +20,13 @@ export class UserService extends Construct {
     super(scope, id);
 
     const usersServiceLambda = new GoFunction(this, `${id}-${props.stage}`, {
-      entry: 'cmd/users/main.go',
+      entry: '../cmd/users/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,
       memorySize: config.lambda.MemorySize,
       logRetention: config.lambda.LogRetention,
       role: props.lambdaRole,
+      bundling: config.lambda.GoBundling,
       environment: {
         EMAIL_SQS_QUEUE_URL: props.emailQueueURL,
         DDB_SESSIONS_TABLE_NAME: props.db.tableName
@@ -36,6 +38,9 @@ export class UserService extends Construct {
 
     // add users resource/endpoints to api gateway
     const authResource = props.apiGW.root.addResource('users');
-    authResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(usersServiceLambda));
+    authResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(usersServiceLambda), {
+      authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
+      authorizer: props.apiAuthorizer
+    });
   }
 }

@@ -15,8 +15,8 @@ export class StatefulStack extends Stack {
   constructor(scope: Construct, id: string, props: StatefulStackProps) {
     super(scope, id, props);
 
-    const mainTableName = `${config.AppName} Main ${props.stage}`;
-    const sessionsTableName = `${config.AppName} Sessions ${props.stage}`;
+    const mainTableName = `${config.AppName}Main${props.stage}`;
+    const sessionsTableName = `${config.AppName}Sessions${props.stage}`;
 
     const mainTable = new aws_dynamodb.Table(this, mainTableName, {
       tableName: mainTableName,

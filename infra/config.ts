@@ -24,7 +24,10 @@ const dynamoDB = {
 const lambda = {
   MemorySize: 128,
   Timeout: Duration.seconds(20),
-  LogRetention: RetentionDays.ONE_MONTH
+  LogRetention: RetentionDays.ONE_MONTH,
+  GoBundling: {
+    // goBuildFlags: ['-ldflags="-s -w"']
+  }
 };
 
 const common = {

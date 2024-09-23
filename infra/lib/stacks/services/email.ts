@@ -42,6 +42,7 @@ export class EmailService extends Construct {
       memorySize: config.lambda.MemorySize,
       logRetention: config.lambda.LogRetention,
       role: props.lambdaRole,
+      bundling: config.lambda.GoBundling,
       environment: {
         ZEPTO_MAIL_API_KEY,
         EMAIL_SQS_QUEUE_URL: emailQueue.queueUrl

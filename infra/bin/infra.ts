@@ -4,8 +4,6 @@ import { App } from 'aws-cdk-lib';
 import { ServiceStack } from '../lib/stacks/services/services-stack';
 import { StatefulStack } from '../lib/stacks/stateful';
 
-// TODO - Add TTL for Session Table while creating the table
-
 const app = new App();
 
 // TODO - figure the multi region and environments deployment
@@ -27,7 +25,6 @@ new ServiceStack(app, 'ServiceStack', {
   ...config,
   env: {
     account: process.env.AWS_ACCOUNT,
-
     region: process.env.AWS_REGION
   },
   mainDB: statefulStack.mainDB,

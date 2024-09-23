@@ -32,7 +32,7 @@ export class ServiceStack extends Stack {
       stage: props.stage
     });
 
-    new AuthService(this, 'AuthService', {
+    const authService = new AuthService(this, 'AuthService', {
       lambdaRole,
       stage: props.stage,
       apiGW: resAPI,
@@ -45,6 +45,7 @@ export class ServiceStack extends Stack {
       apiGW: resAPI,
       lambdaRole,
       db: props.mainDB,
+      apiAuthorizer: authService.apiAuthorizer,
       emailQueueURL: emailService.queueURL
     });
   }

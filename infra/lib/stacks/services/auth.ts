@@ -13,21 +13,20 @@ type AuthServiceProps = {
 };
 
 export class AuthService extends Construct {
+  apiAuthorizer: apiGateway.RequestAuthorizer;
   constructor(scope: Construct, id: string, props: AuthServiceProps) {
     super(scope, id);
 
     const { JWT_SECRET_KEY } = config.Env;
 
     const authServiceLambda = new GoFunction(this, `${id}-${props.stage}`, {
-      entry: 'cmd/auth/main.go',
+      entry: '../cmd/auth/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,
       memorySize: config.lambda.MemorySize,
       logRetention: config.lambda.LogRetention,
       role: props.lambdaRole,
-      bundling: {
-        goBuildFlags: ['-ldflags', '-s -w']
-      },
+      bundling: config.lambda.GoBundling,
       environment: {
         JWT_SECRET_KEY,
         EMAIL_SQS_QUEUE_URL: props.emailQueueURL,
@@ -44,12 +43,13 @@ export class AuthService extends Construct {
 
     //*-- authorizer --
     const authorizerLambda = new GoFunction(this, `authorizer-${props.stage}`, {
-      entry: 'cmd/auth/main.go',
+      entry: '../cmd/auth/lambda_authorizer/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,
       memorySize: config.lambda.MemorySize,
       logRetention: config.lambda.LogRetention,
       role: props.lambdaRole,
+      bundling: config.lambda.GoBundling,
       environment: {
         JWT_SECRET_KEY,
         DDB_SESSIONS_TABLE_NAME: props.sessionDB.tableName
@@ -62,14 +62,12 @@ export class AuthService extends Construct {
     const authorizer = new apiGateway.RequestAuthorizer(this, authorizerName, {
       authorizerName,
       handler: authorizerLambda,
-      identitySources: [apiGateway.IdentitySource.header('Cookies')],
+      identitySources: [apiGateway.IdentitySource.header('cookies')],
       resultsCacheTtl: Duration.minutes(5)
     });
 
     props.sessionDB.grantReadWriteData(authorizerLambda);
 
-    authorizer._attachToApi(props.apiGW);
-
-    authorizerLambda.grantInvoke(authServiceLambda);
+    this.apiAuthorizer = authorizer;
   }
 }
