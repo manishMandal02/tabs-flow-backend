@@ -16,7 +16,7 @@ type UserServiceProps = {
 };
 
 export class UserService extends Construct {
-  constructor(scope: Construct, id: string, props: UserServiceProps) {
+  constructor(scope: Construct, props: UserServiceProps, id: string = 'UserService') {
     super(scope, id);
 
     const usersServiceLambda = new GoFunction(this, `${id}-${props.stage}`, {

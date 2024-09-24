@@ -9,13 +9,21 @@ lint-go:
 # All Linting
 lint: lint-ts lint-go
 
-# Build Go services
-build-go:
-	go build -o bin/app ./cmd/app/main.go
+# CDK dev environment setup
+cdk-synth: 
+	cd infra/ &&  cdk synth --profile tabsflow-dev
+cdk-bootstrap:
+	cd infra/ &&  cdk bootstrap --profile tabsflow-dev
 
-# CDK Deployment
-deploy-cdk:
-	npx cdk deploy
+cdk-deploy-all:
+	cd infra/ &&  cdk deploy --all --profile tabsflow-dev
+
+# CDK stack deployment
+cdk-deploy-stack:  
+	cd infra/ && cdk deploy ${stack} --profile tabsflow-dev
+
+go-test:
+	echo test ${name}
 
 # Clean up
 clean:

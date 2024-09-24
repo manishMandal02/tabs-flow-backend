@@ -14,7 +14,7 @@ type AuthServiceProps = {
 
 export class AuthService extends Construct {
   apiAuthorizer: apiGateway.RequestAuthorizer;
-  constructor(scope: Construct, id: string, props: AuthServiceProps) {
+  constructor(scope: Construct, props: AuthServiceProps, id: string = 'AuthService') {
     super(scope, id);
 
     const { JWT_SECRET_KEY } = config.Env;
@@ -42,7 +42,7 @@ export class AuthService extends Construct {
     authResource.addMethod('ANY', new apiGateway.LambdaIntegration(authServiceLambda));
 
     //*-- authorizer --
-    const authorizerLambda = new GoFunction(this, `authorizer-${props.stage}`, {
+    const authorizerLambda = new GoFunction(this, `Authorizer-${props.stage}`, {
       entry: '../cmd/auth/lambda_authorizer/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,

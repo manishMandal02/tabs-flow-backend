@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 const (
@@ -30,7 +31,13 @@ func APIResponse(statusCode int, body interface{}) *events.APIGatewayV2HTTPRespo
 	resp := events.APIGatewayV2HTTPResponse{Headers: map[string]string{"Content-Type": "application/json"}}
 	resp.StatusCode = statusCode
 
-	stringBody, _ := json.Marshal(body)
+	stringBody, err := json.Marshal(body)
+	if err != nil {
+		resp.StatusCode = 500
+		logger.Error("Error marshalling response body", err)
+		resp.Body = fmt.Sprintf("Error marshalling response body: %v", err)
+		return &resp
+	}
 	resp.Body = string(stringBody)
 	return &resp
 }

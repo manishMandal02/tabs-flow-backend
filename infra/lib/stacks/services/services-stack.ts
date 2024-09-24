@@ -23,16 +23,18 @@ export class ServiceStack extends Stack {
     });
 
     // add basic execution role permissions
-    lambdaRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSLambdaBasicExecutionRole'));
+    lambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    );
 
     const resAPI = new apiGateway.RestApi(this, `${config.AppName}-${props.stage}`);
 
-    const emailService = new EmailService(this, 'EmailService', {
+    const emailService = new EmailService(this, {
       lambdaRole,
       stage: props.stage
     });
 
-    const authService = new AuthService(this, 'AuthService', {
+    const authService = new AuthService(this, {
       lambdaRole,
       stage: props.stage,
       apiGW: resAPI,
@@ -40,7 +42,7 @@ export class ServiceStack extends Stack {
       emailQueueURL: emailService.queueURL
     });
 
-    new UserService(this, 'UserService', {
+    new UserService(this, {
       stage: props.stage,
       apiGW: resAPI,
       lambdaRole,

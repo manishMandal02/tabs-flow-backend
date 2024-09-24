@@ -1,0 +1,37 @@
+name: Deploy CDK Stacks to dev environment
+
+on:
+  push:
+    branches:
+      - dev-no-build
+
+jobs:
+  deploy:
+    runs-on:
+      ubuntu-latest
+
+      # Necessary for AWS<>Github OpenIDConnect authentication
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials using OpenIDConnect
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_GITHUB_OIDC_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      # TODO - add Go build step
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Deploy CDK stack
+        run: npx cdk deploy --all --require-approval never

@@ -14,7 +14,7 @@ type EmailServiceProps = {
 
 export class EmailService extends Construct {
   queueURL: string;
-  constructor(scope: Construct, id: string, props: EmailServiceProps) {
+  constructor(scope: Construct, props: EmailServiceProps, id: string = 'EmailService') {
     super(scope, id);
 
     const { ZEPTO_MAIL_API_KEY } = config.Env;
