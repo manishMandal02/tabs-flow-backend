@@ -27,7 +27,7 @@ type RespBody struct {
 	Data    interface{} `json:"data"`
 }
 
-func APIResponse(statusCode int, body interface{}) *events.APIGatewayV2HTTPResponse {
+func APIResponse(statusCode int, body interface{}) (*events.APIGatewayV2HTTPResponse, error) {
 	resp := events.APIGatewayV2HTTPResponse{Headers: map[string]string{"Content-Type": "application/json"}}
 	resp.StatusCode = statusCode
 
@@ -35,13 +35,13 @@ func APIResponse(statusCode int, body interface{}) *events.APIGatewayV2HTTPRespo
 	if err != nil {
 		resp.StatusCode = 500
 		logger.Error("Error marshalling response body", err)
-		resp.Body = fmt.Sprintf("Error marshalling response body: %v", err)
-		return &resp
+		resp.Body = `{"error": "Internal Server Error"}`
+		return &resp, nil
 	}
 	resp.Body = string(stringBody)
-	return &resp
+	return &resp, nil
 }
-func APIResponseWithCookies(statusCode int, body interface{}, cookies map[string]string) *events.APIGatewayV2HTTPResponse {
+func APIResponseWithCookies(statusCode int, body interface{}, cookies map[string]string) (*events.APIGatewayV2HTTPResponse, error) {
 	resp := events.APIGatewayV2HTTPResponse{Headers: map[string]string{"Content-Type": "application/json"}}
 	resp.StatusCode = statusCode
 
@@ -57,5 +57,5 @@ func APIResponseWithCookies(statusCode int, body interface{}, cookies map[string
 
 	stringBody, _ := json.Marshal(body)
 	resp.Body = string(stringBody)
-	return &resp
+	return &resp, nil
 }

@@ -9,14 +9,19 @@ lint-go:
 # All Linting
 lint: lint-ts lint-go
 
+
+# local development 
+make dev:
+	air 
+	
 # CDK dev environment setup
 cdk-synth: 
-	cd infra/ &&  cdk synth --profile tabsflow-dev
+	cd infra/ && cdk synth "*" --profile tabsflow-dev
 cdk-bootstrap:
-	cd infra/ &&  cdk bootstrap --profile tabsflow-dev
+	cd infra/ && cdk bootstrap --profile tabsflow-dev
 
 cdk-deploy-all:
-	cd infra/ &&  cdk deploy --all --profile tabsflow-dev
+	cd infra/ && cdk deploy --all --profile tabsflow-dev
 
 # CDK stack deployment
 cdk-deploy-stack:  

@@ -29,7 +29,7 @@ func newAuthHandler(repo authRepository) *authHandler {
 	}
 }
 
-func (h *authHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) sendOTP(body string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
 	var b struct {
 		Email string `json:"email"`
 	}
@@ -66,7 +66,7 @@ func (h *authHandler) sendOTP(body string) *lambda_events.APIGatewayV2HTTPRespon
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "OTP sent successfully"})
 }
 
-func (h *authHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) verifyOTP(body, userAgent string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
 	var b struct {
 		Email string `json:"email"`
 		OTP   string `json:"otp"`
@@ -137,7 +137,7 @@ func (h *authHandler) verifyOTP(body, userAgent string) *lambda_events.APIGatewa
 	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData}, newCookies)
 }
 
-func (h *authHandler) googleAuth(body, userAgent string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) googleAuth(body, userAgent string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
 	var b struct {
 		Email string `json:"email"`
 	}
@@ -200,7 +200,7 @@ func (h *authHandler) googleAuth(body, userAgent string) *lambda_events.APIGatew
 
 }
 
-func (h *authHandler) getUserId(body string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) getUserId(body string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
 
 	var b struct {
 		Email string `json:"email"`
@@ -228,13 +228,13 @@ func (h *authHandler) getUserId(body string) *lambda_events.APIGatewayV2HTTPResp
 	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "User id", Data: resData})
 }
 
-func (h *authHandler) logout(cookieStr []string) *lambda_events.APIGatewayV2HTTPResponse {
+func (h *authHandler) logout(cookieStr []string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
 
 	newCookies := map[string]string{
 		"access_token": "",
 	}
 
-	logoutResponse := http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Logged out"}, newCookies)
+	logoutResponse, err := http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Logged out"}, newCookies)
 
 	cookies := parseCookiesPair(cookieStr)
 
@@ -244,7 +244,7 @@ func (h *authHandler) logout(cookieStr []string) *lambda_events.APIGatewayV2HTTP
 
 	if err != nil {
 		logger.Error(errMsg.validateSession, err)
-		return logoutResponse
+		return logoutResponse, err
 	}
 
 	email, okEmail := claims["email"].(string)
@@ -252,17 +252,17 @@ func (h *authHandler) logout(cookieStr []string) *lambda_events.APIGatewayV2HTTP
 
 	if !okEmail || !okSID {
 		logger.Error(errMsg.validateSession, errors.New(errMsg.invalidToken))
-		return logoutResponse
+		return logoutResponse, err
 	}
 
 	err = h.r.deleteSession(email, sId)
 
 	if err != nil {
 		logger.Error(errMsg.deleteSession, err)
-		return logoutResponse
+		return logoutResponse, err
 	}
 
-	return logoutResponse
+	return logoutResponse, err
 }
 
 func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {

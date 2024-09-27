@@ -23,7 +23,7 @@ func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeReq
 }
 
 // handle API routes
-func Routes(req lambda_events.APIGatewayV2HTTPRequest) *lambda_events.APIGatewayV2HTTPResponse {
+func Routes(req lambda_events.APIGatewayV2HTTPRequest) (*lambda_events.APIGatewayV2HTTPResponse, error) {
 	logger.Dev(fmt.Sprintf("Auth lambda req: %v", req))
 
 	db := database.NewSessionTable()

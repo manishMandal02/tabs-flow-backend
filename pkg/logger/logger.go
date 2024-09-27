@@ -3,9 +3,9 @@ package logger
 import "fmt"
 
 func Error(msg string, err error) {
-	fmt.Println("❌ Logger: %v\n [Error]: %v ", msg, err)
+	fmt.Printf("❌ Logger: %v\n [Error]: %v\n", msg, err)
 }
 
 func Dev(msg interface{}) {
-	fmt.Println("🛜 Logger:Dev:", msg)
+	fmt.Printf("🛜 Logger:Dev: %v\n", msg)
 }

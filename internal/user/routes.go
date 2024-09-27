@@ -8,7 +8,7 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-func Routes(req events.APIGatewayV2HTTPRequest) *events.APIGatewayV2HTTPResponse {
+func Routes(req events.APIGatewayV2HTTPRequest) (*events.APIGatewayV2HTTPResponse, error) {
 
 	db := database.New()
 
