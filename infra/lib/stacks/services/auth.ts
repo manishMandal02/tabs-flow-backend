@@ -7,7 +7,7 @@ import { config } from '../../../config';
 type AuthServiceProps = {
   stage: string;
   apiGW: apiGateway.RestApi;
-  sessionDB: aws_dynamodb.Table;
+  sessionsDB: aws_dynamodb.ITable;
   emailQueueURL: string;
   lambdaRole: aws_iam.Role;
 };
@@ -19,7 +19,10 @@ export class AuthService extends Construct {
 
     const { JWT_SECRET_KEY } = config.Env;
 
-    const authServiceLambda = new GoFunction(this, `${id}-${props.stage}`, {
+    const authLambdaName = id + '_' + props.stage;
+
+    const authServiceLambda = new GoFunction(this, authLambdaName, {
+      functionName: authLambdaName,
       entry: '../cmd/auth/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,
@@ -30,11 +33,11 @@ export class AuthService extends Construct {
       environment: {
         JWT_SECRET_KEY,
         EMAIL_SQS_QUEUE_URL: props.emailQueueURL,
-        DDB_SESSIONS_TABLE_NAME: props.sessionDB.tableName
+        DDB_SESSIONS_TABLE_NAME: props.sessionsDB.tableName
       }
     });
 
-    props.sessionDB.grantReadWriteData(authServiceLambda);
+    props.sessionsDB.grantReadWriteData(authServiceLambda);
 
     // add auth resource/endpoints to api gateway
     const authResource = props.apiGW.root.addResource('auth');
@@ -42,7 +45,9 @@ export class AuthService extends Construct {
     authResource.addMethod('ANY', new apiGateway.LambdaIntegration(authServiceLambda));
 
     //*-- authorizer --
-    const authorizerLambda = new GoFunction(this, `Authorizer-${props.stage}`, {
+    const authorizerLambdaName = 'Authorizer_' + props.stage;
+    const authorizerLambda = new GoFunction(this, authorizerLambdaName, {
+      functionName: authorizerLambdaName,
       entry: '../cmd/auth/lambda_authorizer/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,
@@ -52,11 +57,11 @@ export class AuthService extends Construct {
       bundling: config.lambda.GoBundling,
       environment: {
         JWT_SECRET_KEY,
-        DDB_SESSIONS_TABLE_NAME: props.sessionDB.tableName
+        DDB_SESSIONS_TABLE_NAME: props.sessionsDB.tableName
       }
     });
 
-    const authorizerName = config.AppName + '-Authorizer';
+    const authorizerName = config.AppName + '-Authorizer_' + props.stage;
 
     // Lambda Authorizer with 'REQUEST' type
     const authorizer = new apiGateway.RequestAuthorizer(this, authorizerName, {
@@ -66,7 +71,7 @@ export class AuthService extends Construct {
       resultsCacheTtl: Duration.minutes(5)
     });
 
-    props.sessionDB.grantReadWriteData(authorizerLambda);
+    props.sessionsDB.grantReadWriteData(authorizerLambda);
 
     this.apiAuthorizer = authorizer;
   }

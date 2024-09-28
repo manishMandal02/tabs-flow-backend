@@ -16,9 +16,8 @@ type Queue struct {
 }
 
 func NewQueue() *Queue {
-	client := sqs.New(sqs.Options{
-		Region: config.AWS_REGION,
-	})
+	client := sqs.NewFromConfig(config.AWS_CONFIG)
+
 	return &Queue{
 		client: client,
 		url:    config.EMAIL_SQS_QUEUE_URL,
@@ -48,7 +47,7 @@ func (q *Queue) DeleteMessage(r string) error {
 
 	_, err := q.client.DeleteMessage(context.TODO(), &sqs.DeleteMessageInput{
 		QueueUrl:      &q.url,
-		ReceiptHandle: aws.String(""),
+		ReceiptHandle: aws.String(r),
 	})
 
 	if err != nil {

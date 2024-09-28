@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,10 +39,12 @@ func newAuthRepository(db *database.DDB) authRepository {
 // save OTP to DB
 func (r *authRepo) saveOTP(data *emailOTP) error {
 
+	ttl := strconv.FormatInt(data.TTL, 10)
+
 	saveItem := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: data.Email},
 		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.OTP(data.OTP)},
-		"TTL":            &types.AttributeValueMemberN{Value: string(data.TTL)},
+		"TTL":            &types.AttributeValueMemberS{Value: ttl},
 	}
 
 	_, err := r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -50,7 +53,7 @@ func (r *authRepo) saveOTP(data *emailOTP) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't save OTP to db for email: %#v", data.Email), err)
+		logger.Error(fmt.Sprintf("Couldn't save OTP to db for email: %v", data.Email), err)
 		return errors.New(errMsg.sendOTP)
 	}
 

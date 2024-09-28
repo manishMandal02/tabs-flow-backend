@@ -28,9 +28,7 @@ func NewSessionTable() *DDB {
 
 // new db client helper internal helper
 func newDBB() *dynamodb.Client {
-	return dynamodb.New(dynamodb.Options{
-		Region: config.AWS_REGION,
-	})
+	return dynamodb.NewFromConfig(config.AWS_CONFIG)
 }
 
 const (

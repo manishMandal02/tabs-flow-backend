@@ -19,7 +19,7 @@ export class EmailService extends Construct {
 
     const { ZEPTO_MAIL_API_KEY } = config.Env;
 
-    const queueName = `${config.AppName.toLowerCase()}_emails-${props.stage}`;
+    const queueName = `${config.AppName}-Emails_${props.stage}`;
     //- sqs queue
     const dlqEmail = new sqs.Queue(this, queueName + '-dlq', {
       visibilityTimeout: Duration.seconds(300)
@@ -35,7 +35,10 @@ export class EmailService extends Construct {
       }
     });
 
-    const emailServiceFunction = new GoFunction(this, `${id}-${props.stage}`, {
+    const emailServiceLambdaName = id + '_' + props.stage;
+
+    const emailServiceFunction = new GoFunction(this, emailServiceLambdaName, {
+      functionName: emailServiceLambdaName,
       entry: '../cmd/email/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,

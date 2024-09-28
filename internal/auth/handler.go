@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/manishMandal02/tabsflow-backend/config"
-	"github.com/manishMandal02/tabsflow-backend/pkg/events"
+	"github.com/manishMandal02/tabsflow-backend/internal/email"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
@@ -29,74 +30,108 @@ func newAuthHandler(repo authRepository) *authHandler {
 	}
 }
 
-func (h *authHandler) sendOTP(body string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
+func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Email string `json:"email"`
 	}
 
-	decoder := json.NewDecoder(strings.NewReader(body))
-	decoder.Decode(&b)
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&b)
+
+	if err != nil {
+		logger.Error("Error decoding request body for sendOTP", err)
+		http.Error(w, errMsg.sendOTP, http.StatusBadRequest)
+		return
+	}
 
 	otp := utils.GenerateOTP()
 
-	err := h.r.saveOTP(&emailOTP{
+	err = h.r.saveOTP(&emailOTP{
 		OTP:   otp,
 		Email: b.Email,
 		TTL:   time.Now().Add(time.Minute * time.Duration(config.OTP_EXPIRY_TIME_IN_MIN)).Unix(),
 	})
 
 	if err != nil {
-		return http_api.APIResponse(500, http_api.RespBody{Success: false, Message: "Error sending OTP"})
+		http.Error(w, errMsg.sendOTP, http.StatusBadGateway)
+		return
 	}
 
 	// send email message to SQS queue
-	event := &events.SendOTP_Payload{
-		Email: b.Email,
-		OTP:   otp,
-	}
+	// event := &events.SendOTP_Payload{
+	// 	Email: b.Email,
+	// 	OTP:   otp,
+	// }
 
-	sqs := events.NewQueue()
+	// sqs := events.NewQueue()
 
-	err = sqs.AddMessage(event)
+	// err = sqs.AddMessage(event)
+
+	// TODO - testing send otp email
+
+	z := email.NewZeptoMail()
+
+	z.SendOTPMail(otp, &email.NameAddr{
+		Name:    b.Email,
+		Address: b.Email,
+	})
 
 	if err != nil {
-		return http_api.APIResponse(500, http_api.RespBody{Success: false, Message: "Error sending OTP"})
+		http.Error(w, errMsg.sendOTP, http.StatusBadGateway)
+		return
 	}
 
-	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "OTP sent successfully"})
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "OTP sent successfully"})
 }
 
-func (h *authHandler) verifyOTP(body, userAgent string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
+func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Email string `json:"email"`
 		OTP   string `json:"otp"`
 	}
-	decoder := json.NewDecoder(strings.NewReader(body))
-	err := decoder.Decode(&b)
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+
+	err := json.NewDecoder(r.Body).Decode(&b)
+
+	userAgent := r.Header.Get("User-Agent")
+
 	if err != nil {
 		logger.Error("Error decoding request body for verify otp", err)
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.validateOTP})
+		http.Error(w, errMsg.validateOTP, http.StatusBadRequest)
+		return
 	}
 
 	valid, err := h.r.validateOTP(b.Email, b.OTP)
 
 	if err != nil {
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.validateOTP})
+		http.Error(w, errMsg.validateOTP, http.StatusInternalServerError)
+		return
 	}
 
 	if !valid {
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.inValidOTP})
+		http.Error(w, errMsg.inValidOTP, http.StatusBadRequest)
+		return
 	}
 
 	// create new session and set to cookie
 	newToken, err := createNewSession(b.Email, userAgent, h.r)
 
 	if err != nil {
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+		http.Error(w, errMsg.createSession, http.StatusInternalServerError)
+		return
 	}
 
-	newCookies := map[string]string{
-		"access_token": newToken,
+	cookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    newToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS),
 	}
 
 	//  check if user exits
@@ -106,6 +141,8 @@ func (h *authHandler) verifyOTP(body, userAgent string) (*lambda_events.APIGatew
 		UserId  string `json:"userId"`
 		NewUser bool   `json:"isNewUser"`
 	}
+
+	resData := &respData{}
 
 	if err != nil {
 		// new user
@@ -117,26 +154,31 @@ func (h *authHandler) verifyOTP(body, userAgent string) (*lambda_events.APIGatew
 		})
 
 		if err != nil {
-			return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+			http.Error(w, errMsg.createSession, http.StatusInternalServerError)
+			return
 		}
 
-		resData := &respData{
-			UserId:  newUserId,
-			NewUser: true,
+		// old user
+		resData = &respData{
+			UserId:  userId,
+			NewUser: false,
 		}
 
-		return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData}, newCookies)
+	} else {
+		// old user
+		resData = &respData{
+			UserId:  userId,
+			NewUser: false,
+		}
 	}
 
-	// old user
-	resData := &respData{
-		UserId:  userId,
-		NewUser: false,
-	}
-
-	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData}, newCookies)
+	http.SetCookie(w, cookie)
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData})
 }
 
+// TODO- refactor these 👇
 func (h *authHandler) googleAuth(body, userAgent string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
 	var b struct {
 		Email string `json:"email"`

@@ -1,5 +1,0 @@
-START RequestId: cd632f37-0d5f-4830-afd2-e237280b80f3 Version: $LATEST
-27 Sep 2024 15:03:36,870 [ERROR] (rapid) Init failed error=fork/exec /var/task/bootstrap: invalid argument InvokeID=
-27 Sep 2024 15:03:36,874 [ERROR] (rapid) Invoke failed error=fork/exec /var/task/bootstrap: invalid argument InvokeID=df960753-455c-48cb-89e0-52a85c1315a4
-27 Sep 2024 15:03:36,877 [ERROR] (rapid) Invoke DONE failed: Runtime.InvalidEntrypoint
-

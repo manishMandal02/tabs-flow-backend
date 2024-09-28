@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	ErrorInvalidRequest        = "invalid request"
-	ErrorMethodNotAllowed      = "method not allowed"
-	ErrorEmptyLambdaEvent      = "empty lambda event"
-	ErrorCouldNotMarshalItem   = "could not marshal item"
-	ErrorCouldNotUnMarshalItem = "could not  unmarshal item"
+	ErrorInvalidRequest        = "Invalid request"
+	ErrorRouteNotFound         = "Route not found"
+	ErrorMethodNotAllowed      = "Method not allowed"
+	ErrorEmptyLambdaEvent      = "Empty lambda event"
+	ErrorCouldNotMarshalItem   = "Could not marshal item"
+	ErrorCouldNotUnMarshalItem = "Could not  unmarshal item"
 )
 
 type ErrorBody struct {
@@ -24,7 +25,7 @@ type ErrorBody struct {
 type RespBody struct {
 	Message string      `json:"message"`
 	Success bool        `json:"success"`
-	Data    interface{} `json:"data"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 func APIResponse(statusCode int, body interface{}) (*events.APIGatewayV2HTTPResponse, error) {

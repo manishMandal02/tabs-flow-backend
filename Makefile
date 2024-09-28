@@ -10,22 +10,29 @@ lint-go:
 lint: lint-ts lint-go
 
 
-# local development 
-make dev:
-	air 
+# local development
+dev:
+	air -- -local_dev=true
 	
-# CDK dev environment setup
+# CDK commands
 cdk-synth: 
 	cd infra/ && cdk synth "*" --profile tabsflow-dev
+cdk-diff:
+	cd infra/ && cdk diff "*" --profile tabsflow-dev
 cdk-bootstrap:
 	cd infra/ && cdk bootstrap --profile tabsflow-dev
 
 cdk-deploy-all:
 	cd infra/ && cdk deploy --all --profile tabsflow-dev
 
-# CDK stack deployment
-cdk-deploy-stack:  
-	cd infra/ && cdk deploy ${stack} --profile tabsflow-dev
+cdk-deploy-stack-service:  
+	cd infra/ && cdk deploy ServiceStack --profile tabsflow-dev
+
+cdk-deploy-stack-stateful:  
+	cd infra/ && cdk deploy StatefulStack --profile tabsflow-dev
+
+cdk-destroy:  
+	cd infra/ && cdk destroy --all --profile tabsflow-dev
 
 go-test:
 	echo test ${name}

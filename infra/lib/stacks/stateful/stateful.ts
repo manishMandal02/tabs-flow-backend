@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { RemovalPolicy, Stack, StackProps, aws_dynamodb } from 'aws-cdk-lib';
+import { CfnOutput, RemovalPolicy, Stack, StackProps, aws_dynamodb } from 'aws-cdk-lib';
 import { config } from '../../../config';
 
 type StatefulStackProps = StackProps & {
@@ -9,14 +9,11 @@ type StatefulStackProps = StackProps & {
 export class StatefulStack extends Stack {
   // go lambda triggers
 
-  mainDB: aws_dynamodb.Table;
-  sessionsDB: aws_dynamodb.Table;
-
   constructor(scope: Construct, id: string, props: StatefulStackProps) {
     super(scope, id, props);
 
-    const mainTableName = `${config.AppName}Main${props.stage}`;
-    const sessionsTableName = `${config.AppName}Sessions${props.stage}`;
+    const mainTableName = `${config.AppName}-Main_${props.stage}`;
+    const sessionsTableName = `${config.AppName}-Sessions_${props.stage}`;
 
     const mainTable = new aws_dynamodb.Table(this, mainTableName, {
       tableName: mainTableName,
@@ -47,7 +44,14 @@ export class StatefulStack extends Stack {
       removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
     });
 
-    this.mainDB = mainTable;
-    this.sessionsDB = sessionsTable;
+    new CfnOutput(this, 'MainTableArn', {
+      exportName: 'MainTableArn',
+      value: mainTable.tableArn
+    });
+
+    new CfnOutput(this, 'SessionsTableArn', {
+      exportName: 'SessionsTableArn',
+      value: sessionsTable.tableArn
+    });
   }
 }

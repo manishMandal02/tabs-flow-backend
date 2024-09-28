@@ -3,10 +3,14 @@ package config
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/joho/godotenv"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 var (
@@ -16,7 +20,7 @@ var (
 	DDB_MAIN_TABLE_NAME     string
 	DDB_SESSIONS_TABLE_NAME string
 	ZEPTO_MAIL_API_KEY      string
-	ENVIRONMENT             string
+	AWS_CONFIG              aws.Config
 
 	ZEPTO_MAIL_API_URL = "https://api.zeptomail.com/v1.1/email"
 
@@ -26,20 +30,51 @@ var (
 )
 
 func Init() {
-	_, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		log.Fatalf("failed to load configuration, %v", err)
-	}
 
-	env := flag.String("env", "lambda", "Environment")
+	localDevFlag := flag.Bool("local_dev", false, "local development mode")
 
 	flag.Parse()
 
-	ENVIRONMENT = *env
+	isLocalDev := *localDevFlag
+	logger.Dev(fmt.Sprint("local dev mode: ", isLocalDev))
+
+	if isLocalDev {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
+
+		// local development config
+		profile := os.Getenv("AWS_ACCOUNT_PROFILE")
+
+		cfg, err := config.LoadDefaultConfig(
+			context.Background(),
+			config.WithSharedConfigProfile(profile),
+		)
+
+		if err != nil {
+			log.Fatalf("failed to load configuration, %v", err)
+		}
+		AWS_CONFIG = cfg
+
+		DDB_MAIN_TABLE_NAME = "TabsFlow-Main_dev"
+		DDB_SESSIONS_TABLE_NAME = "TabsFlow-Sessions_dev"
+		EMAIL_SQS_QUEUE_URL = "TabsFlow-Emails_dev"
+	} else {
+		// lambda config
+		config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(AWS_REGION))
+		if err != nil {
+			log.Fatalf("failed to load configuration, %v", err)
+		}
+
+		AWS_CONFIG = config
+
+		DDB_MAIN_TABLE_NAME = os.Getenv("DDB_MAIN_TABLE_NAME")
+		DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
+		EMAIL_SQS_QUEUE_URL = os.Getenv("EMAIL_SQS_QUEUE_URL")
+	}
+
 	AWS_REGION = os.Getenv("AWS_REGION")
 	JWT_SECRET_KEY = os.Getenv("JWT_SECRET_KEY")
-	EMAIL_SQS_QUEUE_URL = os.Getenv("EMAIL_SQS_QUEUE_URL")
-	DDB_MAIN_TABLE_NAME = os.Getenv("DDB_TABLE_NAME")
 	ZEPTO_MAIL_API_KEY = os.Getenv("ZEPTO_MAIL_API_KEY")
-	DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
 }

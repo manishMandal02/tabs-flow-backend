@@ -9,7 +9,7 @@ import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 type UserServiceProps = {
   stage: string;
   apiGW: aws_apigateway.RestApi;
-  db: aws_dynamodb.Table;
+  db: aws_dynamodb.ITable;
   lambdaRole: aws_iam.Role;
   emailQueueURL: string;
   apiAuthorizer: aws_apigateway.RequestAuthorizer;
@@ -19,7 +19,9 @@ export class UserService extends Construct {
   constructor(scope: Construct, props: UserServiceProps, id: string = 'UserService') {
     super(scope, id);
 
-    const usersServiceLambda = new GoFunction(this, `${id}-${props.stage}`, {
+    const userServiceLambdaName = id + '_' + props.stage;
+    const usersServiceLambda = new GoFunction(this, userServiceLambdaName, {
+      functionName: userServiceLambdaName,
       entry: '../cmd/users/main.go',
       runtime: aws_lambda.Runtime.PROVIDED_AL2,
       timeout: config.lambda.Timeout,

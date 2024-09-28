@@ -15,11 +15,7 @@ func main() {
 	// load config
 	config.Init()
 
-	fmt.Println("Auth Lambda called!, evn:", config.ENVIRONMENT)
-
 	mux := http.NewServeMux()
-
-	mux.HandlerFunc("/", )
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Auth Lambda called!")
@@ -32,11 +28,6 @@ func main() {
 
 	})
 
-	if config.ENVIRONMENT != "lambda" {
-		fmt.Println("Running in dev mode")
-		http.ListenAndServe(":8080", nil)
-	} else {
-		lambda.Start(httpadapter.New(mux).ProxyWithContext)
-	}
+	lambda.Start(httpadapter.New(mux).ProxyWithContext)
 
 }

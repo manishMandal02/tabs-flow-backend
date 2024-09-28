@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
@@ -20,6 +21,24 @@ func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeReq
 	handler := newAuthHandler(ar)
 
 	return handler.lambdaAuthorizer(ev)
+}
+
+func Router(w http.ResponseWriter, r *http.Request) {
+	logger.Dev(fmt.Sprintf("Auth req: method: %v, path: %v", r.Method, r.URL.Path))
+
+	db := database.NewSessionTable()
+
+	ar := newAuthRepository(db)
+
+	handler := newAuthHandler(ar)
+
+	authRouter := http_api.NewRouter("/auth")
+
+	authRouter.AddRoute("POST", "/verify-otp", handler.verifyOTP)
+
+	authRouter.AddRoute("POST", "/send-otp", handler.sendOTP)
+
+	authRouter.ServeHTTP(w, r)
 }
 
 // handle API routes
@@ -41,8 +60,8 @@ func Routes(req lambda_events.APIGatewayV2HTTPRequest) (*lambda_events.APIGatewa
 	if reqMethod == "GET" {
 
 		if req.RawPath == "/auth/verify-otp" {
-			ua := req.RequestContext.HTTP.UserAgent
-			return handler.verifyOTP(req.Body, ua)
+			// ua := req.RequestContext.HTTP.UserAgent
+			// return handler.verifyOTP(req.Body, ua)
 		}
 
 		if req.RawPath == "/auth/user-id" {
@@ -61,7 +80,7 @@ func Routes(req lambda_events.APIGatewayV2HTTPRequest) (*lambda_events.APIGatewa
 		}
 
 		if req.RawPath == "/auth/send-otp" {
-			return handler.sendOTP(req.Body)
+			// return handler.sendOTP(req.Body)s
 		}
 	}
 

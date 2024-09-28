@@ -10,26 +10,28 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
-func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
+func SendEmail(_ context.Context, ev lambda_events.SQSEvent) error {
+	// TODO - handle multiple events process
 
-	eT, err := events.ParseEventType(ev.Attributes["EventType"])
+	eventType, err := events.ParseEventType(*ev.Records[0].MessageAttributes["event_type"].StringValue)
 
 	if err != nil {
 		logger.Error("Error paring SQS event", err)
+		return err
 	}
 
-	switch eT {
+	switch eventType {
 	case events.SEND_OTP:
-		to := &nameAddr{
-			Name:    ev.Attributes["email"],
-			Address: ev.Attributes["email"],
+		to := &NameAddr{
+			Name:    *ev.Records[0].MessageAttributes["email"].StringValue,
+			Address: *ev.Records[0].MessageAttributes["email"].StringValue,
 		}
 
-		z := newZeptoMail()
+		z := NewZeptoMail()
 
-		otp := ev.Attributes["otp"]
+		otp := *ev.Records[0].MessageAttributes["otp"].StringValue
 
-		err := z.sendOTPMail(otp, to)
+		err := z.SendOTPMail(otp, to)
 
 		if err != nil {
 			return err
@@ -37,7 +39,7 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 		// remove message from sqs
 		q := events.NewQueue()
 
-		err = q.DeleteMessage(ev.ReceiptHandle)
+		err = q.DeleteMessage(ev.Records[0].ReceiptHandle)
 
 		if err != nil {
 			return err
@@ -46,24 +48,25 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 		return nil
 
 	case events.USER_REGISTERED:
-		z := newZeptoMail()
+		z := NewZeptoMail()
 
-		to := &nameAddr{
-			Name:    ev.Attributes["name"],
-			Address: ev.Attributes["email"],
+		to := &NameAddr{
+			Name:    *ev.Records[0].MessageAttributes["name"].StringValue,
+			Address: *ev.Records[0].MessageAttributes["email"].StringValue,
 		}
 
-		trailEndDate := ev.Attributes["trail_end_date"]
+		trailEndDate := *ev.Records[0].MessageAttributes["trail_end_date"].StringValue
 
-		z.sendWelcomeMail(to, trailEndDate)
+		err := z.sendWelcomeMail(to, trailEndDate)
 
 		if err != nil {
 			return err
 		}
+
 		// remove message from sqs
 		q := events.NewQueue()
 
-		err = q.DeleteMessage(ev.ReceiptHandle)
+		err = q.DeleteMessage(ev.Records[0].ReceiptHandle)
 
 		if err != nil {
 			return err
@@ -71,7 +74,7 @@ func SendEmail(_ context.Context, ev lambda_events.SQSMessage) error {
 		return nil
 
 	default:
-		logger.Error(fmt.Sprintf("Unknown sqs event: %v", eT), fmt.Errorf("unknown event"))
+		logger.Error(fmt.Sprintf("Unknown sqs event: %v", eventType), fmt.Errorf("unknown event"))
 	}
 	return nil
 }

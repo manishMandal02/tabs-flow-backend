@@ -11,7 +11,7 @@ const config = {
   stage: 'dev'
 };
 
-const statefulStack = new StatefulStack(app, 'StatefulStack', {
+new StatefulStack(app, 'StatefulStack', {
   terminationProtection: false,
   env: {
     region: process.env.AWS_REGION
@@ -23,9 +23,7 @@ new ServiceStack(app, 'ServiceStack', {
   ...config,
   env: {
     region: process.env.AWS_REGION
-  },
-  mainDB: statefulStack.mainDB,
-  sessionsDB: statefulStack.sessionsDB
+  }
 });
 
 // synthesize stacks;

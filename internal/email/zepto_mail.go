@@ -2,6 +2,7 @@ package email
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -16,15 +17,15 @@ var ZeptoMailTemplates = map[string]string{
 	"welcome": "2518b.5aadbc61a6c007b3.k1.98545e20-74c5-11ef-b8eb-525400ab18e6.191fedc7d02",
 }
 
-type nameAddr struct {
+type NameAddr struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
 }
 
 type ZeptoMailBody struct {
 	TemplateKey string     `json:"template_key"`
-	To          []nameAddr `json:"to"`
-	From        *nameAddr  `json:"from"`
+	To          []NameAddr `json:"to"`
+	From        *NameAddr  `json:"from"`
 }
 
 type otpMergeInfo struct {
@@ -39,33 +40,33 @@ type ZeptoMail struct {
 	URL     string
 	APIKey  string
 	Headers map[string]string
-	From    *nameAddr
+	From    *NameAddr
 }
 
-func newZeptoMail() *ZeptoMail {
+func NewZeptoMail() *ZeptoMail {
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": "zoho-enczapikey " + config.ZEPTO_MAIL_API_KEY,
+		"Authorization": "Zoho-enczapikey " + config.ZEPTO_MAIL_API_KEY,
 	}
 
 	return &ZeptoMail{
 		URL:     config.ZEPTO_MAIL_API_URL,
 		APIKey:  config.ZEPTO_MAIL_API_KEY,
 		Headers: headers,
-		From: &nameAddr{
+		From: &NameAddr{
 			Name:    "TabsFlow Support",
 			Address: "support@tabsflow.com",
 		},
 	}
 }
 
-func (z *ZeptoMail) sendOTPMail(otp string, to *nameAddr) error {
+func (z *ZeptoMail) SendOTPMail(otp string, to *NameAddr) error {
 
 	body := &otpEmailBody{
 		ZeptoMailBody: &ZeptoMailBody{
-			TemplateKey: ZeptoMailTemplates["opt"],
-			To:          append([]nameAddr{}, *to),
-			From: &nameAddr{
+			TemplateKey: ZeptoMailTemplates["otp"],
+			To:          append([]NameAddr{}, *to),
+			From: &NameAddr{
 				Name:    z.From.Name,
 				Address: z.From.Address,
 			},
@@ -100,13 +101,13 @@ type welcomeEmailBody struct {
 	MergeInfo *welcomeMergeInfo `json:"merge_info"`
 }
 
-func (z *ZeptoMail) sendWelcomeMail(to *nameAddr, trailEndDate string) error {
+func (z *ZeptoMail) sendWelcomeMail(to *NameAddr, trailEndDate string) error {
 
 	body := &welcomeEmailBody{
 		ZeptoMailBody: &ZeptoMailBody{
 			TemplateKey: ZeptoMailTemplates["opt"],
-			To:          append([]nameAddr{}, *to),
-			From: &nameAddr{
+			To:          append([]NameAddr{}, *to),
+			From: &NameAddr{
 				Name:    z.From.Name,
 				Address: z.From.Address,
 			},
@@ -143,9 +144,17 @@ func sendMail(url string, headers map[string]string, body []byte) error {
 
 	defer res.Body.Close()
 
+	var resBody interface{}
+
+	json.NewDecoder(res.Body).Decode(&resBody)
+
+	fmt.Println("response body:: ", resBody.(map[string]interface{}))
+
+	logger.Dev(fmt.Sprintf("ZeptoMail Response code: %v,", res.StatusCode))
+
 	if !strings.HasPrefix(string(res.StatusCode), "2") {
-		logger.Error(fmt.Sprintf("[email_service] Error sending email email_body:", string(body)), err)
-		return err
+		logger.Error("[email_service] unsuccessful response from zepto mail.", errors.New(res.Status))
+		return errors.New("unsuccessful response from zepto mail")
 	}
 	return nil
 }
