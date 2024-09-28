@@ -11,7 +11,7 @@ import (
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/manishMandal02/tabsflow-backend/config"
-	"github.com/manishMandal02/tabsflow-backend/internal/email"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
@@ -60,23 +60,14 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send email message to SQS queue
-	// event := &events.SendOTP_Payload{
-	// 	Email: b.Email,
-	// 	OTP:   otp,
-	// }
+	event := &events.SendOTP_Payload{
+		Email: b.Email,
+		OTP:   otp,
+	}
 
-	// sqs := events.NewQueue()
+	sqs := events.NewQueue()
 
-	// err = sqs.AddMessage(event)
-
-	// TODO - testing send otp email
-
-	z := email.NewZeptoMail()
-
-	z.SendOTPMail(otp, &email.NameAddr{
-		Name:    b.Email,
-		Address: b.Email,
-	})
+	err = sqs.AddMessage(event)
 
 	if err != nil {
 		http.Error(w, errMsg.sendOTP, http.StatusBadGateway)
@@ -107,9 +98,11 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	valid, err := h.r.validateOTP(b.Email, b.OTP)
 
 	if err != nil {
-		http.Error(w, errMsg.validateOTP, http.StatusInternalServerError)
+		http.Error(w, errMsg.validateOTP, http.StatusBadGateway)
 		return
 	}
+
+	logger.Dev(fmt.Sprintf("OTP valid: %v", valid))
 
 	if !valid {
 		http.Error(w, errMsg.inValidOTP, http.StatusBadRequest)
@@ -145,6 +138,11 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	resData := &respData{}
 
 	if err != nil {
+		http.Error(w, errMsg.createSession, http.StatusInternalServerError)
+		return
+	}
+
+	if userId != "" {
 		// new user
 		newUserId := utils.GenerateID()
 
@@ -158,10 +156,9 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// old user
 		resData = &respData{
 			UserId:  userId,
-			NewUser: false,
+			NewUser: true,
 		}
 
 	} else {
@@ -374,7 +371,7 @@ func generateToken(email, sessionId string) (string, error) {
 		"iat": time.Now().Unix(),
 	})
 
-	tokenStr, err := claims.SignedString(config.JWT_SECRET_KEY)
+	tokenStr, err := claims.SignedString([]byte(config.JWT_SECRET_KEY))
 
 	if err != nil {
 		logger.Error("Error generating JWT token", err)

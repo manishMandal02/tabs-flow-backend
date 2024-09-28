@@ -2,7 +2,6 @@ package email
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -22,10 +21,14 @@ type NameAddr struct {
 	Address string `json:"address"`
 }
 
+type ToEmailAddress struct {
+	EmailAddress NameAddr `json:"email_address"`
+}
+
 type ZeptoMailBody struct {
-	TemplateKey string     `json:"template_key"`
-	To          []NameAddr `json:"to"`
-	From        *NameAddr  `json:"from"`
+	TemplateKey string           `json:"template_key"`
+	To          []ToEmailAddress `json:"to"`
+	From        *NameAddr        `json:"from"`
 }
 
 type otpMergeInfo struct {
@@ -44,9 +47,11 @@ type ZeptoMail struct {
 }
 
 func NewZeptoMail() *ZeptoMail {
+
 	headers := map[string]string{
+		"Accept":        "application/json",
 		"Content-Type":  "application/json",
-		"Authorization": "Zoho-enczapikey " + config.ZEPTO_MAIL_API_KEY,
+		"Authorization": fmt.Sprintf("Zoho-enczapikey %v", strings.TrimSpace(config.ZEPTO_MAIL_API_KEY)),
 	}
 
 	return &ZeptoMail{
@@ -62,10 +67,17 @@ func NewZeptoMail() *ZeptoMail {
 
 func (z *ZeptoMail) SendOTPMail(otp string, to *NameAddr) error {
 
+	logger.Dev(fmt.Sprintf("Sending otp mail to %v", *to))
+
 	body := &otpEmailBody{
 		ZeptoMailBody: &ZeptoMailBody{
 			TemplateKey: ZeptoMailTemplates["otp"],
-			To:          append([]NameAddr{}, *to),
+			To: append(
+				[]ToEmailAddress{},
+				ToEmailAddress{
+					EmailAddress: *to,
+				},
+			),
 			From: &NameAddr{
 				Name:    z.From.Name,
 				Address: z.From.Address,
@@ -106,7 +118,12 @@ func (z *ZeptoMail) sendWelcomeMail(to *NameAddr, trailEndDate string) error {
 	body := &welcomeEmailBody{
 		ZeptoMailBody: &ZeptoMailBody{
 			TemplateKey: ZeptoMailTemplates["opt"],
-			To:          append([]NameAddr{}, *to),
+			To: append(
+				[]ToEmailAddress{},
+				ToEmailAddress{
+					EmailAddress: *to,
+				},
+			),
 			From: &NameAddr{
 				Name:    z.From.Name,
 				Address: z.From.Address,
@@ -135,26 +152,16 @@ func (z *ZeptoMail) sendWelcomeMail(to *NameAddr, trailEndDate string) error {
 
 // helper
 func sendMail(url string, headers map[string]string, body []byte) error {
-	res, err := utils.MakeHTTPRequest(http.MethodPost, url, headers, body)
-
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, url, headers, body)
 	if err != nil {
-		logger.Error(fmt.Sprintf("[email_service] Error sending email email_body:", string(body)), err)
+		logger.Error(fmt.Sprintf("[email_service] Error sending email. Request body: %s", string(body)), err)
 		return err
 	}
 
-	defer res.Body.Close()
-
-	var resBody interface{}
-
-	json.NewDecoder(res.Body).Decode(&resBody)
-
-	fmt.Println("response body:: ", resBody.(map[string]interface{}))
-
-	logger.Dev(fmt.Sprintf("ZeptoMail Response code: %v,", res.StatusCode))
-
-	if !strings.HasPrefix(string(res.StatusCode), "2") {
-		logger.Error("[email_service] unsuccessful response from zepto mail.", errors.New(res.Status))
-		return errors.New("unsuccessful response from zepto mail")
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
+		logger.Error(fmt.Sprintf("[email_service] Unsuccessful response from ZeptoMail. Status: %s, Body: %s", res.Status, respBody), nil)
+		return fmt.Errorf("unsuccessful response from ZeptoMail: %s", res.Status)
 	}
+
 	return nil
 }

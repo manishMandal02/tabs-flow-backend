@@ -79,12 +79,12 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 	}
 
 	if response.Item == nil || response.Item["TTL"] == nil {
-		return false, errors.New(errMsg.inValidOTP)
+		return false, nil
 	}
 
 	// check if OTP has expired
 	var ttl struct {
-		TTL int32
+		TTL string
 	}
 
 	err = attributevalue.UnmarshalMap(response.Item, &ttl)
@@ -94,8 +94,15 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 		return false, errors.New(errMsg.inValidOTP)
 	}
 
-	if ttl.TTL < int32(time.Now().Unix()) {
+	ttlInt, err := strconv.ParseInt(ttl.TTL, 10, 64)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't convert TTL to int for email: %#v", email), err)
 		return false, errors.New(errMsg.inValidOTP)
+	}
+
+	if ttlInt < int64(time.Now().Unix()) {
+		return false, nil
 	}
 
 	return true, nil
@@ -144,8 +151,8 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 		return "", errors.New(errMsg.getUserId)
 	}
 
-	if len(response.Items) == 0 {
-		return "", errors.New("user not found")
+	if len(response.Items) < 1 {
+		return "", nil
 	}
 
 	var s struct {
@@ -164,7 +171,7 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 
 	if userId == "" {
 		logger.Error(fmt.Sprintf("Couldn't get user id from sort_key: %#v", s.UserId), err)
-		return "", errors.New(errMsg.getUserId)
+		return "", nil
 	}
 
 	return userId, nil

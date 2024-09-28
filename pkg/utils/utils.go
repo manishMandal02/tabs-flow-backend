@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/big"
 	"net/http"
@@ -41,12 +42,12 @@ func GenerateOTP() string {
 	return fmt.Sprintf("%0*d", maxDigits, bi)
 }
 
-func MakeHTTPRequest(method, url string, headers map[string]string, body []byte) (*http.Response, error) {
+func MakeHTTPRequest(method, url string, headers map[string]string, body []byte) (*http.Response, string, error) {
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
-
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
+
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
@@ -54,8 +55,14 @@ func MakeHTTPRequest(method, url string, headers map[string]string, body []byte)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer resp.Body.Close()
-	return resp, nil
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return resp, "", err
+	}
+
+	return resp, string(respBody), nil
 }

@@ -22,7 +22,7 @@ var (
 	ZEPTO_MAIL_API_KEY      string
 	AWS_CONFIG              aws.Config
 
-	ZEPTO_MAIL_API_URL = "https://api.zeptomail.com/v1.1/email"
+	ZEPTO_MAIL_API_URL = "https://api.zeptomail.in/v1.1/email/template"
 
 	OTP_EXPIRY_TIME_IN_MIN   = 5
 	JWT_TOKEN_EXPIRY_IN_DAYS = 10
