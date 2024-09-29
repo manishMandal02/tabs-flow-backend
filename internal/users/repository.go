@@ -1,7 +1,8 @@
-package user
+package users
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -31,25 +32,29 @@ func newUserRepository(db *database.DDB) userRepository {
 }
 
 func (r *userRepo) getUserByID(id string) (*User, error) {
-	var err error
-	var user User
-	var response *dynamodb.GetItemOutput
+	var user *User
+
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: id},
 		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
 	}
-	response, err = r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+
+	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		TableName: &r.db.TableName,
 		Key:       key,
 	})
+
+	item, _ := json.Marshal(response)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't query for user_id: %v", id), err)
 		return nil, err
 	}
 
-	if response.Item["PK"] != nil {
-		return nil, errors.New(errMsg.UserNotFound)
+	logger.Dev("response: %v", string(item))
+
+	if response.Item == nil || response.Item["PK"] == nil {
+		return nil, fmt.Errorf(errMsg.userNotFound)
 	}
 
 	err = attributevalue.UnmarshalMap(response.Item, &user)
@@ -59,9 +64,13 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 		return nil, err
 	}
 
-	logger.Dev(user)
+	logger.Dev("user: %v", user)
 
-	return &user, nil
+	if user.Id == "" {
+		return nil, fmt.Errorf(errMsg.userNotFound)
+	}
+
+	return user, nil
 }
 
 func (r *userRepo) insertUser(user *User) error {
@@ -74,7 +83,7 @@ func (r *userRepo) insertUser(user *User) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't marshal user: %#v", user), err)
-		return errors.New(errMsg.CreateUser)
+		return errors.New(errMsg.createUser)
 	}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -84,7 +93,7 @@ func (r *userRepo) insertUser(user *User) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't put item for user: %v", user.Id), err)
-		return errors.New(errMsg.CreateUser)
+		return errors.New(errMsg.createUser)
 	}
 
 	return nil
@@ -97,7 +106,7 @@ func (r *userRepo) updateUser(id, name string) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't build expression for updateUser query for the user_id: %v", id), err)
-		return errors.New(errMsg.UpdateUser)
+		return errors.New(errMsg.updateUser)
 	}
 
 	// execute the query
@@ -114,7 +123,7 @@ func (r *userRepo) updateUser(id, name string) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't updateUser, user_id: %v", id), err)
-		return errors.New(errMsg.UpdateUser)
+		return errors.New(errMsg.updateUser)
 	}
 
 	return nil
@@ -130,7 +139,7 @@ func (r *userRepo) deleteAccount(id string) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't get all dynamic sort keys for user_id: %v", id), err)
-		return errors.New(errMsg.DeleteUser)
+		return errors.New(errMsg.deleteUser)
 	}
 
 	//  prepare delete requests for all SKs
@@ -162,7 +171,7 @@ func (r *userRepo) deleteAccount(id string) error {
 
 		if err != nil {
 			logger.Error(fmt.Sprintf("Couldn't batch delete items for user_id: %v", id), err)
-			return errors.New(errMsg.DeleteUser)
+			return errors.New(errMsg.deleteUser)
 		}
 	}
 

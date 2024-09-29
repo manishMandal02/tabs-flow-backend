@@ -6,7 +6,8 @@ func Error(msg string, err error) {
 	fmt.Printf("❌ Logger: %v\n [Error]: %v\n", msg, err)
 }
 
-// TODO: allow 2 params
-func Dev(msg interface{}) {
-	fmt.Printf("🛜 Logger:Dev: %v\n", msg)
+func Dev(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+
+	fmt.Println("🛜  Logger:Dev:", msg)
 }

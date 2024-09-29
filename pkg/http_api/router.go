@@ -1,7 +1,6 @@
 package http_api
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,13 +10,32 @@ import (
 type Handler func(w http.ResponseWriter, r *http.Request)
 
 type Route struct {
-	Method  string
-	Path    string
-	Handler Handler
+	Method       string
+	PathSegments []string
+	Handler      Handler
 }
 
-func (r *Route) Match(method, path string) bool {
-	return r.Method == method && strings.HasPrefix(path, r.Path)
+func (r *Route) Match(method, path string) (bool, map[string]string) {
+	if r.Method != method {
+		return false, nil
+	}
+
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments) != len(r.PathSegments) {
+		return false, nil
+	}
+
+	params := make(map[string]string)
+
+	for i, s := range r.PathSegments {
+		if strings.HasPrefix(s, ":") {
+			params[s[1:]] = segments[i]
+		} else if s != segments[i] {
+			return false, nil
+		}
+	}
+
+	return true, params
 }
 
 type Router struct {
@@ -33,22 +51,48 @@ func NewRouter(base string) *Router {
 }
 
 func (r *Router) AddRoute(method, path string, handler Handler) {
+
+	segments := strings.Split(strings.Trim(path, "/"), "/")
 	r.routes = append(r.routes, &Route{
-		Method:  method,
-		Path:    path,
-		Handler: handler,
+		Method:       method,
+		PathSegments: segments,
+		Handler:      handler,
 	})
 }
 
+func (r *Router) GET(path string, handler Handler) {
+	r.AddRoute(http.MethodGet, path, handler)
+}
+
+func (r *Router) POST(path string, handler Handler) {
+	r.AddRoute(http.MethodPost, path, handler)
+
+}
+
+func (r *Router) PATCH(path string, handler Handler) {
+	r.AddRoute(http.MethodPatch, path, handler)
+}
+
+func (r *Router) DELETE(path string, handler Handler) {
+	r.AddRoute(http.MethodDelete, path, handler)
+}
+
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	logger.Dev(fmt.Sprintf("Router req: method: %v, path: %v", req.Method, req.URL.Path))
+	logger.Dev("Router req: method: %v, path: %v", req.Method, req.URL.Path)
 	for _, route := range r.routes {
-		if route.Match(req.Method, strings.TrimPrefix(req.URL.Path, r.base)) {
+
+		match, params := route.Match(req.Method, strings.TrimPrefix(req.URL.Path, r.base))
+		logger.Dev("params: %v", params)
+		if match {
+
+			for key, value := range params {
+				req.SetPathValue(key, value)
+			}
 			route.Handler(w, req)
 			return
 		}
+
 	}
 
 	http.Error(w, ErrorRouteNotFound, http.StatusNotFound)
-
 }

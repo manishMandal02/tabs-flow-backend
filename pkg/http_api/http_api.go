@@ -23,8 +23,8 @@ type ErrorBody struct {
 }
 
 type RespBody struct {
-	Message string      `json:"message"`
 	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
 

@@ -110,152 +110,73 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new session and set to cookie
-	newToken, err := createNewSession(b.Email, userAgent, h.r)
+	res, err := createNewSession(b.Email, userAgent, h.r, false)
 
 	if err != nil {
 		http.Error(w, errMsg.createSession, http.StatusInternalServerError)
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "access_token",
-		Value:    newToken,
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS),
-	}
-
-	//  check if user exits
-	userId, err := h.r.userIdByEmail(b.Email)
-
-	type respData struct {
-		UserId  string `json:"userId"`
-		NewUser bool   `json:"isNewUser"`
-	}
-
-	resData := &respData{}
-
-	if err != nil {
-		http.Error(w, errMsg.createSession, http.StatusInternalServerError)
-		return
-	}
-
-	if userId != "" {
-		// new user
-		newUserId := utils.GenerateID()
-
-		err = h.r.attachUserId(&emailWithUserId{
-			Email:  b.Email,
-			UserId: newUserId,
-		})
-
-		if err != nil {
-			http.Error(w, errMsg.createSession, http.StatusInternalServerError)
-			return
-		}
-
-		resData = &respData{
-			UserId:  userId,
-			NewUser: true,
-		}
-
-	} else {
-		// old user
-		resData = &respData{
-			UserId:  userId,
-			NewUser: false,
-		}
-	}
-
-	http.SetCookie(w, cookie)
+	http.SetCookie(w, res.cookie)
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: resData})
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: res.data})
 }
 
-// TODO- refactor these 👇
-func (h *authHandler) googleAuth(body, userAgent string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
+func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Email string `json:"email"`
 	}
 
-	decoder := json.NewDecoder(strings.NewReader(body))
+	userAgent := r.Header.Get("User-Agent")
+
+	decoder := json.NewDecoder(r.Body)
 
 	err := decoder.Decode(&b)
 	if err != nil {
 		logger.Error("Error decoding request body for google auth", err)
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.googleAuth})
+		http.Error(w, errMsg.googleAuth, http.StatusBadRequest)
+		return
 	}
 
 	// create new session and set to cookie
-	newToken, err := createNewSession(b.Email, userAgent, h.r)
+	res, err := createNewSession(b.Email, userAgent, h.r, false)
 
 	if err != nil {
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
+		logger.Error(errMsg.createSession, errors.New(errMsg.createSession))
+		return
 	}
 
-	newCookies := map[string]string{
-		"access_token": newToken,
-	}
-
-	//  check if user exits
-	userId, err := h.r.userIdByEmail(b.Email)
-
-	type respData struct {
-		UserId  string `json:"userId"`
-		NewUser bool   `json:"isNewUser"`
-	}
-
-	if err != nil {
-		// new user
-		newUserId := utils.GenerateID()
-
-		err = h.r.attachUserId(&emailWithUserId{
-			Email:  b.Email,
-			UserId: newUserId,
-		})
-
-		if err != nil {
-			return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.createSession})
-		}
-
-		resData := &respData{
-			UserId:  newUserId,
-			NewUser: true,
-		}
-
-		return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Google auth successful", Data: resData}, newCookies)
-	}
-
-	// old user
-	resData := &respData{
-		UserId:  userId,
-		NewUser: false,
-	}
-
-	return http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Google auth successful", Data: resData}, newCookies)
+	http.SetCookie(w, res.cookie)
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "Google auth successful", Data: res.data})
 
 }
 
-func (h *authHandler) getUserId(body string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
+func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
 
 	var b struct {
 		Email string `json:"email"`
 	}
 
-	decoder := json.NewDecoder(strings.NewReader(body))
+	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&b)
 
 	if err != nil {
-		logger.Error("Error decoding request body for get_user_id", err)
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.getUserId})
+		logger.Error("Error decoding request body for getUserId", err)
+		http.Error(w, errMsg.getUserId, http.StatusBadRequest)
 	}
 	userId, err := h.r.userIdByEmail(b.Email)
 
 	if err != nil {
-		return http_api.APIResponse(400, http_api.RespBody{Success: false, Message: errMsg.getUserId})
+		http.Error(w, errMsg.getUserId, http.StatusBadRequest)
+		return
+	}
+
+	if userId == "" {
+		http.Error(w, "No user with given email", http.StatusBadRequest)
+		return
 	}
 
 	resData := &struct {
@@ -264,26 +185,43 @@ func (h *authHandler) getUserId(body string) (*lambda_events.APIGatewayV2HTTPRes
 		UserId: userId,
 	}
 
-	return http_api.APIResponse(200, http_api.RespBody{Success: true, Message: "User id", Data: resData})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: resData})
+
 }
 
-func (h *authHandler) logout(cookieStr []string) (*lambda_events.APIGatewayV2HTTPResponse, error) {
+func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 
-	newCookies := map[string]string{
-		"access_token": "",
+	logoutResponse := func() {
+		cookie := &http.Cookie{
+			Name:     "access_token",
+			Value:    "",
+			HttpOnly: true,
+			Secure:   true,
+			Path:     "/",
+			MaxAge:   -1,
+		}
+
+		http.SetCookie(w, cookie)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "Logout successful"})
 	}
 
-	logoutResponse, err := http_api.APIResponseWithCookies(200, http_api.RespBody{Success: true, Message: "Logged out"}, newCookies)
+	c, err := r.Cookie("access_token")
 
-	cookies := parseCookiesPair(cookieStr)
+	if err != nil {
+		logoutResponse()
+		return
+	}
 
-	token := cookies["access_token"]
-
-	claims, err := validateToken(token)
+	claims, err := validateToken(c.Value)
 
 	if err != nil {
 		logger.Error(errMsg.validateSession, err)
-		return logoutResponse, err
+		logoutResponse()
+		return
 	}
 
 	email, okEmail := claims["email"].(string)
@@ -291,17 +229,19 @@ func (h *authHandler) logout(cookieStr []string) (*lambda_events.APIGatewayV2HTT
 
 	if !okEmail || !okSID {
 		logger.Error(errMsg.validateSession, errors.New(errMsg.invalidToken))
-		return logoutResponse, err
+		logoutResponse()
+		return
 	}
 
 	err = h.r.deleteSession(email, sId)
 
 	if err != nil {
 		logger.Error(errMsg.deleteSession, err)
-		return logoutResponse, err
+		logoutResponse()
+		return
 	}
 
-	return logoutResponse, err
+	logoutResponse()
 }
 
 func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
@@ -342,20 +282,21 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.validateSession)
 	}
 
-	newToken, err := createNewSession(email, ev.Headers["User-Agent"], h.r)
+	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r, true)
 
 	if err != nil {
 		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.createToken)
 	}
 
 	newCookies := map[string]string{
-		"access_token": newToken,
+		"access_token": res.token,
 	}
 
 	return generatePolicy("user", "Allow", ev.MethodArn, newCookies), nil
 }
 
-// helpers
+// * helpers
+// generate new token
 func generateToken(email, sessionId string) (string, error) {
 	// Create a new JWT token with claims
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -403,7 +344,117 @@ func validateToken(tokenStr string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-// generate authorizer policy
+// parse cookie
+func parseCookiesStr(cookieHeader string) map[string]string {
+	cookies := make(map[string]string)
+	if cookieHeader == "" {
+		return cookies
+	}
+	pairs := strings.Split(cookieHeader, ";")
+	for _, pair := range pairs {
+		parts := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+		if len(parts) == 2 {
+			cookies[parts[0]] = parts[1]
+		}
+	}
+	return cookies
+}
+
+type createSessionRes struct {
+	token  string
+	cookie *http.Cookie
+	data   struct {
+		UserId  string `json:"userId"`
+		NewUser bool   `json:"isNewUser"`
+	}
+}
+
+func createNewSession(email, userAgent string, aR authRepository, isAuthorizer bool) (*createSessionRes, error) {
+	ua := useragent.New(userAgent)
+
+	browser, _ := ua.Browser()
+
+	session := session{
+		Email: email,
+		Id:    utils.GenerateRandomString(20),
+		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
+		DeviceInfo: &deviceInfo{
+			Browser:  browser,
+			OS:       ua.OS(),
+			Platform: ua.Platform(),
+			IsMobile: ua.Mobile(),
+		},
+	}
+	err := aR.createSession(&session)
+
+	if err != nil {
+		logger.Error(errMsg.createSession, err)
+		return nil, err
+	}
+
+	newToken, err := generateToken(email, session.Id)
+
+	if err != nil {
+		logger.Error(errMsg.createToken, err)
+		return nil, err
+	}
+
+	if isAuthorizer {
+		// if authorizer, return token only
+		return &createSessionRes{token: newToken}, nil
+	}
+
+	cookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    newToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	//  check if user exits
+	userId, err := aR.userIdByEmail(email)
+
+	type respData struct {
+		UserId  string `json:"userId"`
+		NewUser bool   `json:"isNewUser"`
+	}
+
+	resData := &respData{}
+
+	if err != nil || userId == "" {
+		// new user
+		newUserId := utils.GenerateID()
+
+		err = aR.attachUserId(&emailWithUserId{
+			Email:  email,
+			UserId: newUserId,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		resData = &respData{
+			UserId:  newUserId,
+			NewUser: true,
+		}
+	} else {
+		// old user
+		resData = &respData{
+			UserId:  userId,
+			NewUser: false,
+		}
+	}
+
+	return &createSessionRes{
+		cookie: cookie,
+		data:   *resData,
+	}, nil
+}
+
+// generate policy for lambda authorizer
 func generatePolicy(principalId, effect, resource string, cookies map[string]string) lambda_events.APIGatewayCustomAuthorizerResponse {
 	authResponse := lambda_events.APIGatewayCustomAuthorizerResponse{PrincipalID: principalId}
 
@@ -431,70 +482,6 @@ func generatePolicy(principalId, effect, resource string, cookies map[string]str
 	}
 
 	return authResponse
-}
-
-// parse cookie
-func parseCookiesStr(cookieHeader string) map[string]string {
-	cookies := make(map[string]string)
-	if cookieHeader == "" {
-		return cookies
-	}
-	pairs := strings.Split(cookieHeader, ";")
-	for _, pair := range pairs {
-		parts := strings.SplitN(strings.TrimSpace(pair), "=", 2)
-		if len(parts) == 2 {
-			cookies[parts[0]] = parts[1]
-		}
-	}
-	return cookies
-}
-
-func parseCookiesPair(cookiePairs []string) map[string]string {
-	cookies := make(map[string]string)
-	if len(cookiePairs) < 1 {
-		return cookies
-	}
-
-	for _, pair := range cookiePairs {
-		parts := strings.SplitN(strings.TrimSpace(pair), "=", 2)
-		if len(parts) == 2 {
-			cookies[parts[0]] = parts[1]
-		}
-	}
-	return cookies
-}
-
-func createNewSession(email, userAgent string, aR authRepository) (string, error) {
-	ua := useragent.New(userAgent)
-
-	browser, _ := ua.Browser()
-
-	session := session{
-		Email: email,
-		Id:    utils.GenerateRandomString(20),
-		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
-		DeviceInfo: &deviceInfo{
-			Browser:  browser,
-			OS:       ua.OS(),
-			Platform: ua.Platform(),
-			IsMobile: ua.Mobile(),
-		},
-	}
-	err := aR.createSession(&session)
-
-	if err != nil {
-		logger.Error("Error creating session", errors.New(errMsg.createSession))
-		return "", err
-	}
-
-	newToken, err := generateToken(email, session.Id)
-
-	if err != nil {
-		logger.Error("Error creating token", errors.New(errMsg.createToken))
-		return "", err
-	}
-
-	return newToken, nil
 }
 
 // helper

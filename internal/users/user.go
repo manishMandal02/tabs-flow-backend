@@ -1,8 +1,8 @@
-package user
+package users
 
 import (
 	"encoding/json"
-	"strings"
+	"io"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -19,25 +19,17 @@ type userWithSK struct {
 	SK string `json:"sk" dynamodbav:"SK"`
 }
 
-// func newUser(id, fullName, email, profilePic string) *User {
-// 	return &User{
-// 		ID:         id,
-// 		FullName:   fullName,
-// 		Email:      email,
-// 		ProfilePic: profilePic,
-// 	}
-// }
+func userFromJSON(body io.Reader) (*User, error) {
 
-func (u *User) fromJSON(body string) error {
+	var u *User
 
-	decoder := json.NewDecoder(strings.NewReader(body))
-
-	err := decoder.Decode(&u)
+	err := json.NewDecoder(body).Decode(&u)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	return u, nil
 }
 
 func (u *User) validate() error {
@@ -54,15 +46,17 @@ func (u *User) validate() error {
 }
 
 var errMsg = struct {
-	GetUser      string
-	UserNotFound string
-	CreateUser   string
-	UpdateUser   string
-	DeleteUser   string
+	getUser       string
+	userNotFound  string
+	createUser    string
+	updateUser    string
+	deleteUser    string
+	invalidUserId string
 }{
-	GetUser:      "Error getting user",
-	UserNotFound: "User not found",
-	CreateUser:   "Error creating user",
-	UpdateUser:   "Error updating user",
-	DeleteUser:   "Error deleting user",
+	getUser:       "Error getting user",
+	userNotFound:  "User not found",
+	createUser:    "Error creating user",
+	updateUser:    "Error updating user",
+	deleteUser:    "Error deleting user",
+	invalidUserId: "Invalid user id",
 }

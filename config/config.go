@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -36,9 +35,9 @@ func Init() {
 	flag.Parse()
 
 	isLocalDev := *localDevFlag
-	logger.Dev(fmt.Sprint("local dev mode: ", isLocalDev))
 
 	if isLocalDev {
+		logger.Dev("Local development mode 🚧")
 		err := godotenv.Load()
 		if err != nil {
 			log.Fatal("Error loading .env file")

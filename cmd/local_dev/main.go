@@ -6,6 +6,7 @@ import (
 
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/auth"
+	"github.com/manishMandal02/tabsflow-backend/internal/users"
 )
 
 func main() {
@@ -16,6 +17,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/auth/", auth.Router)
+	mux.HandleFunc("/users/", users.Router)
 
 	// handle unknown service routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

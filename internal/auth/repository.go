@@ -130,10 +130,11 @@ func (r *authRepo) attachUserId(data *emailWithUserId) error {
 func (r *authRepo) userIdByEmail(email string) (string, error) {
 	// primary key - partition+sort key
 
-	keyEx := expression.Key("PK").Equal(expression.Value(email))
-	keyEx.And(expression.Key("SK").BeginsWith(database.SORT_KEY_SESSIONS.UserId("")))
+	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(email)), expression.Key("SK").BeginsWith(database.SORT_KEY_SESSIONS.UserId("")))
 
-	expr, err := expression.NewBuilder().WithKeyCondition(keyEx).Build()
+	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
+
+	logger.Dev(fmt.Sprintf("Querying expr: %#v", expr.Values()))
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't build getUserID expression for email: %#v", email), err)
@@ -146,6 +147,7 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),
 	})
+
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't get user id from db for email: %#v", email), err)
 		return "", errors.New(errMsg.getUserId)
@@ -183,6 +185,7 @@ func (r *authRepo) createSession(s *session) error {
 	item := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: s.Email},
 		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.Session(s.Id)},
+		"TTL":            &types.AttributeValueMemberS{Value: strconv.FormatInt(s.TTL, 10)},
 		"DeviceInfo": &types.AttributeValueMemberM{
 			Value: map[string]types.AttributeValue{
 				"browser":  &types.AttributeValueMemberS{Value: s.DeviceInfo.Browser},
