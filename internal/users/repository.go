@@ -2,7 +2,6 @@ package users
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -32,7 +31,6 @@ func newUserRepository(db *database.DDB) userRepository {
 }
 
 func (r *userRepo) getUserByID(id string) (*User, error) {
-	var user *User
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: id},
@@ -44,27 +42,23 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 		Key:       key,
 	})
 
-	item, _ := json.Marshal(response)
-
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't query for user_id: %v", id), err)
+		logger.Error(fmt.Sprintf("Couldn't query for userId: %v", id), err)
 		return nil, err
 	}
 
-	logger.Dev("response: %v", string(item))
+	user := &User{}
+
+	err = attributevalue.UnmarshalMap(response.Item, &user)
 
 	if response.Item == nil || response.Item["PK"] == nil {
 		return nil, fmt.Errorf(errMsg.userNotFound)
 	}
 
-	err = attributevalue.UnmarshalMap(response.Item, &user)
-
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't unmarshal query result for user_id: %v", id), err)
 		return nil, err
 	}
-
-	logger.Dev("user: %v", user)
 
 	if user.Id == "" {
 		return nil, fmt.Errorf(errMsg.userNotFound)
@@ -100,8 +94,14 @@ func (r *userRepo) insertUser(user *User) error {
 }
 
 func (r *userRepo) updateUser(id, name string) error {
+
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{Value: id},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
+	}
+
 	// build update expression
-	updateExpr := expression.Set(expression.Name("Name"), expression.Value(name))
+	updateExpr := expression.Set(expression.Name("FullName"), expression.Value(name))
 	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
 
 	if err != nil {
@@ -111,11 +111,8 @@ func (r *userRepo) updateUser(id, name string) error {
 
 	// execute the query
 	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
-		TableName: &r.db.TableName,
-		Key: map[string]types.AttributeValue{
-			database.PK_NAME: &types.AttributeValueMemberS{Value: id},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
-		},
+		TableName:                 &r.db.TableName,
+		Key:                       key,
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		UpdateExpression:          expr.Update(),

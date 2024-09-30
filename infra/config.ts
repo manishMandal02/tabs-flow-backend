@@ -1,5 +1,6 @@
 import { Duration } from 'aws-cdk-lib';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Domain } from 'domain';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -45,6 +46,7 @@ const getEnv = (key: string) => {
 };
 
 const Env = {
+  API_DOMAIN: getEnv('API_DOMAIN'),
   JWT_SECRET_KEY: getEnv('JWT_SECRET_KEY'),
   ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY')
 };

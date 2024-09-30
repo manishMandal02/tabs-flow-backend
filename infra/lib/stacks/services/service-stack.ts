@@ -13,6 +13,7 @@ import { EmailService } from './email';
 import { AuthService } from './auth';
 import { config } from '../../../config';
 import { UserService } from './users';
+import { RestApi } from './rest-api';
 
 type ServiceStackProps = StackProps & {
   stage: string;
@@ -42,7 +43,9 @@ export class ServiceStack extends Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
 
-    const resAPI = new apiGateway.RestApi(this, `${config.AppName}-${props.stage}`);
+    const apiG = new RestApi(this, {
+      stage: props.stage
+    });
 
     const emailService = new EmailService(this, {
       lambdaRole,
@@ -53,13 +56,13 @@ export class ServiceStack extends Stack {
       lambdaRole,
       sessionsDB: sessionsDB,
       stage: props.stage,
-      apiGW: resAPI,
+      apiGW: apiG.restAPI,
       emailQueueURL: emailService.queueURL
     });
 
     new UserService(this, {
       stage: props.stage,
-      apiGW: resAPI,
+      apiGW: apiG.restAPI,
       lambdaRole,
       db: mainDB,
       apiAuthorizer: authService.apiAuthorizer,

@@ -39,8 +39,8 @@ export class UserService extends Construct {
     props.db.grantReadWriteData(usersServiceLambda);
 
     // add users resource/endpoints to api gateway
-    const authResource = props.apiGW.root.addResource('users');
-    authResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(usersServiceLambda), {
+    const usersResource = props.apiGW.root.addResource('users');
+    usersResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(usersServiceLambda), {
       authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
       authorizer: props.apiAuthorizer
     });

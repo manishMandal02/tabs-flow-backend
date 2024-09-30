@@ -84,7 +84,7 @@ func (h *userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var n struct {
-		Name string `json:"name"`
+		Name string `json:"fullName"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&n)
@@ -111,6 +111,7 @@ func (h *userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 func (h *userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
+
 	if id == "" {
 		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
 		return

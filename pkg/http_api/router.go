@@ -82,9 +82,8 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	for _, route := range r.routes {
 
 		match, params := route.Match(req.Method, strings.TrimPrefix(req.URL.Path, r.base))
-		logger.Dev("params: %v", params)
 		if match {
-
+			logger.Dev("params: %v", params)
 			for key, value := range params {
 				req.SetPathValue(key, value)
 			}
