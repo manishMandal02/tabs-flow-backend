@@ -224,7 +224,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email, okEmail := claims["email"].(string)
+	email, okEmail := claims["sub"].(string)
 	sId, okSID := claims["session_id"].(string)
 
 	if !okEmail || !okSID {
@@ -244,28 +244,33 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 	logoutResponse()
 }
 
-func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
+func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (*lambda_events.APIGatewayCustomAuthorizerResponse, error) {
 	cookies := parseCookiesStr(ev.Headers["Cookie"])
 
 	claims, err := validateToken(cookies["access_token"])
 
 	if err != nil {
 		logger.Error("Error validating JWT token", errors.New(errMsg.invalidToken))
-		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
+
+		return nil, errors.New("Unauthorized")
 	}
 
-	email, emailOK := claims["email"].(string)
+	email, emailOK := claims["sub"].(string)
 	sId, sIdOK := claims["session_id"].(string)
-	expiryTime, expiryOK := claims["exp"].(int64)
+	expiryTime, expiryOK := claims["exp"].(float64)
+
+	logger.Dev("emailOK: %v", emailOK)
+	logger.Dev("sIdOK: %v", sIdOK)
+	logger.Dev("expiryOK: %v", expiryOK)
 
 	if !emailOK || !sIdOK || !expiryOK {
 		logger.Error("Error getting token claims", errors.New(errMsg.invalidToken))
-		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
+		return nil, errors.New("Unauthorized")
 	}
 
-	if expiryTime > time.Now().Unix() {
+	if int64(expiryTime) > time.Now().Unix() {
 		// token valid, allow access
-		return generatePolicy(ev.MethodArn, "Deny", ev.MethodArn, nil), nil
+		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, nil), nil
 	}
 
 	// validate session
@@ -273,19 +278,19 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 
 	if err != nil {
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
-		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
+		return nil, errors.New("Unauthorized")
 	}
 
 	// if session, valid then refresh token and allow access
 	if !isValid {
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
-		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
+		return nil, errors.New("Unauthorized")
 	}
 
 	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r, true)
 
 	if err != nil {
-		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
+		return nil, errors.New("Unauthorized")
 
 	}
 
@@ -339,10 +344,9 @@ func validateToken(tokenStr string) (jwt.MapClaims, error) {
 		return nil, errors.New("invalid token")
 	}
 
-	// get session id from token
-	claims, _ := token.Claims.(jwt.MapClaims)
+	logger.Dev("token claims: %v", token.Claims.(jwt.MapClaims))
 
-	return claims, nil
+	return token.Claims.(jwt.MapClaims), nil
 }
 
 // parse cookie
@@ -456,7 +460,7 @@ func createNewSession(email, userAgent string, aR authRepository, isAuthorizer b
 }
 
 // generate policy for lambda authorizer
-func generatePolicy(principalId, effect, resource string, cookies map[string]string) lambda_events.APIGatewayCustomAuthorizerResponse {
+func generatePolicy(principalId, effect, resource string, cookies map[string]string) *lambda_events.APIGatewayCustomAuthorizerResponse {
 	authResponse := lambda_events.APIGatewayCustomAuthorizerResponse{PrincipalID: principalId}
 
 	if effect != "" && resource != "" {
@@ -482,7 +486,18 @@ func generatePolicy(principalId, effect, resource string, cookies map[string]str
 		}
 	}
 
-	return authResponse
+	if effect != "Allow" {
+
+		if authResponse.Context == nil {
+			authResponse.Context = map[string]interface{}{}
+		}
+		authResponse.Context["code"] = "401"
+		authResponse.Context["message"] = "Unauthorized"
+	}
+
+	logger.Dev("authorizer response: %v", authResponse)
+
+	return &authResponse
 }
 
 // helper

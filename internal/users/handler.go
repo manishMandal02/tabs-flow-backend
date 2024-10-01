@@ -70,6 +70,8 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO - send USER_REGISTERED event to email service (queue)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "user created"})

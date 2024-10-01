@@ -32,7 +32,7 @@ export class UserService extends Construct {
       bundling: config.lambda.GoBundling,
       environment: {
         EMAIL_SQS_QUEUE_URL: props.emailQueue.queueUrl,
-        DDB_SESSIONS_TABLE_NAME: props.db.tableName
+        DDB_MAIN_TABLE_NAME: props.db.tableName
       }
     });
 

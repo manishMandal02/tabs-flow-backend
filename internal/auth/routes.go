@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
@@ -11,8 +10,7 @@ import (
 )
 
 // custom API_GW lambda authorizer
-func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (lambda_events.APIGatewayCustomAuthorizerResponse, error) {
-	logger.Dev(fmt.Sprintf("Lambda Authorizer event: %v", ev))
+func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (*lambda_events.APIGatewayCustomAuthorizerResponse, error) {
 
 	db := database.NewSessionTable()
 	ar := newAuthRepository(db)
