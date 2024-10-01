@@ -1,4 +1,5 @@
 import { Duration } from 'aws-cdk-lib';
+import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Domain } from 'domain';
 import * as dotenv from 'dotenv';
@@ -25,7 +26,9 @@ const dynamoDB = {
 const lambda = {
   MemorySize: 128,
   Timeout: Duration.seconds(20),
-  LogRetention: RetentionDays.ONE_MONTH,
+  LogRetention: RetentionDays.TWO_WEEKS,
+  Architecture: Architecture.ARM_64,
+  Runtime: Runtime.PROVIDED_AL2,
   GoBundling: {
     // goBuildFlags: ['-ldflags="-s -w"']
   }

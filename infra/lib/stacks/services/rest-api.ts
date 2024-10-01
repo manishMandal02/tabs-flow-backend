@@ -18,6 +18,10 @@ export class RestApi extends Construct {
     super(scope, id);
 
     this.restAPI = new apiGateway.RestApi(this, `${config.AppName}-${props.stage}`, {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apiGateway.Cors.ALL_ORIGINS,
+        allowMethods: apiGateway.Cors.ALL_METHODS
+      },
       deployOptions: {
         stageName: props.stage
       }

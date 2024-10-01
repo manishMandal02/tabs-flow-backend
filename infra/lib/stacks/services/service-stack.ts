@@ -57,7 +57,7 @@ export class ServiceStack extends Stack {
       sessionsDB: sessionsDB,
       stage: props.stage,
       apiGW: apiG.restAPI,
-      emailQueueURL: emailService.queueURL
+      emailQueue: emailService.queue
     });
 
     new UserService(this, {
@@ -66,7 +66,7 @@ export class ServiceStack extends Stack {
       lambdaRole,
       db: mainDB,
       apiAuthorizer: authService.apiAuthorizer,
-      emailQueueURL: emailService.queueURL
+      emailQueue: emailService.queue
     });
   }
 }

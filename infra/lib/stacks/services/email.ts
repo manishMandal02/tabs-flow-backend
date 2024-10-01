@@ -13,7 +13,7 @@ type EmailServiceProps = {
 };
 
 export class EmailService extends Construct {
-  queueURL: string;
+  queue: sqs.Queue;
   constructor(scope: Construct, props: EmailServiceProps, id: string = 'EmailService') {
     super(scope, id);
 
@@ -40,11 +40,12 @@ export class EmailService extends Construct {
     const emailServiceFunction = new GoFunction(this, emailServiceLambdaName, {
       functionName: emailServiceLambdaName,
       entry: '../cmd/email/main.go',
-      runtime: aws_lambda.Runtime.PROVIDED_AL2,
+      runtime: config.lambda.Runtime,
       timeout: config.lambda.Timeout,
       memorySize: config.lambda.MemorySize,
       logRetention: config.lambda.LogRetention,
       role: props.lambdaRole,
+      architecture: config.lambda.Architecture,
       bundling: config.lambda.GoBundling,
       environment: {
         ZEPTO_MAIL_API_KEY,
@@ -58,6 +59,6 @@ export class EmailService extends Construct {
     // add sqs as event source
     emailServiceFunction.addEventSource(new eventSources.SqsEventSource(emailQueue));
 
-    this.queueURL = emailQueue.queueUrl;
+    this.queue = emailQueue;
   }
 }

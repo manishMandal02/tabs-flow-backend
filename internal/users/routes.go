@@ -5,9 +5,11 @@ import (
 
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 func Router(w http.ResponseWriter, r *http.Request) {
+	logger.Dev("Headers: %v", r.Header.Clone())
 
 	db := database.New()
 

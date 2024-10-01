@@ -24,6 +24,8 @@ func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeReq
 
 func Router(w http.ResponseWriter, r *http.Request) {
 
+	logger.Dev("Headers: %v", r.Header.Clone())
+
 	db := database.NewSessionTable()
 
 	ar := newAuthRepository(db)

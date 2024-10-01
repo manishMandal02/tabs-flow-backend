@@ -251,7 +251,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 
 	if err != nil {
 		logger.Error("Error validating JWT token", errors.New(errMsg.invalidToken))
-		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.invalidToken)
+		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
 	}
 
 	email, emailOK := claims["email"].(string)
@@ -260,12 +260,12 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 
 	if !emailOK || !sIdOK || !expiryOK {
 		logger.Error("Error getting token claims", errors.New(errMsg.invalidToken))
-		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.invalidToken)
+		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
 	}
 
 	if expiryTime > time.Now().Unix() {
 		// token valid, allow access
-		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, nil), nil
+		return generatePolicy(ev.MethodArn, "Deny", ev.MethodArn, nil), nil
 	}
 
 	// validate session
@@ -273,19 +273,20 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 
 	if err != nil {
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
-		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.validateSession)
+		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
 	}
 
 	// if session, valid then refresh token and allow access
 	if !isValid {
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
-		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.validateSession)
+		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
 	}
 
 	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r, true)
 
 	if err != nil {
-		return lambda_events.APIGatewayCustomAuthorizerResponse{}, errors.New(errMsg.createToken)
+		return generatePolicy("user", "Deny", ev.MethodArn, nil), nil
+
 	}
 
 	newCookies := map[string]string{
@@ -326,7 +327,7 @@ func generateToken(email, sessionId string) (string, error) {
 func validateToken(tokenStr string) (jwt.MapClaims, error) {
 
 	token, err := jwt.Parse(tokenStr, func(_ *jwt.Token) (interface{}, error) {
-		return config.JWT_SECRET_KEY, nil
+		return []byte(config.JWT_SECRET_KEY), nil
 	})
 
 	if err != nil {

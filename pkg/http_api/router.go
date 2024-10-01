@@ -15,6 +15,14 @@ type Route struct {
 	Handler      Handler
 }
 
+type IRoute interface {
+	ServeHTTP(w http.ResponseWriter, req *http.Request)
+	GET(path string, handler Handler)
+	POST(path string, handler Handler)
+	PATCH(path string, handler Handler)
+	DELETE(path string, handler Handler)
+}
+
 func (r *Route) Match(method, path string) (bool, map[string]string) {
 	if r.Method != method {
 		return false, nil
@@ -43,7 +51,7 @@ type Router struct {
 	routes []*Route
 }
 
-func NewRouter(base string) *Router {
+func NewRouter(base string) IRoute {
 	return &Router{
 		base:   base,
 		routes: []*Route{},

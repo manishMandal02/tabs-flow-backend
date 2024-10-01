@@ -14,10 +14,7 @@ func main() {
 	// load config
 	config.Init()
 
-	mux := http.NewServeMux()
+	http.HandleFunc("/auth/", auth.Router)
 
-	http.HandleFunc("/", auth.Router)
-
-	lambda.Start(httpadapter.New(mux).ProxyWithContext)
-
+	lambda.Start(httpadapter.New(http.DefaultServeMux).ProxyWithContext)
 }

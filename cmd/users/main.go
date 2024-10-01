@@ -13,10 +13,8 @@ func main() {
 	// load config
 	config.Init()
 
-	mux := http.NewServeMux()
+	http.HandleFunc("/users/", users.Router)
 
-	http.HandleFunc("/", users.Router)
-
-	lambda.Start(httpadapter.New(mux).ProxyWithContext)
+	lambda.Start(httpadapter.New(http.DefaultServeMux).ProxyWithContext)
 
 }
