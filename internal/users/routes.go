@@ -19,11 +19,19 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	usersRouter := http_api.NewRouter("/users")
 
+	// profile
+	// TODO - test the new create user flow
 	usersRouter.POST("/", handler.createUser)
 	usersRouter.GET("/:id", handler.userById)
 	usersRouter.PATCH("/:id", handler.updateUser)
-	// TODO: test delete handler after adding more data in main  table
-	usersRouter.DELETE("/:id", handler.deleteUser)
+	usersRouter.DELETE("/:id", handler.deleteUser) // TODO: test delete handler after adding more data
+
+	// TODO - preferences
+	usersRouter.GET("/:id/preferences", handler.updateUser)
+	usersRouter.PATCH("/id/preferences", handler.updateUser)
+	// TODO - subscription
+	usersRouter.GET("/:id/subscription", handler.updateUser)
+	usersRouter.PATCH("/:id/subscription", handler.updateUser)
 
 	// serve API routes
 	usersRouter.ServeHTTP(w, r)

@@ -15,7 +15,7 @@ type Route struct {
 	Handler      Handler
 }
 
-type IRoute interface {
+type IRouter interface {
 	ServeHTTP(w http.ResponseWriter, req *http.Request)
 	GET(path string, handler Handler)
 	POST(path string, handler Handler)
@@ -28,7 +28,9 @@ func (r *Route) Match(method, path string) (bool, map[string]string) {
 		return false, nil
 	}
 
+	// split path
 	segments := strings.Split(strings.Trim(path, "/"), "/")
+
 	if len(segments) != len(r.PathSegments) {
 		return false, nil
 	}
@@ -51,7 +53,7 @@ type Router struct {
 	routes []*Route
 }
 
-func NewRouter(base string) IRoute {
+func NewRouter(base string) IRouter {
 	return &Router{
 		base:   base,
 		routes: []*Route{},

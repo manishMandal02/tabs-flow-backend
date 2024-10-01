@@ -155,7 +155,6 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
-
 	var b struct {
 		Email string `json:"email"`
 	}
@@ -188,7 +187,6 @@ func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: resData})
-
 }
 
 func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {

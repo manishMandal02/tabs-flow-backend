@@ -48,6 +48,7 @@ func (u *User) validate() error {
 var errMsg = struct {
 	getUser       string
 	userNotFound  string
+	userExists    string
 	createUser    string
 	updateUser    string
 	deleteUser    string
@@ -55,6 +56,7 @@ var errMsg = struct {
 }{
 	getUser:       "Error getting user",
 	userNotFound:  "User not found",
+	userExists:    "User already exits",
 	createUser:    "Error creating user",
 	updateUser:    "Error updating user",
 	deleteUser:    "Error deleting user",

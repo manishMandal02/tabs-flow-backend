@@ -109,10 +109,8 @@ Our serverless architecture leverages various AWS services to create a scalable 
   - POST: /google
   - POST: /send-otp
 - Env variables:
-  - AWS_REGION
   - JWT_SECRET_KEY
   - EMAIL_SQS_QUEUE_URL
-  - DDB_MAIN_TABLE_NAME
   - DDB_SESSIONS_TABLE_NAME
 
 ### User Service
@@ -125,11 +123,8 @@ Our serverless architecture leverages various AWS services to create a scalable 
   - GET/PUT: /subscription
 
 - Env variables:
-  - AWS_REGION
-  - JWT_SECRET_KEY
   - EMAIL_SQS_QUEUE_URL
   - DDB_MAIN_TABLE_NAME
-  - DDB_SESSIONS_TABLE_NAME
 
 ### Spaces Service
 

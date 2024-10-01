@@ -2,10 +2,13 @@ package users
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
+	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
 
 type userHandler struct {
@@ -63,6 +66,49 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//  check if the user with this id
+
+	userExists, _ := h.r.getUserByID(user.Id)
+
+	if userExists != nil {
+		http.Error(w, errMsg.userExists, http.StatusBadRequest)
+		return
+	}
+
+	// check user id from auth service (api call)
+	body := struct {
+		Email string `json:"email"`
+	}{
+		Email: user.Email,
+	}
+
+	bodyJson, err := json.Marshal(body)
+
+	if err != nil {
+		logger.Error("Error marshaling json body", err)
+		http.Error(w, errMsg.createUser, http.StatusBadRequest)
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	authServiceAPI := fmt.Sprintf("%v/auth/user", r.URL.Host)
+
+	res, _, err := utils.MakeHTTPRequest(http.MethodPost, authServiceAPI, headers, bodyJson)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Error fetching user id from Auth Service for email: %v", body.Email), err)
+		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+	}
+
+	if res.StatusCode != 200 {
+		logger.Error(fmt.Sprintf("User does not have a valid session profile for email: %v", body.Email), err)
+		//  Logout
+		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
+		// http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+	}
+
 	err = h.r.insertUser(user)
 
 	if err != nil {
@@ -70,7 +116,23 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO - send USER_REGISTERED event to email service (queue)
+	// TODO - handle create subscription
+
+	// send USER_REGISTERED event to email service (queue)
+	event := &events.UserRegisteredPayload{
+		Email:        user.Email,
+		Name:         user.FullName,
+		TrailEndDate: "22/12/24",
+	}
+
+	sqs := events.NewQueue()
+
+	err = sqs.AddMessage(event)
+
+	if err != nil {
+		http.Error(w, errMsg.createUser, http.StatusBadGateway)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
