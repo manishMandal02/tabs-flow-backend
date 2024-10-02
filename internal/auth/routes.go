@@ -6,7 +6,6 @@ import (
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
-	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 // custom API_GW lambda authorizer
@@ -21,8 +20,6 @@ func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeReq
 }
 
 func Router(w http.ResponseWriter, r *http.Request) {
-
-	logger.Dev("Headers: %v", r.Header.Clone())
 
 	db := database.NewSessionTable()
 

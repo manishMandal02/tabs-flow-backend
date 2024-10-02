@@ -129,12 +129,9 @@ func (r *authRepo) attachUserId(data *emailWithUserId) error {
 
 func (r *authRepo) userIdByEmail(email string) (string, error) {
 	// primary key - partition+sort key
-
 	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(email)), expression.Key("SK").BeginsWith(database.SORT_KEY_SESSIONS.UserId("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
-
-	logger.Dev(fmt.Sprintf("Querying expr: %#v", expr.Values()))
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't build getUserID expression for email: %#v", email), err)

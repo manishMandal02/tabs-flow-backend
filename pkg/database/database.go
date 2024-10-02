@@ -46,35 +46,37 @@ func generateKey(base string) keySuffix {
 }
 
 var SORT_KEY = struct {
-	Profile        string
-	Subscription   string
-	UsageAnalytics string
-	P_General      string
-	P_Note         string
-	P_CmdPalette   string
-	P_LinkPreview  string
-	P_AutoDiscard  string
-	Notifications  keySuffix
-	Space          keySuffix
-	TabsInSpace    keySuffix
-	GroupsInSpace  keySuffix
-	SnoozedTabs    keySuffix
-	Note           keySuffix
+	Profile         string
+	Subscription    string
+	UsageAnalytics  string
+	PreferencesBase string
+	P_General       string
+	P_Note          string
+	P_CmdPalette    string
+	P_LinkPreview   string
+	P_AutoDiscard   string
+	Notifications   keySuffix
+	Space           keySuffix
+	TabsInSpace     keySuffix
+	GroupsInSpace   keySuffix
+	SnoozedTabs     keySuffix
+	Note            keySuffix
 }{
-	Profile:        "P#Profile",
-	Subscription:   "U#Subscription",
-	UsageAnalytics: "U#UsageAnalytics",
-	P_General:      "P#General",
-	P_Note:         "P#Note",
-	P_CmdPalette:   "P#CmdPalette",
-	P_LinkPreview:  "P#LinkPreview",
-	P_AutoDiscard:  "P#AutoDiscard",
-	Notifications:  generateKey("U#Notification#"),
-	Space:          generateKey("S#Info#"),
-	TabsInSpace:    generateKey("S#Tabs#"),
-	GroupsInSpace:  generateKey("S#Groups#"),
-	SnoozedTabs:    generateKey("S#SnoozedTabs#"),
-	Note:           generateKey("N#Note#"),
+	Profile:         "P#Profile",
+	Subscription:    "U#Subscription",
+	UsageAnalytics:  "U#UsageAnalytics",
+	PreferencesBase: "P#",
+	P_General:       "P#General",
+	P_Note:          "P#Note",
+	P_CmdPalette:    "P#CmdPalette",
+	P_LinkPreview:   "P#LinkPreview",
+	P_AutoDiscard:   "P#AutoDiscard",
+	Notifications:   generateKey("U#Notification#"),
+	Space:           generateKey("S#Info#"),
+	TabsInSpace:     generateKey("S#Tabs#"),
+	GroupsInSpace:   generateKey("S#Groups#"),
+	SnoozedTabs:     generateKey("S#SnoozedTabs#"),
+	Note:            generateKey("N#Note#"),
 }
 
 var SORT_KEY_SESSIONS = struct {

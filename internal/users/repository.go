@@ -30,6 +30,7 @@ func newUserRepository(db *database.DDB) userRepository {
 	}
 }
 
+// profile
 func (r *userRepo) getUserByID(id string) (*User, error) {
 
 	key := map[string]types.AttributeValue{
@@ -126,7 +127,7 @@ func (r *userRepo) updateUser(id, name string) error {
 	return nil
 }
 
-// deletes the user account with all associated data
+// delete user account with all their data
 func (r *userRepo) deleteAccount(id string) error {
 
 	// DynamoDB allows a maximum batch size of 25 items.
@@ -174,3 +175,52 @@ func (r *userRepo) deleteAccount(id string) error {
 
 	return nil
 }
+
+// preferences
+func (r *userRepo) getAllPreferences(id string) (*preferences, error) {
+	// primary key - partition+sort key
+	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(id)), expression.Key("SK").BeginsWith(database.SORT_KEY.PreferencesBase))
+
+	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't build getPreferences expression for userId: %#v", id), err)
+		return nil, err
+	}
+
+	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 &r.db.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't get preferences for userId : %#v", id), err)
+		return nil, err
+	}
+
+	if len(response.Items) < 1 {
+		return nil, nil
+	}
+
+	logger.Dev("res items: %v", response.Items)
+
+	var p preferences
+
+	err = attributevalue.UnmarshalMap(response.Items[0], &p)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't unmarshal preferences for userId: %#v", id), err)
+		return nil, err
+	}
+
+	return &p, nil
+}
+
+func (r *userRepo) updatePreferences() error {
+
+	return nil
+}
+
+// TODO - subscription

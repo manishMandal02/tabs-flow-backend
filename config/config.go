@@ -20,6 +20,7 @@ var (
 	DDB_SESSIONS_TABLE_NAME string
 	ZEPTO_MAIL_API_KEY      string
 	AWS_CONFIG              aws.Config
+	LOCAL_DEV_ENV           bool = false
 
 	ZEPTO_MAIL_API_URL = "https://api.zeptomail.in/v1.1/email/template"
 
@@ -38,6 +39,7 @@ func Init() {
 
 	if isLocalDev {
 		logger.Dev("Local development mode 🚧")
+		LOCAL_DEV_ENV = true
 		err := godotenv.Load()
 		if err != nil {
 			log.Fatal("Error loading .env file")

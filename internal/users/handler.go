@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
@@ -21,6 +22,7 @@ func newUserHandler(r userRepository) *userHandler {
 	}
 }
 
+// profile handlers
 func (h *userHandler) userById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
@@ -67,11 +69,9 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//  check if the user with this id
+	userExits := checkUserExits(user.Id, h.r, w)
 
-	userExists, _ := h.r.getUserByID(user.Id)
-
-	if userExists != nil {
-		http.Error(w, errMsg.userExists, http.StatusBadRequest)
+	if !userExits {
 		return
 	}
 
@@ -93,13 +93,20 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		"Content-Type": "application/json",
 	}
 
-	authServiceAPI := fmt.Sprintf("%v/auth/user", r.URL.Host)
+	s := "https"
 
-	res, _, err := utils.MakeHTTPRequest(http.MethodPost, authServiceAPI, headers, bodyJson)
+	if config.LOCAL_DEV_ENV {
+		s = "http"
+	}
+
+	authServiceAPI := fmt.Sprintf("%s://%s/auth/user/", s, r.Host)
+
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceAPI, headers, bodyJson)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error fetching user id from Auth Service for email: %v", body.Email), err)
 		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+		return
 	}
 
 	if res.StatusCode != 200 {
@@ -107,6 +114,28 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		//  Logout
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
 		// http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+		return
+	}
+
+	// check user id
+
+	var userIdData struct {
+		Data struct {
+			UserId string `json:"userId"`
+		} `json:"data"`
+	}
+
+	err = json.Unmarshal([]byte(respBody), &userIdData)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Error un_marshaling user id data for email: %v", body.Email), err)
+		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+		return
+	}
+	if userIdData.Data.UserId != user.Id {
+		logger.Error(fmt.Sprintf("User Id mismatch for email: %v", body.Email), err)
+		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
+		return
 	}
 
 	err = h.r.insertUser(user)
@@ -116,7 +145,9 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO - handle create subscription
+	// TODO - create subscription
+
+	// TODO - create default subscription
 
 	// send USER_REGISTERED event to email service (queue)
 	event := &events.UserRegisteredPayload{
@@ -144,6 +175,13 @@ func (h *userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	if id == "" {
 		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
+		return
+	}
+
+	//  check if the user with this id
+	userExits := checkUserExits(id, h.r, w)
+
+	if !userExits {
 		return
 	}
 
@@ -181,6 +219,13 @@ func (h *userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//  check if the user with this id
+	userExits := checkUserExits(id, h.r, w)
+
+	if !userExits {
+		return
+	}
+
 	err := h.r.deleteAccount(id)
 
 	if err != nil {
@@ -193,4 +238,46 @@ func (h *userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "user deleted"})
 
+}
+
+// profile handlers
+func (h *userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("id")
+
+	if id == "" {
+		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
+		return
+	}
+
+	//  check if the user with this id
+	userExits := checkUserExits(id, h.r, w)
+
+	if !userExits {
+		return
+	}
+
+	http.Error(w, "Not Implemented", http.StatusNotImplemented)
+
+}
+
+// * helpers
+func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
+	//  check if the user with this id
+	userExists, err := r.getUserByID(id)
+
+	if err != nil {
+		if err.Error() == errMsg.userNotFound {
+			http.Error(w, errMsg.userNotFound, http.StatusBadRequest)
+		} else {
+			http.Error(w, errMsg.getUser, http.StatusInternalServerError)
+		}
+		return false
+	}
+
+	if userExists == nil {
+		http.Error(w, errMsg.userNotFound, http.StatusNotFound)
+		return false
+	}
+	return true
 }
