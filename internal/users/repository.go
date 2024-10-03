@@ -18,6 +18,8 @@ type userRepository interface {
 	insertUser(user *User) error
 	updateUser(id, name string) error
 	deleteAccount(id string) error
+	getAllPreferences(id string) (*preferences, error)
+	updatePreferences(id string, pData map[string]interface{}) error
 }
 
 type userRepo struct {
@@ -78,7 +80,7 @@ func (r *userRepo) insertUser(user *User) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't marshal user: %#v", user), err)
-		return errors.New(errMsg.createUser)
+		return err
 	}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -88,7 +90,7 @@ func (r *userRepo) insertUser(user *User) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't put item for user: %v", user.Id), err)
-		return errors.New(errMsg.createUser)
+		return err
 	}
 
 	return nil
@@ -107,7 +109,7 @@ func (r *userRepo) updateUser(id, name string) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't build expression for updateUser query for the user_id: %v", id), err)
-		return errors.New(errMsg.updateUser)
+		return err
 	}
 
 	// execute the query
@@ -121,7 +123,7 @@ func (r *userRepo) updateUser(id, name string) error {
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Couldn't updateUser, user_id: %v", id), err)
-		return errors.New(errMsg.updateUser)
+		return err
 	}
 
 	return nil
@@ -204,8 +206,6 @@ func (r *userRepo) getAllPreferences(id string) (*preferences, error) {
 		return nil, nil
 	}
 
-	logger.Dev("res items: %v", response.Items)
-
 	var p preferences
 
 	err = attributevalue.UnmarshalMap(response.Items[0], &p)
@@ -215,10 +215,38 @@ func (r *userRepo) getAllPreferences(id string) (*preferences, error) {
 		return nil, err
 	}
 
+	logger.Dev("preferences: %v", p)
+
 	return &p, nil
 }
 
-func (r *userRepo) updatePreferences() error {
+func (r *userRepo) updatePreferences(id string, pData map[string]interface{}) error {
+
+	d := map[string]interface{}{
+		"PK": id,
+	}
+
+	for k, v := range pData {
+		d[k] = v
+	}
+
+	logger.Dev("data: %v", d)
+
+	item, err := attributevalue.MarshalMap(d)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't marshal preferences for userId: %#v", id), err)
+		return err
+	}
+
+	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: &r.db.TableName,
+		Item:      item,
+	})
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't put preferences item for userId: %#v", id), err)
+		return err
+	}
 
 	return nil
 }

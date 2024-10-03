@@ -67,9 +67,9 @@ type notesP struct {
 	ShowOnAllSites bool   `json:"showOnAllSites" dynamodbav:"ShowOnAllSites"`
 }
 type autoDiscardP struct {
-	IsDisabled               bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
-	DiscardTabsAfterIdleTime string   `json:"discardTabsAfterIdleTime" dynamodbav:"DiscardTabsAfterIdleTime"`
-	WhitelistedDomains       []string `json:"whitelistedDomains" dynamodbav:"WhitelistedDomains"`
+	IsDisabled              bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
+	DiscardTabsAfterIdleMin int32    `json:"discardTabsAfterIdleTime" dynamodbav:"DiscardTabsAfterIdleTime"`
+	WhitelistedDomains      []string `json:"whitelistedDomains" dynamodbav:"WhitelistedDomains"`
 }
 
 type linkPreviewP struct {
@@ -79,11 +79,41 @@ type linkPreviewP struct {
 }
 
 type preferences struct {
-	General     generalP     `json:"general" dynamodbav:"General"`
-	CmdPalette  cmdPaletteP  `json:"cmdPalette" dynamodbav:"CmdPalette"`
-	Notes       notesP       `json:"notes" dynamodbav:"Notes"`
-	AutoDiscard autoDiscardP `json:"autoDiscard" dynamodbav:"AutoDiscard"`
-	LinkPreview linkPreviewP `json:"linkPreview" dynamodbav:"LinkPreview"`
+	General     generalP     `json:"general" dynamodbav:"P#General"`
+	CmdPalette  cmdPaletteP  `json:"cmdPalette" dynamodbav:"P#CmdPalette"`
+	Notes       notesP       `json:"notes" dynamodbav:"P#Notes"`
+	AutoDiscard autoDiscardP `json:"autoDiscard" dynamodbav:"P#AutoDiscard"`
+	LinkPreview linkPreviewP `json:"linkPreview" dynamodbav:"P#LinkPreview"`
+}
+
+var defaultPreferences = map[string]interface{}{
+	"General": map[string]interface{}{
+		"OpenSpace":           "newWindow",
+		"DeleteUnsavedSpaces": "week",
+	},
+	"CmdPalette": map[string]interface{}{
+		"IsDisabled": false,
+		"Search": map[string]interface{}{
+			"Bookmarks": true,
+			"Notes":     true,
+		},
+		"DisabledCommands": []string{},
+	},
+	"Notes": map[string]interface{}{
+		"IsDisabled":     false,
+		"BubblePos":      "bottom-right",
+		"ShowOnAllSites": true,
+	},
+	"AutoDiscard": map[string]interface{}{
+		"IsDisabled":              false,
+		"DiscardTabsAfterIdleMin": 10,
+		"WhitelistedDomains":      []string{},
+	},
+	"LinkPreview": map[string]interface{}{
+		"IsDisabled":  false,
+		"OpenTrigger": "shift-click",
+		"Size":        "tablet",
+	},
 }
 
 var errMsg = struct {

@@ -58,8 +58,6 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Dev("user: %v", user)
-
 	err = user.validate()
 
 	if err != nil {
@@ -69,9 +67,19 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//  check if the user with this id
-	userExits := checkUserExits(user.Id, h.r, w)
+	userExists, err := h.r.getUserByID(user.Id)
 
-	if !userExits {
+	logger.Dev("userExists: %v\n, err: %v", userExists, err)
+
+	if err != nil {
+		if err.Error() != errMsg.userNotFound {
+			http.Error(w, errMsg.getUser, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if userExists != nil {
+		http.Error(w, errMsg.userExists, http.StatusBadRequest)
 		return
 	}
 
@@ -147,7 +155,24 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	// TODO - create subscription
 
-	// TODO - create default subscription
+	// set default preferences for user
+
+	for k := range defaultPreferences {
+		d := map[string]any{}
+		sk := fmt.Sprintf("P#%s", k)
+		d["SK"] = sk
+
+		for k2, v2 := range defaultPreferences[k].(map[string]interface{}) {
+			d[k2] = v2
+		}
+
+		err = h.r.updatePreferences(user.Id, d)
+
+		if err != nil {
+			http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
+			return
+		}
+	}
 
 	// send USER_REGISTERED event to email service (queue)
 	event := &events.UserRegisteredPayload{
@@ -172,11 +197,6 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-
-	if id == "" {
-		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
-		return
-	}
 
 	//  check if the user with this id
 	userExits := checkUserExits(id, h.r, w)
@@ -214,11 +234,6 @@ func (h *userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
 
-	if id == "" {
-		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
-		return
-	}
-
 	//  check if the user with this id
 	userExits := checkUserExits(id, h.r, w)
 
@@ -245,11 +260,6 @@ func (h *userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
 
-	if id == "" {
-		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
-		return
-	}
-
 	//  check if the user with this id
 	userExits := checkUserExits(id, h.r, w)
 
@@ -257,12 +267,29 @@ func (h *userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	preferences, err := h.r.getAllPreferences(id)
+
+	if err != nil {
+		http.Error(w, errMsg.preferencesGet, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: preferences})
+
 	http.Error(w, "Not Implemented", http.StatusNotImplemented)
 
 }
 
 // * helpers
 func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
+
+	if id == "" {
+		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
+		return false
+	}
+
 	//  check if the user with this id
 	userExists, err := r.getUserByID(id)
 
