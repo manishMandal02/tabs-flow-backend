@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
@@ -19,7 +20,8 @@ type userRepository interface {
 	updateUser(id, name string) error
 	deleteAccount(id string) error
 	getAllPreferences(id string) (*preferences, error)
-	updatePreferences(id string, pData map[string]interface{}) error
+	setPreferences(userId, sk string, pData interface{}) error
+	updatePreferences(userId, sk string, pData interface{}) error
 }
 
 type userRepo struct {
@@ -203,48 +205,104 @@ func (r *userRepo) getAllPreferences(id string) (*preferences, error) {
 	}
 
 	if len(response.Items) < 1 {
-		return nil, nil
+		return nil, errors.New(errMsg.preferencesGet)
+	}
+	p := &preferences{}
+
+	for _, item := range response.Items {
+		sk := item["SK"].(*types.AttributeValueMemberS).Value
+		switch sk {
+		case "P#General":
+			if err := attributevalue.UnmarshalMap(item, &p.General); err != nil {
+				return nil, err
+			}
+		case "P#CmdPalette":
+			if err := attributevalue.UnmarshalMap(item, &p.CmdPalette); err != nil {
+				return nil, err
+			}
+		case "P#Notes":
+			if err := attributevalue.UnmarshalMap(item, &p.Notes); err != nil {
+				return nil, err
+			}
+		case "P#AutoDiscard":
+			if err := attributevalue.UnmarshalMap(item, &p.AutoDiscard); err != nil {
+				return nil, err
+			}
+		case "P#LinkPreview":
+			if err := attributevalue.UnmarshalMap(item, &p.LinkPreview); err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	var p preferences
-
-	err = attributevalue.UnmarshalMap(response.Items[0], &p)
-
-	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal preferences for userId: %#v", id), err)
-		return nil, err
-	}
-
-	logger.Dev("preferences: %v", p)
-
-	return &p, nil
+	return p, nil
 }
 
-func (r *userRepo) updatePreferences(id string, pData map[string]interface{}) error {
-
-	d := map[string]interface{}{
-		"PK": id,
-	}
-
-	for k, v := range pData {
-		d[k] = v
-	}
-
-	logger.Dev("data: %v", d)
-
-	item, err := attributevalue.MarshalMap(d)
+func (r *userRepo) setPreferences(userId, sk string, pData interface{}) error {
+	av, err := attributevalue.MarshalMap(pData)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal preferences for userId: %#v", id), err)
 		return err
 	}
 
+	av["PK"] = &types.AttributeValueMemberS{Value: userId}
+	av["SK"] = &types.AttributeValueMemberS{Value: sk}
+
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
-		Item:      item,
+		Item:      av,
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't put preferences item for userId: %#v", id), err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error {
+
+	key := map[string]types.AttributeValue{
+		"PK": &types.AttributeValueMemberS{Value: userId},
+		"SK": &types.AttributeValueMemberS{Value: sk},
+	}
+
+	var update expression.UpdateBuilder
+
+	// iterate over the fields of the struct
+	v := reflect.ValueOf(pData)
+
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	} else {
+		logger.Error("unexpected type", errors.New(v.Kind().String()))
+		return errors.ErrUnsupported
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := t.Field(i)
+
+		update = update.Set(expression.Name(field.Name), expression.Value(v.Field(i).Interface()))
+	}
+
+	expr, err := expression.NewBuilder().WithUpdate(update).Build()
+
+	logger.Dev("updatePreferences expr: %v", update)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName:                 &r.db.TableName,
+		Key:                       key,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't update preferences for userId: %v", userId), err)
 		return err
 	}
 

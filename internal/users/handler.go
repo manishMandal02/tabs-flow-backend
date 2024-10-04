@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/manishMandal02/tabsflow-backend/config"
+	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
@@ -153,26 +155,15 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO - create subscription
-
 	// set default preferences for user
+	err = setDefaultUserPreferences(user.Id, h.r)
 
-	for k := range defaultPreferences {
-		d := map[string]any{}
-		sk := fmt.Sprintf("P#%s", k)
-		d["SK"] = sk
-
-		for k2, v2 := range defaultPreferences[k].(map[string]interface{}) {
-			d[k2] = v2
-		}
-
-		err = h.r.updatePreferences(user.Id, d)
-
-		if err != nil {
-			http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
-			return
-		}
+	if err != nil {
+		http.Error(w, errMsg.createUser, http.StatusBadRequest)
+		return
 	}
+
+	// TODO - create subscription
 
 	// send USER_REGISTERED event to email service (queue)
 	event := &events.UserRegisteredPayload{
@@ -277,8 +268,51 @@ func (h *userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: preferences})
+}
 
-	http.Error(w, "Not Implemented", http.StatusNotImplemented)
+type updatePerfBody struct {
+	Type string          `json:"type"`
+	Data json.RawMessage `json:"data"`
+}
+
+// update preferences
+func (h *userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	//  check if the user with this id
+	userExits := checkUserExits(id, h.r, w)
+	if !userExits {
+		return
+	}
+
+	var updateB updatePerfBody
+
+	err := json.NewDecoder(r.Body).Decode(&updateB)
+
+	if err != nil {
+		logger.Error("error un_marshaling preferences from req body at updatePreferences()", err)
+		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
+		return
+	}
+
+	sk, subPref, err := parseSubPreferencesData(id, updateB)
+
+	logger.Dev("subPref: %v ", *subPref)
+
+	if err != nil {
+		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
+		return
+	}
+
+	err = h.r.updatePreferences(id, sk, *subPref)
+
+	if err != nil {
+		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "preferences updated"})
 
 }
 
@@ -307,4 +341,70 @@ func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
 		return false
 	}
 	return true
+}
+
+func setDefaultUserPreferences(userId string, r userRepository) error {
+
+	pref := make(map[string]interface{})
+
+	pref[database.SORT_KEY.P_General] = &defaultUserPref.General
+	pref[database.SORT_KEY.P_CmdPalette] = &defaultUserPref.CmdPalette
+	pref[database.SORT_KEY.P_Note] = &defaultUserPref.Notes
+	pref[database.SORT_KEY.P_LinkPreview] = &defaultUserPref.LinkPreview
+	pref[database.SORT_KEY.P_AutoDiscard] = &defaultUserPref.AutoDiscard
+
+	var wg sync.WaitGroup
+
+	for k, v := range pref {
+		wg.Add(1)
+		go func(userId, k string, v interface{}) {
+			defer wg.Done()
+			err := r.setPreferences(userId, k, v)
+			if err != nil {
+				logger.Error(fmt.Sprintf("Error setting default preferences for userId: %v\n, data: %v ", userId, v), err)
+			}
+		}(userId, k, v)
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *interface{}, error) {
+	var subP interface{}
+	var err error
+
+	sk := fmt.Sprintf("P#%s", perfBody.Type)
+	switch sk {
+	case database.SORT_KEY.P_General:
+		subP, err = unmarshalSubPref[generalP](perfBody.Data)
+	case database.SORT_KEY.P_CmdPalette:
+		subP, err = unmarshalSubPref[cmdPaletteP](perfBody.Data)
+	case database.SORT_KEY.P_AutoDiscard:
+		subP, err = unmarshalSubPref[autoDiscardP](perfBody.Data)
+	case database.SORT_KEY.P_Note:
+		subP, err = unmarshalSubPref[notesP](perfBody.Data)
+	case database.SORT_KEY.P_LinkPreview:
+		subP, err = unmarshalSubPref[linkPreviewP](perfBody.Data)
+	default:
+		err = fmt.Errorf("invalid preference sub type: %s", sk)
+	}
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Error  un_marshaling sub preferences for userId: %v", userId), err)
+		return "", nil, err
+	}
+
+	return sk, &subP, nil
+}
+
+// unmarshalPreference is a generic function to unmarshal preference data
+func unmarshalSubPref[T any](data json.RawMessage) (*T, error) {
+	var pref T
+	if err := json.Unmarshal(data, &pref); err != nil {
+		return &pref, err
+	}
+
+	return &pref, nil
 }

@@ -30,6 +30,7 @@ func userFromJSON(body io.Reader) (*User, error) {
 	}
 
 	return u, nil
+
 }
 
 func (u *User) validate() error {
@@ -68,7 +69,7 @@ type notesP struct {
 }
 type autoDiscardP struct {
 	IsDisabled              bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
-	DiscardTabsAfterIdleMin int32    `json:"discardTabsAfterIdleTime" dynamodbav:"DiscardTabsAfterIdleTime"`
+	DiscardTabsAfterIdleMin int32    `json:"DiscardTabsAfterIdleMin" dynamodbav:"DiscardTabsAfterIdleMin"`
 	WhitelistedDomains      []string `json:"whitelistedDomains" dynamodbav:"WhitelistedDomains"`
 }
 
@@ -86,35 +87,62 @@ type preferences struct {
 	LinkPreview linkPreviewP `json:"linkPreview" dynamodbav:"P#LinkPreview"`
 }
 
-var defaultPreferences = map[string]interface{}{
-	"General": map[string]interface{}{
-		"OpenSpace":           "newWindow",
-		"DeleteUnsavedSpaces": "week",
+var defaultUserPref = preferences{
+	General: generalP{
+		OpenSpace:           "newWindow",
+		DeleteUnsavedSpaces: "week",
 	},
-	"CmdPalette": map[string]interface{}{
-		"IsDisabled": false,
-		"Search": map[string]interface{}{
-			"Bookmarks": true,
-			"Notes":     true,
-		},
-		"DisabledCommands": []string{},
+	CmdPalette: cmdPaletteP{
+		IsDisabled:       false,
+		Search:           searchP{Bookmarks: true, Notes: true},
+		DisabledCommands: []string{},
 	},
-	"Notes": map[string]interface{}{
-		"IsDisabled":     false,
-		"BubblePos":      "bottom-right",
-		"ShowOnAllSites": true,
+	Notes: notesP{
+		IsDisabled:     false,
+		BubblePos:      "bottom-right",
+		ShowOnAllSites: true,
 	},
-	"AutoDiscard": map[string]interface{}{
-		"IsDisabled":              false,
-		"DiscardTabsAfterIdleMin": 10,
-		"WhitelistedDomains":      []string{},
+	AutoDiscard: autoDiscardP{
+		IsDisabled:              false,
+		DiscardTabsAfterIdleMin: 10,
+		WhitelistedDomains:      []string{},
 	},
-	"LinkPreview": map[string]interface{}{
-		"IsDisabled":  false,
-		"OpenTrigger": "shift-click",
-		"Size":        "tablet",
+	LinkPreview: linkPreviewP{
+		IsDisabled:  false,
+		OpenTrigger: "shift-click",
+		Size:        "tablet",
 	},
 }
+
+// var defaultPreferences = map[string]interface{}{
+// 	"General": map[string]interface{}{
+// 		"OpenSpace":           "newWindow",
+// 		"DeleteUnsavedSpaces": "week",
+// 	},
+// 	"CmdPalette": map[string]interface{}{
+// 		"IsDisabled": false,
+// 		"Search": map[string]interface{}{
+// 			"Bookmarks": true,
+// 			"Notes":     true,
+// 		},
+// 		"DisabledCommands": []string{},
+// 	},
+// 	"Notes": map[string]interface{}{
+// 		"IsDisabled":     false,
+// 		"BubblePos":      "bottom-right",
+// 		"ShowOnAllSites": true,
+// 	},
+// 	"AutoDiscard": map[string]interface{}{
+// 		"IsDisabled":              false,
+// 		"DiscardTabsAfterIdleMin": 10,
+// 		"WhitelistedDomains":      []string{},
+// 	},
+// 	"LinkPreview": map[string]interface{}{
+// 		"IsDisabled":  false,
+// 		"OpenTrigger": "shift-click",
+// 		"Size":        "tablet",
+// 	},
+// }
 
 var errMsg = struct {
 	getUser           string

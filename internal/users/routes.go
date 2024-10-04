@@ -23,9 +23,8 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	usersRouter.PATCH("/:id", handler.updateUser)
 	usersRouter.DELETE("/:id", handler.deleteUser) // TODO: test delete handler after adding more data
 
-	// TODO - preferences
 	usersRouter.GET("/:id/preferences", handler.getPreferences)
-	usersRouter.PATCH("/:id/preferences", handler.updateUser)
+	usersRouter.PATCH("/:id/preferences", handler.updatePreferences)
 	// TODO - subscription
 	usersRouter.GET("/:id/subscription", handler.updateUser)
 	usersRouter.PATCH("/:id/subscription", handler.updateUser)
