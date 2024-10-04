@@ -47,44 +47,44 @@ func (u *User) validate() error {
 }
 
 type generalP struct {
-	OpenSpace           string `json:"openSpace" dynamodbav:"OpenSpace"`
-	DeleteUnsavedSpaces string `json:"deleteUnsavedSpaces" dynamodbav:"DeleteUnsavedSpaces"`
+	OpenSpace           string `json:"openSpace,omitempty" dynamodbav:"OpenSpace"`
+	DeleteUnsavedSpaces string `json:"deleteUnsavedSpaces,omitempty" dynamodbav:"DeleteUnsavedSpaces"`
 }
 
 type searchP struct {
-	Bookmarks bool `json:"bookmarks" dynamodbav:"Bookmarks"`
-	Notes     bool `json:"notes" dynamodbav:"Notes"`
+	Bookmarks bool `json:"bookmarks,omitempty" dynamodbav:"Bookmarks"`
+	Notes     bool `json:"notes,omitempty" dynamodbav:"Notes"`
 }
 
 type cmdPaletteP struct {
-	IsDisabled       bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
-	Search           searchP  `json:"search" dynamodbav:"Search"`
-	DisabledCommands []string `json:"disabledCommands" dynamodbav:"DisabledCommands"`
+	IsDisabled       bool     `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
+	Search           searchP  `json:"search,omitempty" dynamodbav:"Search"`
+	DisabledCommands []string `json:"disabledCommands,omitempty" dynamodbav:"DisabledCommands"`
 }
 
 type notesP struct {
-	IsDisabled     bool   `json:"isDisabled" dynamodbav:"IsDisabled"`
-	BubblePos      string `json:"bubblePos" dynamodbav:"BubblePos"`
-	ShowOnAllSites bool   `json:"showOnAllSites" dynamodbav:"ShowOnAllSites"`
+	IsDisabled     bool   `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
+	BubblePos      string `json:"bubblePos,omitempty" dynamodbav:"BubblePos"`
+	ShowOnAllSites bool   `json:"showOnAllSites,omitempty" dynamodbav:"ShowOnAllSites"`
 }
 type autoDiscardP struct {
-	IsDisabled              bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
-	DiscardTabsAfterIdleMin int32    `json:"DiscardTabsAfterIdleMin" dynamodbav:"DiscardTabsAfterIdleMin"`
-	WhitelistedDomains      []string `json:"whitelistedDomains" dynamodbav:"WhitelistedDomains"`
+	IsDisabled              bool     `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
+	DiscardTabsAfterIdleMin int32    `json:"DiscardTabsAfterIdleMin,omitempty" dynamodbav:"DiscardTabsAfterIdleMin"`
+	WhitelistedDomains      []string `json:"whitelistedDomains,omitempty" dynamodbav:"WhitelistedDomains"`
 }
 
 type linkPreviewP struct {
-	IsDisabled  bool   `json:"isDisabled" dynamodbav:"IsDisabled"`
-	OpenTrigger string `json:"openTrigger" dynamodbav:"openTrigger"`
-	Size        string `json:"size" dynamodbav:"Size"`
+	IsDisabled  bool   `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
+	OpenTrigger string `json:"openTrigger,omitempty" dynamodbav:"openTrigger"`
+	Size        string `json:"size,omitempty" dynamodbav:"Size"`
 }
 
 type preferences struct {
-	General     generalP     `json:"general" dynamodbav:"P#General"`
-	CmdPalette  cmdPaletteP  `json:"cmdPalette" dynamodbav:"P#CmdPalette"`
-	Notes       notesP       `json:"notes" dynamodbav:"P#Notes"`
-	AutoDiscard autoDiscardP `json:"autoDiscard" dynamodbav:"P#AutoDiscard"`
-	LinkPreview linkPreviewP `json:"linkPreview" dynamodbav:"P#LinkPreview"`
+	General     generalP     `json:"general,omitempty" dynamodbav:"P#General"`
+	CmdPalette  cmdPaletteP  `json:"cmdPalette,omitempty" dynamodbav:"P#CmdPalette"`
+	Notes       notesP       `json:"notes,omitempty" dynamodbav:"P#Notes"`
+	AutoDiscard autoDiscardP `json:"autoDiscard,omitempty" dynamodbav:"P#AutoDiscard"`
+	LinkPreview linkPreviewP `json:"linkPreview,omitempty" dynamodbav:"P#LinkPreview"`
 }
 
 var defaultUserPref = preferences{

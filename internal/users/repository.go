@@ -207,32 +207,10 @@ func (r *userRepo) getAllPreferences(id string) (*preferences, error) {
 	if len(response.Items) < 1 {
 		return nil, errors.New(errMsg.preferencesGet)
 	}
-	p := &preferences{}
+	p, err := unMarshalPreferences(response)
 
-	for _, item := range response.Items {
-		sk := item["SK"].(*types.AttributeValueMemberS).Value
-		switch sk {
-		case "P#General":
-			if err := attributevalue.UnmarshalMap(item, &p.General); err != nil {
-				return nil, err
-			}
-		case "P#CmdPalette":
-			if err := attributevalue.UnmarshalMap(item, &p.CmdPalette); err != nil {
-				return nil, err
-			}
-		case "P#Notes":
-			if err := attributevalue.UnmarshalMap(item, &p.Notes); err != nil {
-				return nil, err
-			}
-		case "P#AutoDiscard":
-			if err := attributevalue.UnmarshalMap(item, &p.AutoDiscard); err != nil {
-				return nil, err
-			}
-		case "P#LinkPreview":
-			if err := attributevalue.UnmarshalMap(item, &p.LinkPreview); err != nil {
-				return nil, err
-			}
-		}
+	if err != nil {
+		return nil, err
 	}
 
 	return p, nil
@@ -268,6 +246,8 @@ func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error
 
 	var update expression.UpdateBuilder
 
+	logger.Dev("updatePreferences", pData)
+
 	// iterate over the fields of the struct
 	v := reflect.ValueOf(pData)
 
@@ -281,13 +261,17 @@ func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		// Skip zero values to achieve partial update
+		if fieldValue.IsZero() {
+			continue
+		}
 
 		update = update.Set(expression.Name(field.Name), expression.Value(v.Field(i).Interface()))
 	}
 
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
-
-	logger.Dev("updatePreferences expr: %v", update)
 
 	if err != nil {
 		return err
@@ -310,3 +294,47 @@ func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error
 }
 
 // TODO - subscription
+
+// * helpers
+func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
+
+	w := func(item map[string]types.AttributeValue, v interface{}) error {
+
+		if err := attributevalue.UnmarshalMap(item, &v); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	var err error
+
+	p := &preferences{}
+
+	for _, item := range res.Items {
+		sk := item["SK"].(*types.AttributeValueMemberS).Value
+		switch sk {
+		case "P#General":
+			err = w(item, &p.General)
+		case "P#CmdPalette":
+			err = w(item, &p.CmdPalette)
+
+		case "P#Notes":
+			err = w(item, &p.Notes)
+
+		case "P#AutoDiscard":
+			err = w(item, &p.AutoDiscard)
+
+		case "P#LinkPreview":
+			err = w(item, &p.LinkPreview)
+
+		}
+	}
+
+	if err != nil {
+		logger.Error("Couldn't unmarshal preferences", err)
+		return nil, err
+	}
+
+	return p, nil
+}

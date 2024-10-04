@@ -25,7 +25,7 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	usersRouter.GET("/:id/preferences", handler.getPreferences)
 	usersRouter.PATCH("/:id/preferences", handler.updatePreferences)
-	// TODO - subscription
+
 	usersRouter.GET("/:id/subscription", handler.updateUser)
 	usersRouter.PATCH("/:id/subscription", handler.updateUser)
 
