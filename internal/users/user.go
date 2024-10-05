@@ -46,6 +46,35 @@ func (u *User) validate() error {
 
 }
 
+var Plans = struct {
+	Trail    string
+	Yearly   string
+	LifeTime string
+}{
+	Trail:    "Trail",
+	Yearly:   "Yearly",
+	LifeTime: "LifeTime",
+}
+
+var SubscriptionStatus = struct {
+	Active   string
+	Inactive string
+}{
+	Active:   "active",
+	Inactive: "inactive",
+}
+
+type subscription struct {
+	Id        string `json:"id" dynamodbav:"Id"`
+	PlanId    string `json:"planId" dynamodbav:"PlanId"`
+	Plan      string `json:"plan" dynamodbav:"Plan"`
+	Status    string `json:"status" dynamodbav:"Status"`
+	End       string `json:"end" dynamodbav:"End"`
+	Start     string `json:"start" dynamodbav:"Start"`
+	UpdateUrl string `json:"updateUrl" dynamodbav:"UpdateUrl"`
+	CancelUrl string `json:"cancelUrl" dynamodbav:"CancelUrl"`
+}
+
 type generalP struct {
 	OpenSpace           string `json:"openSpace,omitempty" dynamodbav:"OpenSpace"`
 	DeleteUnsavedSpaces string `json:"deleteUnsavedSpaces,omitempty" dynamodbav:"DeleteUnsavedSpaces"`
@@ -145,23 +174,27 @@ var defaultUserPref = preferences{
 // }
 
 var errMsg = struct {
-	getUser           string
-	userNotFound      string
-	userExists        string
-	createUser        string
-	updateUser        string
-	deleteUser        string
-	invalidUserId     string
-	preferencesGet    string
-	preferencesUpdate string
+	getUser            string
+	userNotFound       string
+	userExists         string
+	createUser         string
+	updateUser         string
+	deleteUser         string
+	invalidUserId      string
+	preferencesGet     string
+	preferencesUpdate  string
+	subscriptionGet    string
+	subscriptionUpdate string
 }{
-	getUser:           "Error getting user",
-	userNotFound:      "User not found",
-	userExists:        "User already exits",
-	createUser:        "Error creating user",
-	updateUser:        "Error updating user",
-	deleteUser:        "Error deleting user",
-	invalidUserId:     "Invalid user id",
-	preferencesGet:    "Error getting user preferences",
-	preferencesUpdate: "Error updating user preferences",
+	getUser:            "Error getting user",
+	userNotFound:       "User not found",
+	userExists:         "User already exits",
+	createUser:         "Error creating user",
+	updateUser:         "Error updating user",
+	deleteUser:         "Error deleting user",
+	invalidUserId:      "Invalid user id",
+	preferencesGet:     "Error getting user preferences",
+	preferencesUpdate:  "Error updating user preferences",
+	subscriptionGet:    "Error getting user subscription",
+	subscriptionUpdate: "Error updating user subscription",
 }

@@ -11,6 +11,7 @@ import (
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/manishMandal02/tabsflow-backend/config"
+	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
@@ -138,6 +139,9 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg.googleAuth, http.StatusBadRequest)
 		return
 	}
+
+	// TODO - check subscription status
+	// active, err := checkSubscriptionStatus(email, ev.Headers[])
 
 	// create new session and set to cookie
 	res, err := createNewSession(b.Email, userAgent, h.r, false)
@@ -284,12 +288,13 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
 		return nil, errors.New("Unauthorized")
 	}
+	// TODO - check subscription status
+	// active, err := checkSubscriptionStatus(email, ev.Headers[])
 
 	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r, true)
 
 	if err != nil {
 		return nil, errors.New("Unauthorized")
-
 	}
 
 	newCookies := map[string]string{
@@ -388,6 +393,7 @@ func createNewSession(email, userAgent string, aR authRepository, isAuthorizer b
 			IsMobile: ua.Mobile(),
 		},
 	}
+
 	err := aR.createSession(&session)
 
 	if err != nil {
@@ -449,6 +455,9 @@ func createNewSession(email, userAgent string, aR authRepository, isAuthorizer b
 			UserId:  userId,
 			NewUser: false,
 		}
+
+		// TODO: check subscription status for old user
+
 	}
 
 	return &createSessionRes{
@@ -498,4 +507,47 @@ func generatePolicy(principalId, effect, resource string, cookies map[string]str
 	return &authResponse
 }
 
-// helper
+func checkSubscriptionStatus(userId, urlHost string) (bool, error) {
+	p := "https"
+
+	if config.LOCAL_DEV_ENV {
+		p = "http"
+	}
+
+	authServiceURL := fmt.Sprintf("%s://%s/users/%s/subscription", p, urlHost, userId)
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, nil)
+
+	if err != nil {
+		logger.Error("Error checking subscription status", err)
+		return false, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		logger.Error("Error checking subscription status", errors.New(respBody))
+		return false, errors.New(respBody)
+	}
+
+	var sub struct {
+		Data struct {
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+
+	err = json.Unmarshal([]byte(respBody), &sub)
+
+	if err != nil {
+		logger.Error("Error unmarshaling subscription status", err)
+		return false, err
+	}
+
+	if sub.Data.Status != users.SubscriptionStatus.Active {
+		return false, nil
+	}
+
+	return true, nil
+}

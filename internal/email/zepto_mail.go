@@ -117,7 +117,7 @@ func (z *ZeptoMail) sendWelcomeMail(to *NameAddr, trailEndDate string) error {
 
 	body := &welcomeEmailBody{
 		ZeptoMailBody: &ZeptoMailBody{
-			TemplateKey: ZeptoMailTemplates["opt"],
+			TemplateKey: ZeptoMailTemplates["welcome"],
 			To: append(
 				[]ToEmailAddress{},
 				ToEmailAddress{

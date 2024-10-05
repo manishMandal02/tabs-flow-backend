@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
@@ -103,15 +104,15 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		"Content-Type": "application/json",
 	}
 
-	s := "https"
+	p := "https"
 
 	if config.LOCAL_DEV_ENV {
-		s = "http"
+		p = "http"
 	}
 
-	authServiceAPI := fmt.Sprintf("%s://%s/auth/user/", s, r.Host)
+	authServiceURL := fmt.Sprintf("%s://%s/auth/user/", p, r.Host)
 
-	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceAPI, headers, bodyJson)
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, bodyJson)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error fetching user id from Auth Service for email: %v", body.Email), err)
@@ -119,7 +120,7 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		logger.Error(fmt.Sprintf("User does not have a valid session profile for email: %v", body.Email), err)
 		//  Logout
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
@@ -128,7 +129,6 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check user id
-
 	var userIdData struct {
 		Data struct {
 			UserId string `json:"userId"`
@@ -163,13 +163,30 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO - create subscription
+	today := time.Now()
+
+	trialEndDate := today.AddDate(0, 0, config.TRAIL_DAYS)
+
+	//  start trail subscription
+	s := &subscription{
+		Plan:   Plans.Trail,
+		Status: SubscriptionStatus.Active,
+		Start:  today.Format(time.DateOnly),
+		End:    trialEndDate.Format(time.DateOnly),
+	}
+
+	err = h.r.setSubscription(user.Id, s)
+
+	if err != nil {
+		http.Error(w, errMsg.createUser, http.StatusBadRequest)
+		return
+	}
 
 	// send USER_REGISTERED event to email service (queue)
 	event := &events.UserRegisteredPayload{
 		Email:        user.Email,
 		Name:         user.FullName,
-		TrailEndDate: "22/12/24",
+		TrailEndDate: trialEndDate.Format(time.DateOnly),
 	}
 
 	sqs := events.NewQueue()
@@ -246,7 +263,7 @@ func (h *userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// profile handlers
+// preferences handlers
 func (h *userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
@@ -275,7 +292,6 @@ type updatePerfBody struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// update preferences
 func (h *userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	//  check if the user with this id
@@ -313,36 +329,63 @@ func (h *userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "preferences updated"})
+}
 
+// subscription handlers
+func (h *userHandler) getSubscription(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	//  check if the user with this id
+	userExits := checkUserExits(id, h.r, w)
+	if !userExits {
+		return
+	}
+
+	subscription, err := h.r.getSubscription(id)
+
+	if err != nil {
+		http.Error(w, errMsg.subscriptionGet, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: subscription})
+}
+
+func (h *userHandler) updateSubscription(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("id")
+
+	//  check if the user with this id
+	userExits := checkUserExits(id, h.r, w)
+	if !userExits {
+		return
+	}
+
+	var sub subscription
+
+	err := json.NewDecoder(r.Body).Decode(&sub)
+
+	if err != nil {
+		logger.Error("error un_marshaling subscription from req body at updateSubscription()", err)
+		http.Error(w, errMsg.subscriptionUpdate, http.StatusBadRequest)
+		return
+	}
+
+	err = h.r.setSubscription(id, &sub)
+
+	if err != nil {
+		http.Error(w, errMsg.subscriptionUpdate, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "subscription updated"})
 }
 
 // * helpers
-func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
-
-	if id == "" {
-		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
-		return false
-	}
-
-	//  check if the user with this id
-	userExists, err := r.getUserByID(id)
-
-	if err != nil {
-		if err.Error() == errMsg.userNotFound {
-			http.Error(w, errMsg.userNotFound, http.StatusBadRequest)
-		} else {
-			http.Error(w, errMsg.getUser, http.StatusInternalServerError)
-		}
-		return false
-	}
-
-	if userExists == nil {
-		http.Error(w, errMsg.userNotFound, http.StatusNotFound)
-		return false
-	}
-	return true
-}
-
 func setDefaultUserPreferences(userId string, r userRepository) error {
 
 	pref := make(map[string]interface{})
@@ -369,6 +412,32 @@ func setDefaultUserPreferences(userId string, r userRepository) error {
 	wg.Wait()
 
 	return nil
+}
+
+func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
+
+	if id == "" {
+		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
+		return false
+	}
+
+	//  check if the user with this id
+	userExists, err := r.getUserByID(id)
+
+	if err != nil {
+		if err.Error() == errMsg.userNotFound {
+			http.Error(w, errMsg.userNotFound, http.StatusBadRequest)
+		} else {
+			http.Error(w, errMsg.getUser, http.StatusInternalServerError)
+		}
+		return false
+	}
+
+	if userExists == nil {
+		http.Error(w, errMsg.userNotFound, http.StatusNotFound)
+		return false
+	}
+	return true
 }
 
 func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *interface{}, error) {

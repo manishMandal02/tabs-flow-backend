@@ -22,6 +22,9 @@ type userRepository interface {
 	getAllPreferences(id string) (*preferences, error)
 	setPreferences(userId, sk string, pData interface{}) error
 	updatePreferences(userId, sk string, pData interface{}) error
+	getSubscription(userId string) (*subscription, error)
+	setSubscription(userId string, s *subscription) error
+	updateSubscription(userId string, sData *subscription) error
 }
 
 type userRepo struct {
@@ -246,8 +249,6 @@ func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error
 
 	var update expression.UpdateBuilder
 
-	logger.Dev("updatePreferences", pData)
-
 	// iterate over the fields of the struct
 	v := reflect.ValueOf(pData)
 
@@ -263,7 +264,6 @@ func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error
 		field := t.Field(i)
 		fieldValue := v.Field(i)
 
-		// Skip zero values to achieve partial update
 		if fieldValue.IsZero() {
 			continue
 		}
@@ -293,7 +293,114 @@ func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error
 	return nil
 }
 
-// TODO - subscription
+// subscription
+func (r *userRepo) getSubscription(userId string) (*subscription, error) {
+
+	key := map[string]types.AttributeValue{
+		"PK": &types.AttributeValueMemberS{Value: userId},
+		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Subscription},
+	}
+
+	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: &r.db.TableName,
+		Key:       key,
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't get subscription for userId: %v", userId), err)
+		return nil, err
+	}
+	if len(response.Item) == 0 {
+		return nil, errors.New(errMsg.subscriptionGet)
+	}
+	s := &subscription{}
+
+	err = attributevalue.UnmarshalMap(response.Item, s)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't unmarshal subscription for userId: %v", userId), err)
+		return nil, err
+	}
+
+	return s, nil
+
+}
+
+func (r *userRepo) setSubscription(userId string, s *subscription) error {
+
+	av, err := attributevalue.MarshalMap(s)
+	if err != nil {
+		return err
+	}
+	av["PK"] = &types.AttributeValueMemberS{Value: userId}
+	av["SK"] = &types.AttributeValueMemberS{Value: database.SORT_KEY.Subscription}
+
+	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: &r.db.TableName,
+		Item:      av,
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't set subscription for userId: %v", userId), err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *userRepo) updateSubscription(userId string, sData *subscription) error {
+	key := map[string]types.AttributeValue{
+		"PK": &types.AttributeValueMemberS{Value: userId},
+		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Subscription},
+	}
+
+	var update expression.UpdateBuilder
+
+	logger.Dev("update subscription data: %v", sData)
+
+	// iterate over the fields of the struct
+	v := reflect.ValueOf(sData)
+
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	} else {
+		logger.Error("unexpected type", errors.New(v.Kind().String()))
+		return errors.ErrUnsupported
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		if fieldValue.IsZero() {
+			continue
+		}
+
+		update = update.Set(expression.Name(field.Name), expression.Value(v.Field(i).Interface()))
+	}
+
+	expr, err := expression.NewBuilder().WithUpdate(update).Build()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName:                 &r.db.TableName,
+		Key:                       key,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't update subscription for userId: %v", userId), err)
+		return err
+	}
+
+	return nil
+}
 
 // * helpers
 func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {

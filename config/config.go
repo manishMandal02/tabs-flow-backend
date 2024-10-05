@@ -24,6 +24,7 @@ var (
 
 	ZEPTO_MAIL_API_URL = "https://api.zeptomail.in/v1.1/email/template"
 
+	TRAIL_DAYS               = 14
 	OTP_EXPIRY_TIME_IN_MIN   = 5
 	JWT_TOKEN_EXPIRY_IN_DAYS = 10
 	USER_SESSION_EXPIRY_DAYS = 10

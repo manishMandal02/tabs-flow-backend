@@ -21,13 +21,16 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	usersRouter.POST("/", handler.createUser)
 	usersRouter.GET("/:id", handler.userById)
 	usersRouter.PATCH("/:id", handler.updateUser)
-	usersRouter.DELETE("/:id", handler.deleteUser) // TODO: test delete handler after adding more data
+	// TODO: test delete handler after adding more data
+	usersRouter.DELETE("/:id", handler.deleteUser)
 
 	usersRouter.GET("/:id/preferences", handler.getPreferences)
 	usersRouter.PATCH("/:id/preferences", handler.updatePreferences)
 
-	usersRouter.GET("/:id/subscription", handler.updateUser)
-	usersRouter.PATCH("/:id/subscription", handler.updateUser)
+	usersRouter.GET("/:id/subscription", handler.getSubscription)
+
+	// TODO - implement Paddle webhook with their Go sdk
+	usersRouter.POST("/subscription/webhook", handler.updateSubscription)
 
 	// serve API routes
 	usersRouter.ServeHTTP(w, r)

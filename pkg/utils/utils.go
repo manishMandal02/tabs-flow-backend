@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -43,7 +43,17 @@ func GenerateOTP() string {
 }
 
 func MakeHTTPRequest(method, url string, headers map[string]string, body []byte) (*http.Response, string, error) {
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+
+	var req *http.Request
+	var err error
+
+	if body != nil {
+		req, err = http.NewRequest(method, url, bytes.NewBuffer(body))
+
+	} else {
+		req, err = http.NewRequest(method, url, nil)
+	}
+
 	if err != nil {
 		return nil, "", err
 	}
@@ -59,7 +69,7 @@ func MakeHTTPRequest(method, url string, headers map[string]string, body []byte)
 	}
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return resp, "", err
 	}
