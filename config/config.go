@@ -13,17 +13,18 @@ import (
 )
 
 var (
-	AWS_REGION              string
-	JWT_SECRET_KEY          string
-	EMAIL_SQS_QUEUE_URL     string
-	DDB_MAIN_TABLE_NAME     string
-	DDB_SESSIONS_TABLE_NAME string
-	ZEPTO_MAIL_API_KEY      string
-	AWS_CONFIG              aws.Config
-	LOCAL_DEV_ENV           bool = false
+	AWS_REGION                string
+	JWT_SECRET_KEY            string
+	EMAIL_SQS_QUEUE_URL       string
+	DDB_MAIN_TABLE_NAME       string
+	DDB_SESSIONS_TABLE_NAME   string
+	ZEPTO_MAIL_API_KEY        string
+	AWS_CONFIG                aws.Config
+	PADDLE_API_KEY            string
+	PADDLE_WEBHOOK_SECRET_KEY string
 
-	ZEPTO_MAIL_API_URL = "https://api.zeptomail.in/v1.1/email/template"
-
+	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
+	LOCAL_DEV_ENV            = false
 	TRAIL_DAYS               = 14
 	OTP_EXPIRY_TIME_IN_MIN   = 5
 	JWT_TOKEN_EXPIRY_IN_DAYS = 10
@@ -79,4 +80,6 @@ func Init() {
 	AWS_REGION = os.Getenv("AWS_REGION")
 	JWT_SECRET_KEY = os.Getenv("JWT_SECRET_KEY")
 	ZEPTO_MAIL_API_KEY = os.Getenv("ZEPTO_MAIL_API_KEY")
+	PADDLE_API_KEY = os.Getenv("PADDLE_API_KEY")
+	PADDLE_WEBHOOK_SECRET_KEY = os.Getenv("PADDLE_WEBHOOK_SECRET_KEY")
 }

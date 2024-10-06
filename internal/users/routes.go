@@ -29,8 +29,12 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	usersRouter.GET("/:id/subscription", handler.getSubscription)
 
+	usersRouter.PATCH("/:id/subscription", handler.cancelSubscription)
+
+	usersRouter.GET("/:id/subscription/status", handler.checkSubscriptionStatus)
+
 	// TODO - implement Paddle webhook with their Go sdk
-	usersRouter.POST("/subscription/webhook", handler.updateSubscription)
+	usersRouter.POST("/subscription/webhook", handler.subscriptionWebhook)
 
 	// serve API routes
 	usersRouter.ServeHTTP(w, r)

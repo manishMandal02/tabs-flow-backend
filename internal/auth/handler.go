@@ -11,7 +11,6 @@ import (
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/manishMandal02/tabsflow-backend/config"
-	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
@@ -514,7 +513,7 @@ func checkSubscriptionStatus(userId, urlHost string) (bool, error) {
 		p = "http"
 	}
 
-	authServiceURL := fmt.Sprintf("%s://%s/users/%s/subscription", p, urlHost, userId)
+	authServiceURL := fmt.Sprintf("%s://%s/users/%s/subscription/status", p, urlHost, userId)
 
 	headers := map[string]string{
 		"Content-Type": "application/json",
@@ -534,7 +533,7 @@ func checkSubscriptionStatus(userId, urlHost string) (bool, error) {
 
 	var sub struct {
 		Data struct {
-			Status string `json:"status"`
+			Active bool `json:"active"`
 		} `json:"data"`
 	}
 
@@ -545,9 +544,11 @@ func checkSubscriptionStatus(userId, urlHost string) (bool, error) {
 		return false, err
 	}
 
-	if sub.Data.Status != users.SubscriptionStatus.Active {
+	if !sub.Data.Active {
 		return false, nil
 	}
 
 	return true, nil
 }
+
+

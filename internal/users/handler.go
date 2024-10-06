@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	paddle "github.com/PaddleHQ/paddle-go-sdk"
+	"github.com/PaddleHQ/paddle-go-sdk/pkg/paddlenotification"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
@@ -169,8 +171,8 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	//  start trail subscription
 	s := &subscription{
-		Plan:   Plans.Trail,
-		Status: SubscriptionStatus.Active,
+		Plan:   plans.Trail,
+		Status: subscriptionStatus.Active,
 		Start:  today.Format(time.DateOnly),
 		End:    trialEndDate.Format(time.DateOnly),
 	}
@@ -353,6 +355,55 @@ func (h *userHandler) getSubscription(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: subscription})
 }
 
+func (h *userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	//  check if the user with this id
+	userExits := checkUserExits(id, h.r, w)
+
+	if !userExits {
+		return
+	}
+
+	s, err := h.r.getSubscription(id)
+
+	if err != nil {
+		http.Error(w, errMsg.subscriptionGet, http.StatusBadRequest)
+		return
+	}
+
+	active := false
+
+	if s != nil {
+		active = s.Status == subscriptionStatus.Active
+	}
+
+	if active {
+		// if subscription is active, check the end date
+		endDate, err := time.Parse(time.DateOnly, s.End)
+
+		if err != nil {
+			logger.Error("error parsing subscription end date", err)
+			http.Error(w, errMsg.subscriptionGet, http.StatusBadRequest)
+			return
+		}
+
+		if endDate.Unix() < time.Now().Unix() {
+			active = false
+		}
+	}
+
+	res := struct {
+		Active bool `json:"active"`
+	}{
+		Active: active,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: res})
+}
+
 func (h *userHandler) updateSubscription(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
@@ -383,6 +434,95 @@ func (h *userHandler) updateSubscription(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "subscription updated"})
+}
+
+func (h *userHandler) cancelSubscription(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	//  check if the user with this id
+
+	userExits := checkUserExits(id, h.r, w)
+	if !userExits {
+		return
+	}
+
+	// TODO - cancel paddle subscription
+
+	s := &subscription{
+		Status:    subscriptionStatus.Cancelled,
+		End:       time.Now().Format(time.DateOnly),
+		Plan:      "",
+		CancelUrl: "",
+	}
+
+	err := h.r.updateSubscription(id, s)
+
+	if err != nil {
+		http.Error(w, errMsg.subscriptionCancel, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "subscription cancelled"})
+
+}
+
+// paddle webhook handler
+func (h *userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
+
+	v := paddle.NewWebhookVerifier(config.PADDLE_WEBHOOK_SECRET_KEY)
+
+	ok, err := v.Verify(r)
+
+	if err != nil {
+		logger.Error("error verifying paddle webhook", err)
+		http.Error(w, "Error ", http.StatusInternalServerError)
+		return
+	}
+
+	if !ok {
+		logger.Dev("paddle webhook verification failed")
+		http.Error(w, "Invalid webhook ", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(http_api.RespBody{Success: true})
+
+	// process the event
+	// p, err := newPaddleClient()
+
+	if err != nil {
+		logger.Error("error initializing paddle client", err)
+		http.Error(w, "Error", http.StatusInternalServerError)
+		return
+	}
+
+	// get the event type
+	var ev *paddle.GenericEvent
+
+	err = json.NewDecoder(r.Body).Decode(&ev)
+
+	switch ev.EventType {
+	case paddle.EventTypeNameSubscriptionCreated:
+		//  create subscription
+		d := ev.Data.(paddlenotification.SubscriptionCreatedNotification)
+		// s := &subscription{
+		// 	Plan:      plans.Yearly,
+		// 	Status:    string(d.Status),
+		// 	Start:     *d.StartedAt,
+		// 	End:       d.CurrentBillingPeriod.EndsAt,
+		// 	CancelUrl: "",
+		// }
+
+	case paddle.EventTypeNameSubscriptionUpdated:
+		//  update subscription status
+
+	case paddle.EventTypeNameTransactionPaymentFailed:
+		// TODO -  handle payment failed
+	}
+
 }
 
 // * helpers
@@ -476,4 +616,15 @@ func unmarshalSubPref[T any](data json.RawMessage) (*T, error) {
 	}
 
 	return &pref, nil
+}
+
+func newPaddleClient() (*paddle.SDK, error) {
+	client, err := paddle.New(config.PADDLE_API_KEY)
+
+	if err != nil {
+		logger.Error("error creating paddle client", err)
+		return nil, err
+	}
+
+	return client, nil
 }

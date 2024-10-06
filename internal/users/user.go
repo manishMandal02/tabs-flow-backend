@@ -46,7 +46,7 @@ func (u *User) validate() error {
 
 }
 
-var Plans = struct {
+var plans = struct {
 	Trail    string
 	Yearly   string
 	LifeTime string
@@ -56,12 +56,24 @@ var Plans = struct {
 	LifeTime: "LifeTime",
 }
 
-var SubscriptionStatus = struct {
-	Active   string
-	Inactive string
+type SubscriptionStatus string
+
+const (
+	SubscriptionStatusActive   SubscriptionStatus = "active"
+	SubscriptionStatusCanceled SubscriptionStatus = "canceled"
+	SubscriptionStatusPastDue  SubscriptionStatus = "past_due"
+	SubscriptionStatusPaused   SubscriptionStatus = "paused"
+	SubscriptionStatusTrialing SubscriptionStatus = "trialing"
+)
+
+var subscriptionStatus = struct {
+	Active    string
+	Inactive  string
+	Cancelled string
 }{
-	Active:   "active",
-	Inactive: "inactive",
+	Active:    "active",
+	Inactive:  "inactive",
+	Cancelled: "cancelled",
 }
 
 type subscription struct {
@@ -185,6 +197,8 @@ var errMsg = struct {
 	preferencesUpdate  string
 	subscriptionGet    string
 	subscriptionUpdate string
+	subscriptionCheck  string
+	subscriptionCancel string
 }{
 	getUser:            "Error getting user",
 	userNotFound:       "User not found",
@@ -193,8 +207,10 @@ var errMsg = struct {
 	updateUser:         "Error updating user",
 	deleteUser:         "Error deleting user",
 	invalidUserId:      "Invalid user id",
-	preferencesGet:     "Error getting user preferences",
-	preferencesUpdate:  "Error updating user preferences",
-	subscriptionGet:    "Error getting user subscription",
-	subscriptionUpdate: "Error updating user subscription",
+	preferencesGet:     "Error getting preferences",
+	preferencesUpdate:  "Error updating preferences",
+	subscriptionGet:    "Error getting subscription",
+	subscriptionUpdate: "Error updating subscription",
+	subscriptionCheck:  "Error checking subscription status",
+	subscriptionCancel: "Error cancelling subscription",
 }
