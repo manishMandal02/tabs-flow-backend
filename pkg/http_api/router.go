@@ -12,15 +12,15 @@ type Handler func(w http.ResponseWriter, r *http.Request)
 type Route struct {
 	Method       string
 	PathSegments []string
-	Handler      Handler
+	Handlers     []Handler
 }
 
 type IRouter interface {
 	ServeHTTP(w http.ResponseWriter, req *http.Request)
-	GET(path string, handler Handler)
-	POST(path string, handler Handler)
-	PATCH(path string, handler Handler)
-	DELETE(path string, handler Handler)
+	GET(path string, handlers ...Handler)
+	POST(path string, handlers ...Handler)
+	PATCH(path string, handlers ...Handler)
+	DELETE(path string, handlers ...Handler)
 }
 
 func (r *Route) Match(method, path string) (bool, map[string]string) {
@@ -60,31 +60,31 @@ func NewRouter(base string) IRouter {
 	}
 }
 
-func (r *Router) AddRoute(method, path string, handler Handler) {
+func (r *Router) AddRoute(method, path string, handlers []Handler) {
 
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	r.routes = append(r.routes, &Route{
 		Method:       method,
 		PathSegments: segments,
-		Handler:      handler,
+		Handlers:     handlers,
 	})
 }
 
-func (r *Router) GET(path string, handler Handler) {
-	r.AddRoute(http.MethodGet, path, handler)
+func (r *Router) GET(path string, handlers ...Handler) {
+	r.AddRoute(http.MethodGet, path, handlers)
 }
 
-func (r *Router) POST(path string, handler Handler) {
-	r.AddRoute(http.MethodPost, path, handler)
+func (r *Router) POST(path string, handlers ...Handler) {
+	r.AddRoute(http.MethodPost, path, handlers)
 
 }
 
-func (r *Router) PATCH(path string, handler Handler) {
-	r.AddRoute(http.MethodPatch, path, handler)
+func (r *Router) PATCH(path string, handlers ...Handler) {
+	r.AddRoute(http.MethodPatch, path, handlers)
 }
 
-func (r *Router) DELETE(path string, handler Handler) {
-	r.AddRoute(http.MethodDelete, path, handler)
+func (r *Router) DELETE(path string, handlers ...Handler) {
+	r.AddRoute(http.MethodDelete, path, handlers)
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -97,7 +97,14 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			for key, value := range params {
 				req.SetPathValue(key, value)
 			}
-			route.Handler(w, req)
+			if len(route.Handlers) == 1 {
+
+				route.Handlers[0](w, req)
+			} else {
+				for _, h := range route.Handlers {
+					h(w, req)
+				}
+			}
 			return
 		}
 

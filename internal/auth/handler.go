@@ -118,9 +118,7 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, res.cookie)
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "OTP verified successfully", Data: res.data})
+	http_api.SuccessResMsgWithBody(w, "OTP verified successfully", res.data)
 }
 
 func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
@@ -139,9 +137,6 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO - check subscription status
-	// active, err := checkSubscriptionStatus(email, ev.Headers[])
-
 	// create new session and set to cookie
 	res, err := createNewSession(b.Email, userAgent, h.r, false)
 
@@ -151,10 +146,8 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, res.cookie)
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "Google auth successful", Data: res.data})
-
+	http.SetCookie(w, res.cookie)
+	http_api.SuccessResMsgWithBody(w, "OTP verified successfully", res.data)
 }
 
 func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
@@ -187,9 +180,7 @@ func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
 		UserId: userId,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: resData})
+	http_api.SuccessResData(w, resData)
 }
 
 func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
@@ -205,9 +196,8 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.SetCookie(w, cookie)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "Logout successful"})
+
+		http_api.SuccessResMsg(w, "logged out successfully")
 	}
 
 	c, err := r.Cookie("access_token")
@@ -287,7 +277,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
 		return nil, errors.New("Unauthorized")
 	}
-	// TODO - check subscription status
+	// TODO - check subscription status - check the headers for url host to make an api call
 	// active, err := checkSubscriptionStatus(email, ev.Headers[])
 
 	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r, true)
@@ -455,8 +445,6 @@ func createNewSession(email, userAgent string, aR authRepository, isAuthorizer b
 			NewUser: false,
 		}
 
-		// TODO: check subscription status for old user
-
 	}
 
 	return &createSessionRes{
@@ -550,5 +538,3 @@ func checkSubscriptionStatus(userId, urlHost string) (bool, error) {
 
 	return true, nil
 }
-
-

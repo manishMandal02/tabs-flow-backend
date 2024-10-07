@@ -46,14 +46,21 @@ func (u *User) validate() error {
 
 }
 
-var plans = struct {
-	Trail    string
+type SubscriptionPlan string
+
+const (
+	SubscriptionPlanTrial    SubscriptionPlan = "TRAIL"
+	SubscriptionPlanYearly   SubscriptionPlan = "YEARLY"
+	SubscriptionPlanLifetime SubscriptionPlan = "LIFE_TIME"
+)
+
+// paddle plan/price id
+var paddlePlanId = struct {
 	Yearly   string
 	LifeTime string
 }{
-	Trail:    "Trail",
-	Yearly:   "Yearly",
-	LifeTime: "LifeTime",
+	Yearly:   "pri_01j9gharmwn4ev55kyzywy447w",
+	LifeTime: "pri_01j9gh59zz1cs1zafbn95375h1",
 }
 
 type SubscriptionStatus string
@@ -66,25 +73,13 @@ const (
 	SubscriptionStatusTrialing SubscriptionStatus = "trialing"
 )
 
-var subscriptionStatus = struct {
-	Active    string
-	Inactive  string
-	Cancelled string
-}{
-	Active:    "active",
-	Inactive:  "inactive",
-	Cancelled: "cancelled",
-}
-
 type subscription struct {
-	Id        string `json:"id" dynamodbav:"Id"`
-	PlanId    string `json:"planId" dynamodbav:"PlanId"`
-	Plan      string `json:"plan" dynamodbav:"Plan"`
-	Status    string `json:"status" dynamodbav:"Status"`
-	End       string `json:"end" dynamodbav:"End"`
-	Start     string `json:"start" dynamodbav:"Start"`
-	UpdateUrl string `json:"updateUrl" dynamodbav:"UpdateUrl"`
-	CancelUrl string `json:"cancelUrl" dynamodbav:"CancelUrl"`
+	Id           string             `json:"id" dynamodbav:"Id"`
+	Plan         SubscriptionPlan   `json:"plan" dynamodbav:"Plan"`
+	Status       SubscriptionStatus `json:"status" dynamodbav:"Status"`
+	End          string             `json:"end" dynamodbav:"End"`
+	Start        string             `json:"start" dynamodbav:"Start"`
+	NextBillDate string             `json:"nextBillDate,omitempty" dynamodbav:"NextBillDate,omitempty"`
 }
 
 type generalP struct {
@@ -186,31 +181,31 @@ var defaultUserPref = preferences{
 // }
 
 var errMsg = struct {
-	getUser            string
-	userNotFound       string
-	userExists         string
-	createUser         string
-	updateUser         string
-	deleteUser         string
-	invalidUserId      string
-	preferencesGet     string
-	preferencesUpdate  string
-	subscriptionGet    string
-	subscriptionUpdate string
-	subscriptionCheck  string
-	subscriptionCancel string
+	getUser               string
+	userNotFound          string
+	userExists            string
+	createUser            string
+	updateUser            string
+	deleteUser            string
+	invalidUserId         string
+	preferencesGet        string
+	preferencesUpdate     string
+	subscriptionGet       string
+	subscriptionUpdate    string
+	subscriptionCheck     string
+	subscriptionPaddleURL string
 }{
-	getUser:            "Error getting user",
-	userNotFound:       "User not found",
-	userExists:         "User already exits",
-	createUser:         "Error creating user",
-	updateUser:         "Error updating user",
-	deleteUser:         "Error deleting user",
-	invalidUserId:      "Invalid user id",
-	preferencesGet:     "Error getting preferences",
-	preferencesUpdate:  "Error updating preferences",
-	subscriptionGet:    "Error getting subscription",
-	subscriptionUpdate: "Error updating subscription",
-	subscriptionCheck:  "Error checking subscription status",
-	subscriptionCancel: "Error cancelling subscription",
+	getUser:               "Error getting user",
+	userNotFound:          "User not found",
+	userExists:            "User already exits",
+	createUser:            "Error creating user",
+	updateUser:            "Error updating user",
+	deleteUser:            "Error deleting user",
+	invalidUserId:         "Invalid user id",
+	preferencesGet:        "Error getting preferences",
+	preferencesUpdate:     "Error updating preferences",
+	subscriptionGet:       "Error getting subscription",
+	subscriptionUpdate:    "Error updating subscription",
+	subscriptionCheck:     "Error checking subscription status",
+	subscriptionPaddleURL: "Error getting paddle url",
 }

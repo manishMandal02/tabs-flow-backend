@@ -2,11 +2,7 @@ package http_api
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
-
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
+	"net/http"
 )
 
 const (
@@ -28,35 +24,20 @@ type RespBody struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func APIResponse(statusCode int, body interface{}) (*events.APIGatewayV2HTTPResponse, error) {
-	resp := events.APIGatewayV2HTTPResponse{Headers: map[string]string{"Content-Type": "application/json"}}
-	resp.StatusCode = statusCode
-
-	stringBody, err := json.Marshal(body)
-	if err != nil {
-		resp.StatusCode = 500
-		logger.Error("Error marshalling response body", err)
-		resp.Body = `{"error": "Internal Server Error"}`
-		return &resp, nil
-	}
-	resp.Body = string(stringBody)
-	return &resp, nil
+func SuccessResData(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(RespBody{Success: true, Data: data})
 }
-func APIResponseWithCookies(statusCode int, body interface{}, cookies map[string]string) (*events.APIGatewayV2HTTPResponse, error) {
-	resp := events.APIGatewayV2HTTPResponse{Headers: map[string]string{"Content-Type": "application/json"}}
-	resp.StatusCode = statusCode
 
-	if cookies != nil {
-		cookieStrings := make([]string, 0, len(cookies))
-		for key, value := range cookies {
-			cookieStrings = append(cookieStrings, fmt.Sprintf("%s=%s; HttpOnly; Secure; SameSite=Strict", key, value))
-		}
-		resp.MultiValueHeaders = map[string][]string{
-			"Set-Cookie": {strings.Join(cookieStrings, ", ")},
-		}
-	}
+func SuccessResMsg(w http.ResponseWriter, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg})
+}
 
-	stringBody, _ := json.Marshal(body)
-	resp.Body = string(stringBody)
-	return &resp, nil
+func SuccessResMsgWithBody(w http.ResponseWriter, msg string, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg, Data: data})
 }

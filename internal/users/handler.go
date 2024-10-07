@@ -1,7 +1,9 @@
 package users
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -48,9 +50,7 @@ func (h *userHandler) userById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: user})
+	http_api.SuccessResData(w, user)
 }
 
 func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
@@ -157,63 +157,19 @@ func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// set default preferences for user
-	err = setDefaultUserPreferences(user.Id, h.r)
+	err = setDefaultUserData(user, h.r)
 
 	if err != nil {
-		http.Error(w, errMsg.createUser, http.StatusBadRequest)
-		return
-	}
-
-	today := time.Now()
-
-	trialEndDate := today.AddDate(0, 0, config.TRAIL_DAYS)
-
-	//  start trail subscription
-	s := &subscription{
-		Plan:   plans.Trail,
-		Status: subscriptionStatus.Active,
-		Start:  today.Format(time.DateOnly),
-		End:    trialEndDate.Format(time.DateOnly),
-	}
-
-	err = h.r.setSubscription(user.Id, s)
-
-	if err != nil {
-		http.Error(w, errMsg.createUser, http.StatusBadRequest)
-		return
-	}
-
-	// send USER_REGISTERED event to email service (queue)
-	event := &events.UserRegisteredPayload{
-		Email:        user.Email,
-		Name:         user.FullName,
-		TrailEndDate: trialEndDate.Format(time.DateOnly),
-	}
-
-	sqs := events.NewQueue()
-
-	err = sqs.AddMessage(event)
-
-	if err != nil {
+		logger.Error("Error setting user default data", err)
 		http.Error(w, errMsg.createUser, http.StatusBadGateway)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "user created"})
+	http_api.SuccessResMsg(w, "user created")
 }
 
 func (h *userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-
-	//  check if the user with this id
-	userExits := checkUserExits(id, h.r, w)
-
-	if !userExits {
-		return
-	}
 
 	var n struct {
 		Name string `json:"fullName"`
@@ -234,22 +190,12 @@ func (h *userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "user updated"})
-
+	http_api.SuccessResMsg(w, "user updated")
 }
 
 func (h *userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
-
-	//  check if the user with this id
-	userExits := checkUserExits(id, h.r, w)
-
-	if !userExits {
-		return
-	}
 
 	err := h.r.deleteAccount(id)
 
@@ -258,24 +204,13 @@ func (h *userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "user deleted"})
-
+	http_api.SuccessResMsg(w, "user deleted")
 }
 
 // preferences handlers
 func (h *userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
-
-	//  check if the user with this id
-	userExits := checkUserExits(id, h.r, w)
-
-	if !userExits {
-		return
-	}
 
 	preferences, err := h.r.getAllPreferences(id)
 
@@ -284,9 +219,8 @@ func (h *userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: preferences})
+	http_api.SuccessResData(w, preferences)
+
 }
 
 type updatePerfBody struct {
@@ -296,11 +230,6 @@ type updatePerfBody struct {
 
 func (h *userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	//  check if the user with this id
-	userExits := checkUserExits(id, h.r, w)
-	if !userExits {
-		return
-	}
 
 	var updateB updatePerfBody
 
@@ -327,21 +256,12 @@ func (h *userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "preferences updated"})
+	http_api.SuccessResMsg(w, "preferences updated")
 }
 
 // subscription handlers
 func (h *userHandler) getSubscription(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-
-	//  check if the user with this id
-	userExits := checkUserExits(id, h.r, w)
-	if !userExits {
-		return
-	}
 
 	subscription, err := h.r.getSubscription(id)
 
@@ -350,20 +270,11 @@ func (h *userHandler) getSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: subscription})
+	http_api.SuccessResData(w, subscription)
 }
 
 func (h *userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-
-	//  check if the user with this id
-	userExits := checkUserExits(id, h.r, w)
-
-	if !userExits {
-		return
-	}
 
 	s, err := h.r.getSubscription(id)
 
@@ -375,7 +286,7 @@ func (h *userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Req
 	active := false
 
 	if s != nil {
-		active = s.Status == subscriptionStatus.Active
+		active = s.Status == SubscriptionStatusActive
 	}
 
 	if active {
@@ -393,50 +304,16 @@ func (h *userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	res := struct {
+	status := struct {
 		Active bool `json:"active"`
 	}{
 		Active: active,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Data: res})
+	http_api.SuccessResData(w, status)
+
 }
-
-func (h *userHandler) updateSubscription(w http.ResponseWriter, r *http.Request) {
-
-	id := r.PathValue("id")
-
-	//  check if the user with this id
-	userExits := checkUserExits(id, h.r, w)
-	if !userExits {
-		return
-	}
-
-	var sub subscription
-
-	err := json.NewDecoder(r.Body).Decode(&sub)
-
-	if err != nil {
-		logger.Error("error un_marshaling subscription from req body at updateSubscription()", err)
-		http.Error(w, errMsg.subscriptionUpdate, http.StatusBadRequest)
-		return
-	}
-
-	err = h.r.setSubscription(id, &sub)
-
-	if err != nil {
-		http.Error(w, errMsg.subscriptionUpdate, http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "subscription updated"})
-}
-
-func (h *userHandler) cancelSubscription(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	//  check if the user with this id
 
@@ -445,25 +322,56 @@ func (h *userHandler) cancelSubscription(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// TODO - cancel paddle subscription
-
-	s := &subscription{
-		Status:    subscriptionStatus.Cancelled,
-		End:       time.Now().Format(time.DateOnly),
-		Plan:      "",
-		CancelUrl: "",
-	}
-
-	err := h.r.updateSubscription(id, s)
+	p, err := newPaddleClient()
 
 	if err != nil {
-		http.Error(w, errMsg.subscriptionCancel, http.StatusBadRequest)
+		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "subscription cancelled"})
+	s, err := h.r.getSubscription(id)
+
+	if err != nil {
+		http.Error(w, errMsg.subscriptionGet, http.StatusBadGateway)
+		return
+	}
+
+	client := p.SubscriptionsClient
+	res, err := client.GetSubscription(context.TODO(), &paddle.GetSubscriptionRequest{
+		SubscriptionID: s.Id,
+	})
+
+	if err != nil {
+		logger.Error("error getting paddle subscription", err)
+		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusBadRequest)
+		return
+
+	}
+
+	resBody := struct {
+		CancelURL string `json:"cancelURL,omitempty"`
+		UpdateURL string `json:"updateURL,omitempty"`
+	}{}
+
+	shouldSendCancelURL := r.URL.Query().Get("cancelURL") != ""
+
+	if shouldSendCancelURL {
+		resBody.CancelURL = res.ManagementURLs.Cancel
+	} else {
+		resBody.UpdateURL = *res.ManagementURLs.UpdatePaymentMethod
+	}
+
+	if shouldSendCancelURL && resBody.CancelURL == "" {
+		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusBadRequest)
+		return
+	}
+
+	if !shouldSendCancelURL && resBody.UpdateURL == "" {
+		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusBadRequest)
+		return
+	}
+
+	http_api.SuccessResData(w, resBody)
 
 }
 
@@ -476,47 +384,53 @@ func (h *userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request
 
 	if err != nil {
 		logger.Error("error verifying paddle webhook", err)
-		http.Error(w, "Error ", http.StatusInternalServerError)
+		http.Error(w, "Error", http.StatusInternalServerError)
 		return
 	}
 
 	if !ok {
 		logger.Dev("paddle webhook verification failed")
-		http.Error(w, "Invalid webhook ", http.StatusInternalServerError)
+		http.Error(w, "Error bad_request", http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true})
+	http_api.SuccessResMsg(w, "event acknowledged")
 
-	// process the event
-	// p, err := newPaddleClient()
-
-	if err != nil {
-		logger.Error("error initializing paddle client", err)
-		http.Error(w, "Error", http.StatusInternalServerError)
-		return
-	}
+	// process the event ><> * <>< <>< <>< <><
 
 	// get the event type
 	var ev *paddle.GenericEvent
 
 	err = json.NewDecoder(r.Body).Decode(&ev)
 
+	if err != nil {
+		logger.Error("error decoding paddle webhook event", err)
+		http.Error(w, "Error", http.StatusBadRequest)
+		return
+	}
+
 	switch ev.EventType {
 	case paddle.EventTypeNameSubscriptionCreated:
-		//  create subscription
-		d := ev.Data.(paddlenotification.SubscriptionCreatedNotification)
-		// s := &subscription{
-		// 	Plan:      plans.Yearly,
-		// 	Status:    string(d.Status),
-		// 	Start:     *d.StartedAt,
-		// 	End:       d.CurrentBillingPeriod.EndsAt,
-		// 	CancelUrl: "",
-		// }
+		// get data from the event
+		d := ev.Data.(paddlenotification.SubscriptionNotification)
+
+		err := subscriptionEventHandler(h.r, d, false)
+
+		if err != nil {
+			logger.Error("Error processing SubscriptionCreated event as subscriptionWebhook()", err)
+		}
 
 	case paddle.EventTypeNameSubscriptionUpdated:
+
+		// get data from the event
+		d := ev.Data.(paddlenotification.SubscriptionNotification)
+
+		err := subscriptionEventHandler(h.r, d, true)
+
+		if err != nil {
+			logger.Error("Error processing SubscriptionUpdated event as subscriptionWebhook()", err)
+		}
+
 		//  update subscription status
 
 	case paddle.EventTypeNameTransactionPaymentFailed:
@@ -552,6 +466,51 @@ func setDefaultUserPreferences(userId string, r userRepository) error {
 	wg.Wait()
 
 	return nil
+
+}
+func setDefaultUserData(user *User, r userRepository) error {
+	// set default preferences for user
+	err := setDefaultUserPreferences(user.Id, r)
+
+	if err != nil {
+		return err
+	}
+
+	today := time.Now()
+
+	trialEndDate := today.AddDate(0, 0, config.TRAIL_DAYS)
+
+	//  start trail subscription
+	s := &subscription{
+		Plan:   SubscriptionPlanTrial,
+		Status: SubscriptionStatusActive,
+		Start:  today.Format(time.DateOnly),
+		End:    trialEndDate.Format(time.DateOnly),
+	}
+
+	err = r.setSubscription(user.Id, s)
+
+	if err != nil {
+		return err
+	}
+
+	// send USER_REGISTERED event to email service (queue)
+	event := &events.UserRegisteredPayload{
+		Email:        user.Email,
+		Name:         user.FullName,
+		TrailEndDate: trialEndDate.Format(time.DateOnly),
+	}
+
+	sqs := events.NewQueue()
+
+	err = sqs.AddMessage(event)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
@@ -580,6 +539,17 @@ func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
 	return true
 }
 
+// unmarshal json to sub preference struct
+func unmarshalSubPref[T any](data json.RawMessage) (*T, error) {
+	var pref T
+	if err := json.Unmarshal(data, &pref); err != nil {
+		return &pref, err
+	}
+
+	return &pref, nil
+}
+
+// associate req body data to a sub preference struct of a specific type
 func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *interface{}, error) {
 	var subP interface{}
 	var err error
@@ -608,16 +578,7 @@ func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *i
 	return sk, &subP, nil
 }
 
-// unmarshalPreference is a generic function to unmarshal preference data
-func unmarshalSubPref[T any](data json.RawMessage) (*T, error) {
-	var pref T
-	if err := json.Unmarshal(data, &pref); err != nil {
-		return &pref, err
-	}
-
-	return &pref, nil
-}
-
+// create a new instance of paddle sdk with configs
 func newPaddleClient() (*paddle.SDK, error) {
 	client, err := paddle.New(config.PADDLE_API_KEY)
 
@@ -627,4 +588,60 @@ func newPaddleClient() (*paddle.SDK, error) {
 	}
 
 	return client, nil
+}
+
+// get subscription plan type from paddle pice id
+func parsePaddlePlan(priceId string) *SubscriptionPlan {
+
+	plan := SubscriptionPlanTrial
+
+	if priceId == paddlePlanId.Yearly {
+		plan = SubscriptionPlanYearly
+	}
+
+	if priceId == paddlePlanId.LifeTime {
+		plan = SubscriptionPlanLifetime
+	}
+
+	return &plan
+}
+
+// process paddle subscription (create/update) event in webhook
+func subscriptionEventHandler(r userRepository, data paddlenotification.SubscriptionNotification, isUpdatedEvent bool) error {
+	userId, ok := data.CustomData["userId"].(string)
+
+	if !ok {
+		logger.Error("Error getting userId from event custom data subscriptionWebhook()", errors.New("error paddle event"))
+	}
+
+	plan := *parsePaddlePlan(data.Items[0].Price.ID)
+
+	s := &subscription{
+		Id:     data.ID,
+		Plan:   plan,
+		Status: SubscriptionStatus(data.Status),
+		Start:  *data.StartedAt,
+		End:    data.CurrentBillingPeriod.EndsAt,
+	}
+
+	if plan == SubscriptionPlanYearly {
+		// save next bill date if, subscription plan is yearly
+		s.NextBillDate = *data.NextBilledAt
+	}
+
+	var err error
+
+	if isUpdatedEvent {
+		err = r.updateSubscription(userId, s)
+
+	} else {
+
+		err = r.setSubscription(userId, s)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

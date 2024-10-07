@@ -7,6 +7,16 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
+func newMiddleware(ur userRepository) http_api.Handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userId := r.PathValue("id")
+
+		if !checkUserExits(userId, ur, w) {
+			return
+		}
+	}
+}
+
 func Router(w http.ResponseWriter, r *http.Request) {
 
 	db := database.New()
@@ -17,23 +27,25 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	usersRouter := http_api.NewRouter("/users")
 
+	checkUserMiddleware := newMiddleware(ur)
+
 	// profile
 	usersRouter.POST("/", handler.createUser)
 	usersRouter.GET("/:id", handler.userById)
-	usersRouter.PATCH("/:id", handler.updateUser)
+	usersRouter.PATCH("/:id", checkUserMiddleware, handler.updateUser)
 	// TODO: test delete handler after adding more data
-	usersRouter.DELETE("/:id", handler.deleteUser)
+	usersRouter.DELETE("/:id", checkUserMiddleware, handler.deleteUser)
 
-	usersRouter.GET("/:id/preferences", handler.getPreferences)
-	usersRouter.PATCH("/:id/preferences", handler.updatePreferences)
+	usersRouter.GET("/:id/preferences", checkUserMiddleware, handler.getPreferences)
+	usersRouter.PATCH("/:id/preferences", checkUserMiddleware, handler.updatePreferences)
 
-	usersRouter.GET("/:id/subscription", handler.getSubscription)
+	usersRouter.GET("/:id/subscription", checkUserMiddleware, handler.getSubscription)
+	usersRouter.GET("/:id/subscription/status", checkUserMiddleware, handler.checkSubscriptionStatus)
 
-	usersRouter.PATCH("/:id/subscription", handler.cancelSubscription)
+	// queries - cancelURL:bool
+	usersRouter.GET("/:id/subscription/paddle-url", checkUserMiddleware, handler.getPaddleURL)
 
-	usersRouter.GET("/:id/subscription/status", handler.checkSubscriptionStatus)
-
-	// TODO - implement Paddle webhook with their Go sdk
+	// TODO - test webhook with paddle webhook simulator
 	usersRouter.POST("/subscription/webhook", handler.subscriptionWebhook)
 
 	// serve API routes
