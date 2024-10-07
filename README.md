@@ -35,7 +35,7 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 
 ## Architecture
 
-[TODO - high-level architecture diagram here]
+[TODO: high-level architecture diagram here]
 
 Our serverless architecture leverages various AWS services to create a scalable and maintainable backend system. The core services are implemented as Lambda functions, with API Gateway serving as the main entry point for client requests.
 

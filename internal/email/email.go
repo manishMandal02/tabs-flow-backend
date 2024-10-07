@@ -11,7 +11,7 @@ import (
 )
 
 func SendEmail(_ context.Context, ev lambda_events.SQSEvent) error {
-	// TODO - handle multiple events process
+	// TODO:handle multiple events process
 
 	eventType, err := events.ParseEventType(*ev.Records[0].MessageAttributes["event_type"].StringValue)
 
