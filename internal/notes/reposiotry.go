@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -14,9 +15,11 @@ import (
 
 type noteRepository interface {
 	createNote(userId string, n *note) error
-	getNotes(userId string) (*[]note, error)
+
+	getNote(userId string, noteId int64) (*note, error)
+	getNotes(userId string, lastNoteId int64) (*[]note, error)
 	updateNote(userId string, n *note) error
-	deleteNote(userId, noteId string) error
+	deleteNote(userId string, noteId int64) error
 }
 
 type noteRepo struct {
@@ -78,10 +81,10 @@ func (r noteRepo) updateNote(userId string, n *note) error {
 	return nil
 }
 
-func (r noteRepo) deleteNote(userId string, noteId string) error {
+func (r noteRepo) deleteNote(userId string, noteId int64) error {
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(noteId)},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%d", noteId))},
 	}
 
 	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
@@ -94,14 +97,13 @@ func (r noteRepo) deleteNote(userId string, noteId string) error {
 		return err
 	}
 	return nil
-
 }
 
-func (r noteRepo) getNote(userId, noteId string) (*note, error) {
+func (r noteRepo) getNote(userId string, noteId int64) (*note, error) {
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(noteId)},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%v", noteId))},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -129,8 +131,7 @@ func (r noteRepo) getNote(userId, noteId string) (*note, error) {
 	return note, nil
 }
 
-// TODO - get notes with  pagination
-func (r noteRepo) getNotes(userId string) (*[]note, error) {
+func (r noteRepo) getNotes(userId string, lastNoteId int64) (*[]note, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.Note("")))
 
@@ -141,11 +142,22 @@ func (r noteRepo) getNotes(userId string) (*[]note, error) {
 		return nil, err
 	}
 
+	var startKey map[string]types.AttributeValue
+
+	if lastNoteId != 0 {
+		startKey = map[string]types.AttributeValue{
+			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%v", lastNoteId))},
+		}
+	}
+
 	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:                 &r.db.TableName,
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),
+		Limit:                     aws.Int32(10),
+		ExclusiveStartKey:         startKey,
 	})
 
 	if err != nil {

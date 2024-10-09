@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -26,9 +27,10 @@ type spaceRepository interface {
 	setGroupsForSpace(userId, spaceId string, g *[]group) error
 	getGroupsForSpace(userId, spaceId string) (*[]group, error)
 	addSnoozedTab(userId, spaceId string, t *snoozedTab) error
-	geSnoozedTabsInSpace(userId, spaceId string) (*[]snoozedTab, error)
-	deleteSnoozedTab(userId, spaceId string, snoozedUntil int64) error
-	getSnoozedTab(userId, spaceId string, snoozedUntil int64) (*snoozedTab, error)
+	getAllSnoozedTabs(userId string, lastSnoozedTabID int64) (*[]snoozedTab, error)
+	geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]snoozedTab, error)
+	deleteSnoozedTab(userId, spaceId string, snoozedAt int64) error
+	getSnoozedTab(userId, spaceId string, snoozedAt int64) (*snoozedTab, error)
 }
 
 type spaceRepo struct {
@@ -102,7 +104,6 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 	return s, nil
 }
 
-// TODO - handle pagination
 func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.Space("")))
@@ -376,9 +377,9 @@ func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *snoozedTab) error {
 	return nil
 }
 
-func (r spaceRepo) getSnoozedTab(userId, spaceId string, snoozedUntil int64) (*snoozedTab, error) {
+func (r spaceRepo) getSnoozedTab(userId, spaceId string, snoozedAt int64) (*snoozedTab, error) {
 
-	sk := fmt.Sprintf("%s#%v", database.SORT_KEY.SnoozedTabs(spaceId), snoozedUntil)
+	sk := fmt.Sprintf("%s#%v", database.SORT_KEY.SnoozedTabs(spaceId), snoozedAt)
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
@@ -411,8 +412,57 @@ func (r spaceRepo) getSnoozedTab(userId, spaceId string, snoozedUntil int64) (*s
 
 }
 
-// TODO - handle pagination
-func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string) (*[]snoozedTab, error) {
+func (r spaceRepo) getAllSnoozedTabs(userId string, lastSnoozedTabId int64) (*[]snoozedTab, error) {
+
+	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.SnoozedTabs("")))
+
+	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't build getSnoozedTabs expression for userId: %v", userId), err)
+		return nil, err
+	}
+
+	var startKey map[string]types.AttributeValue
+
+	if lastSnoozedTabId != 0 {
+		startKey = map[string]types.AttributeValue{
+			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.SnoozedTabs(fmt.Sprintf("%v", lastSnoozedTabId))},
+		}
+	}
+
+	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 &r.db.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		Limit:                     aws.Int32(10),
+		ExclusiveStartKey:         startKey,
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't get snoozed tabs for userId: %v", userId), err)
+		return nil, err
+	}
+
+	if len(response.Items) < 1 {
+		return nil, fmt.Errorf(errMsg.snoozedTabsGet)
+	}
+
+	snoozedTabs := []snoozedTab{}
+
+	err = attributevalue.UnmarshalListOfMaps(response.Items, &snoozedTabs)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't unmarshal snoozed tabs for userId: %v", userId), err)
+		return nil, err
+	}
+
+	return &snoozedTabs, nil
+}
+
+func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]snoozedTab, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.SnoozedTabs(spaceId)))
 
@@ -422,11 +472,23 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string) (*[]snoozedTab, 
 		logger.Error(fmt.Sprintf("Couldn't build getSnoozedTabs expression for userId: %v", userId), err)
 		return nil, err
 	}
+
+	var startKey map[string]types.AttributeValue
+
+	if lastSnoozedTabId != 0 {
+		startKey = map[string]types.AttributeValue{
+			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.SnoozedTabs(fmt.Sprintf("%s#%v", spaceId, lastSnoozedTabId))},
+		}
+	}
+
 	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:                 &r.db.TableName,
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),
+		Limit:                     aws.Int32(10),
+		ExclusiveStartKey:         startKey,
 	})
 
 	if err != nil {
@@ -449,8 +511,8 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string) (*[]snoozedTab, 
 	return &snoozedTabs, nil
 }
 
-func (r spaceRepo) deleteSnoozedTab(userId, spaceId string, snoozedUntil int64) error {
-	sk := fmt.Sprintf("%s#%s", database.SORT_KEY.SnoozedTabs(spaceId), strconv.FormatInt(snoozedUntil, 10))
+func (r spaceRepo) deleteSnoozedTab(userId, spaceId string, snoozedAt int64) error {
+	sk := fmt.Sprintf("%s#%s", database.SORT_KEY.SnoozedTabs(spaceId), strconv.FormatInt(snoozedAt, 10))
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},

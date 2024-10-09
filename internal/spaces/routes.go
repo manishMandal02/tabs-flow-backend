@@ -31,7 +31,7 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	spacesRouter.POST("/groups/:userId/:spaceId", sh.setGroupsInSpace)
 
 	// snoozed tabs
-	// query param: snoozedUntil=unix timestamp
+	// query param: snoozedAt=unix timestamp
 	spacesRouter.GET("/snoozed-tabs/:userId/:spaceId", sh.getSnoozedTabs)
 	spacesRouter.POST("/snoozed-tabs/:userId/:spaceId", sh.createSnoozedTab)
 	spacesRouter.DELETE("/snoozed-tabs/:userId/:spaceId", sh.deleteSnoozedTab)

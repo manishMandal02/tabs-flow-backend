@@ -81,13 +81,13 @@ Our serverless architecture leverages various AWS services to create a scalable 
 |                    | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                     |
 |                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
 |                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
-|                    | U#Notification#{timestamp}             | Type, Timestamp, Note{}, SnoozedTab{}                    |
+|                    | U#Notification#{Id/CreatedAt}          | Type, Timestamp, Note{}, SnoozedTab{}                    |
 |                    | U#UsageAnalytics                       | SpaceUsage{}                                             |
 |                    | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex |
 |                    | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }             |
 |                    | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                            |
-|                    | S#SnoozedTabs#{SpaceId}#{SnoozedUntil} | Title, URL, FaviconURL, SnoozedUntil                     |
-|                    | N#{NoteId}                             | SpaceId, Title, Note, RemainderAt, UpdatedAt             |
+|                    | S#SnoozedTabs#{SpaceId}#{Id/SnoozedAt} | SpaceId, Title, URL, FaviconURL, SnoozedUntil, SnoozedAt |
+|                    | N#{NoteId/CreatedAt}                   | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt         |
 
 ## Sessions Table Design (DynamoDB)
 

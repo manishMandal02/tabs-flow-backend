@@ -273,11 +273,26 @@ func (h *spaceHandler) getSnoozedTabs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	snoozedUntil := r.URL.Query().Get("snoozedUntil")
+	snoozedAt := r.URL.Query().Get("snoozedAt")
 
-	if snoozedUntil == "" {
+	if snoozedAt == "" {
+
+		lastKey := r.URL.Query().Get("lastSnoozedTabId")
+
+		if lastKey == "" {
+			lastKey = "0"
+		}
+
+		lastSnoozedTabId, err := strconv.ParseInt(lastKey, 10, 64)
+
+		if err != nil {
+			logger.Error("error parsing lastSnoozedTabId", err)
+			http.Error(w, errMsg.snoozedTabsGet, http.StatusBadRequest)
+			return
+		}
+
 		// return all snoozed tabs for space
-		sT, err := h.sr.geSnoozedTabsInSpace(userId, spaceId)
+		sT, err := h.sr.geSnoozedTabsInSpace(userId, spaceId, lastSnoozedTabId)
 
 		if err != nil {
 			logger.Error("error getting snoozed tabs for space", err)
@@ -288,17 +303,17 @@ func (h *spaceHandler) getSnoozedTabs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// return snoozed tab that matches snoozedUntil time
+	// return snoozed tab that matches snoozedAt time
 
-	snoozedUntilInt, err := strconv.ParseInt(snoozedUntil, 10, 64)
+	snoozedAtInt, err := strconv.ParseInt(snoozedAt, 10, 64)
 
 	if err != nil {
-		logger.Error("error parsing snoozedUntil", err)
+		logger.Error("error parsing snoozedAt", err)
 		http.Error(w, errMsg.snoozedTabsGet, http.StatusBadRequest)
 		return
 	}
 
-	sT, err := h.sr.getSnoozedTab(userId, spaceId, snoozedUntilInt)
+	sT, err := h.sr.getSnoozedTab(userId, spaceId, snoozedAtInt)
 
 	if err != nil {
 		logger.Error("error getting snoozed tab", err)
@@ -314,22 +329,22 @@ func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("spaceId")
 
-	snoozedUntil := r.URL.Query().Get("snoozedUntil")
+	snoozedAt := r.URL.Query().Get("snoozedAt")
 
-	if userId == "" || spaceId == "" || snoozedUntil == "" {
+	if userId == "" || spaceId == "" || snoozedAt == "" {
 		http.Error(w, errMsg.snoozedTabsDelete, http.StatusBadRequest)
 		return
 	}
 
-	snoozedUntilInt, err := strconv.ParseInt(snoozedUntil, 10, 64)
+	snoozedAtInt, err := strconv.ParseInt(snoozedAt, 10, 64)
 
 	if err != nil {
-		logger.Error("error parsing snoozedUntil", err)
+		logger.Error("error parsing snoozedAt", err)
 		http.Error(w, errMsg.snoozedTabsDelete, http.StatusBadRequest)
 		return
 	}
 
-	err = h.sr.deleteSnoozedTab(userId, spaceId, snoozedUntilInt)
+	err = h.sr.deleteSnoozedTab(userId, spaceId, snoozedAtInt)
 
 	if err != nil {
 		logger.Error("error deleting snoozed tab", err)

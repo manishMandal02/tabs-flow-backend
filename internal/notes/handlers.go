@@ -3,8 +3,10 @@ package notes
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 type noteHandler struct {
@@ -48,7 +50,21 @@ func (h noteHandler) createNote(w http.ResponseWriter, r *http.Request) {
 func (h noteHandler) getNotes(w http.ResponseWriter, r *http.Request) {
 	userId := r.URL.Query().Get("userId")
 
-	notes, err := h.nr.getNotes(userId)
+	lastKey := r.URL.Query().Get("lastNoteId")
+
+	if lastKey == "" {
+		lastKey = "0"
+	}
+
+	lastNoteId, err := strconv.ParseInt(lastKey, 10, 64)
+
+	if err != nil {
+		logger.Error("Couldn't parse lastNoteId", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	notes, err := h.nr.getNotes(userId, lastNoteId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -90,9 +106,17 @@ func (h noteHandler) updateNote(w http.ResponseWriter, r *http.Request) {
 
 func (h noteHandler) deleteNote(w http.ResponseWriter, r *http.Request) {
 	userId := r.URL.Query().Get("userId")
-	noteId := r.URL.Query().Get("noteId")
+	noteIdStr := r.URL.Query().Get("noteId")
 
-	err := h.nr.deleteNote(userId, noteId)
+	noteId, err := strconv.ParseInt(noteIdStr, 10, 64)
+
+	if err != nil {
+		logger.Error("Couldn't parse noteId", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = h.nr.deleteNote(userId, noteId)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
