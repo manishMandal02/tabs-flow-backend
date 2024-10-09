@@ -101,7 +101,7 @@ func (r *userRepo) insertUser(user *User) error {
 	return nil
 }
 
-func (r *userRepo) updateUser(id, name string) error {
+func (r userRepo) updateUser(id, name string) error {
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: id},
@@ -135,7 +135,7 @@ func (r *userRepo) updateUser(id, name string) error {
 }
 
 // delete user account with all their data
-func (r *userRepo) deleteAccount(id string) error {
+func (r userRepo) deleteAccount(id string) error {
 
 	// DynamoDB allows a maximum batch size of 25 items.
 	batchSize := 25
@@ -184,7 +184,7 @@ func (r *userRepo) deleteAccount(id string) error {
 }
 
 // preferences
-func (r *userRepo) getAllPreferences(id string) (*preferences, error) {
+func (r userRepo) getAllPreferences(id string) (*preferences, error) {
 	// primary key - partition+sort key
 	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(id)), expression.Key("SK").BeginsWith(database.SORT_KEY.PreferencesBase))
 
@@ -219,7 +219,7 @@ func (r *userRepo) getAllPreferences(id string) (*preferences, error) {
 	return p, nil
 }
 
-func (r *userRepo) setPreferences(userId, sk string, pData interface{}) error {
+func (r userRepo) setPreferences(userId, sk string, pData interface{}) error {
 	av, err := attributevalue.MarshalMap(pData)
 
 	if err != nil {
@@ -240,7 +240,7 @@ func (r *userRepo) setPreferences(userId, sk string, pData interface{}) error {
 	return nil
 }
 
-func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error {
+func (r userRepo) updatePreferences(userId, sk string, pData interface{}) error {
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
@@ -294,7 +294,7 @@ func (r *userRepo) updatePreferences(userId, sk string, pData interface{}) error
 }
 
 // subscription
-func (r *userRepo) getSubscription(userId string) (*subscription, error) {
+func (r userRepo) getSubscription(userId string) (*subscription, error) {
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
@@ -326,7 +326,7 @@ func (r *userRepo) getSubscription(userId string) (*subscription, error) {
 
 }
 
-func (r *userRepo) setSubscription(userId string, s *subscription) error {
+func (r userRepo) setSubscription(userId string, s *subscription) error {
 
 	av, err := attributevalue.MarshalMap(s)
 	if err != nil {
@@ -348,15 +348,13 @@ func (r *userRepo) setSubscription(userId string, s *subscription) error {
 	return nil
 }
 
-func (r *userRepo) updateSubscription(userId string, sData *subscription) error {
+func (r userRepo) updateSubscription(userId string, sData *subscription) error {
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
 		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Subscription},
 	}
 
 	var update expression.UpdateBuilder
-
-	logger.Dev("update subscription data: %v", sData)
 
 	// iterate over the fields of the struct
 	v := reflect.ValueOf(sData)

@@ -17,7 +17,7 @@
 
 ## Project Overview
 
-TabsFlow Backend is a serverless application built on AWS, designed to manage tabs, spaces, and user data. It provides a robust backend infrastructure for [brief description of what TabsFlow does].
+TabsFlow Backend is a serverless application built on AWS, designed to manage tabs, spaces, and user data. It provides a robust backend infrastructure for the TabsFlow web application.
 
 ## Technologies
 
@@ -52,7 +52,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
 | SnoozedTab     | snoozed tabs in space     | SpaceId, Title, URL, FaviconURL, SnoozedUntil                 |
 | UsageAnalytics | space usage analytics     | UserId, SpaceUsage{}                                          |
 | Notification   | notification & remainders | UserId, Type, Timestamp, Note{}, SnoozedTab{}                 |
-| Subscription   | user subscriptions        | UserId, Plan, StartDate, EndState, Validity, TrailEndDat,     |
+| Subscription   | user subscriptions        | Id, PlanId, Plan, Status, Start, End, NextBillingDate         |
 
 ## Data Access Patterns (DynamoDB)
 
@@ -72,22 +72,22 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 ## Main Table Design (DynamoDB)
 
-| Partition Key (PK) | Sort Key (SK)                          | Item Attributes                                            |
-| ------------------ | -------------------------------------- | ---------------------------------------------------------- |
-| UserId             | U#Profile                              | Email, FullName, ProfilePic                                |
-|                    | U#Subscription                         | Id, PlanId, Plan, Status, Start, End, UpdateURL, CancelURL |
-|                    | P#General                              | IsDisabled, DiscardAfter, WhitelistedDomains               |
-|                    | P#Note                                 | IsDisabled, BubblePos, ShowOnAllSites                      |
-|                    | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                       |
-|                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                              |
-|                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains               |
-|                    | U#Notification#{timestamp}             | Type, Timestamp, Note{}, SnoozedTab{}                      |
-|                    | U#UsageAnalytics                       | SpaceUsage{}                                               |
-|                    | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex   |
-|                    | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }               |
-|                    | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                              |
-|                    | S#SnoozedTabs#{SpaceId}#{SnoozedUntil} | Title, URL, FaviconURL, SnoozedUntil                       |
-|                    | N#{NoteId}                             | SpaceId, Title, Note, RemainderAt, UpdatedAt               |
+| Partition Key (PK) | Sort Key (SK)                          | Item Attributes                                          |
+| ------------------ | -------------------------------------- | -------------------------------------------------------- |
+| UserId             | U#Profile                              | Email, FullName, ProfilePic                              |
+|                    | U#Subscription                         | Id, PlanId, Plan, Status, Start, End, NextBillingDate    |
+|                    | P#General                              | IsDisabled, DiscardAfter, WhitelistedDomains             |
+|                    | P#Note                                 | IsDisabled, BubblePos, ShowOnAllSites                    |
+|                    | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                     |
+|                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
+|                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
+|                    | U#Notification#{timestamp}             | Type, Timestamp, Note{}, SnoozedTab{}                    |
+|                    | U#UsageAnalytics                       | SpaceUsage{}                                             |
+|                    | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex |
+|                    | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }             |
+|                    | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                            |
+|                    | S#SnoozedTabs#{SpaceId}#{SnoozedUntil} | Title, URL, FaviconURL, SnoozedUntil                     |
+|                    | N#{NoteId}                             | SpaceId, Title, Note, RemainderAt, UpdatedAt             |
 
 ## Sessions Table Design (DynamoDB)
 
@@ -113,26 +113,41 @@ Our serverless architecture leverages various AWS services to create a scalable 
   - EMAIL_SQS_QUEUE_URL
   - DDB_SESSIONS_TABLE_NAME
 
-### User Service
+### Users Service
 
 - Manages user-related operations
 - API Endpoints: /users
 
-  - GET/PUT: /profile
-  - GET/PUT: /preferences
-  - GET/PUT: /subscription
+  - POST: /
+  - GET: /:id
+  - PATCH: /:id
+  - DELETE: /:id
+  - GET: /:id/preferences
+  - PATCH: /:id/preferences
+  - GET: /:id/subscription
+  - GET: /:id/subscription/status
+  - GET: /:id/subscription/paddle-url
+  - POST: /:id/subscription/webhook
 
 - Env variables:
   - EMAIL_SQS_QUEUE_URL
   - DDB_MAIN_TABLE_NAME
+  - PADDLE_API_KEY
+  - PADDLE_WEBHOOK_SECRET_KEY
 
 ### Spaces Service
 
-- Manages tabs, spaces, and groups
+- Manages spaces, tabs, and groups
 - API Endpoints: /spaces
-  - GET/PUT: /spaces
-  - GET/PUT: /tabs
-  - GET/PUT: /groups
+
+  - POST: /
+  - GET: /:spaceId
+  - GET: /user/:userId
+  - PATCH: /:spaceId
+  - DELETE: /:spaceId
+
+- Env variables:
+  - DDB_MAIN_TABLE_NAME
 
 ### Sync Service
 
@@ -147,7 +162,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
   - GET: /{userId}
   - PATCH: /{userId}
 
-### Notification Service
+### Notifications Service
 
 - Handles notification management
 - API Endpoints: /notifications

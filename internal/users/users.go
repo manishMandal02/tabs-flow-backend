@@ -77,8 +77,8 @@ type subscription struct {
 	Id           string             `json:"id" dynamodbav:"Id"`
 	Plan         SubscriptionPlan   `json:"plan" dynamodbav:"Plan"`
 	Status       SubscriptionStatus `json:"status" dynamodbav:"Status"`
-	End          string             `json:"end" dynamodbav:"End"`
 	Start        string             `json:"start" dynamodbav:"Start"`
+	End          string             `json:"end" dynamodbav:"End"`
 	NextBillDate string             `json:"nextBillDate,omitempty" dynamodbav:"NextBillDate,omitempty"`
 }
 
