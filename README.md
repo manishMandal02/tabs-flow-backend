@@ -89,6 +89,12 @@ Our serverless architecture leverages various AWS services to create a scalable 
 |                    | S#SnoozedTabs#{SpaceId}#{Id/SnoozedAt} | SpaceId, Title, URL, FaviconURL, SnoozedUntil, SnoozedAt |
 |                    | N#{NoteId/CreatedAt}                   | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt         |
 
+## Notes Search Table Design (DynamoDB)
+
+| Partition Key (PK) | Sort Key (SK) | Item Attributes                                  |
+| ------------------ | ------------- | ------------------------------------------------ |
+| UserId#Term        | N#NoteId      | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt |
+
 ## Sessions Table Design (DynamoDB)
 
 | Partition Key (PK) | Sort Key (SK)       | Item Attributes            |

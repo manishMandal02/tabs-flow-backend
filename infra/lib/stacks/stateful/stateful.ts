@@ -14,6 +14,7 @@ export class StatefulStack extends Stack {
 
     const mainTableName = `${config.AppName}-Main_${props.stage}`;
     const sessionsTableName = `${config.AppName}-Sessions_${props.stage}`;
+    const searchIndexTableName = `${config.AppName}-SearchIndex${props.stage}`;
 
     const mainTable = new aws_dynamodb.Table(this, mainTableName, {
       tableName: mainTableName,
@@ -44,6 +45,20 @@ export class StatefulStack extends Stack {
       removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
     });
 
+    const searchIndexTable = new aws_dynamodb.Table(this, searchIndexTableName, {
+      tableName: searchIndexTableName,
+      billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+      partitionKey: {
+        name: config.dynamoDB.PrimaryKey,
+        type: aws_dynamodb.AttributeType.STRING
+      },
+      sortKey: {
+        name: config.dynamoDB.SortKey,
+        type: aws_dynamodb.AttributeType.STRING
+      },
+      removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+    });
+
     new CfnOutput(this, 'MainTableArn', {
       exportName: 'MainTableArn',
       value: mainTable.tableArn
@@ -52,6 +67,11 @@ export class StatefulStack extends Stack {
     new CfnOutput(this, 'SessionsTableArn', {
       exportName: 'SessionsTableArn',
       value: sessionsTable.tableArn
+    });
+
+    new CfnOutput(this, 'SearchIndexTableArn', {
+      exportName: 'SearchIndexTableArn',
+      value: searchIndexTable.tableArn
     });
   }
 }

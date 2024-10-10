@@ -322,7 +322,6 @@ func (h *spaceHandler) getSnoozedTabs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http_api.SuccessResData(w, sT)
-
 }
 
 func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) {
