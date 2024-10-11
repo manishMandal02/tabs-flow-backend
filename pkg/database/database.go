@@ -26,6 +26,14 @@ func NewSessionTable() *DDB {
 	}
 }
 
+// new instance od search index table
+func NewSearchIndexTable() *DDB {
+	return &DDB{
+		Client:    newDBB(),
+		TableName: config.DDB_SEARCH_INDEX_TABLE_NAME,
+	}
+}
+
 // new db client helper internal helper
 func newDBB() *dynamodb.Client {
 	return dynamodb.NewFromConfig(config.AWS_CONFIG)
@@ -76,7 +84,7 @@ var SORT_KEY = struct {
 	TabsInSpace:     generateKey("S#Tabs#"),
 	GroupsInSpace:   generateKey("S#Groups#"),
 	SnoozedTabs:     generateKey("S#SnoozedTabs#"),
-	Note:            generateKey("N#Note#"),
+	Note:            generateKey("N#"),
 }
 
 var SORT_KEY_SESSIONS = struct {
@@ -87,4 +95,10 @@ var SORT_KEY_SESSIONS = struct {
 	Session: generateKey("Session#"),
 	OTP:     generateKey("OTP#"),
 	UserId:  generateKey("UserId#"),
+}
+
+var SORT_KEY_SEARCH_INDEX = struct {
+	Note keySuffix
+}{
+	Note: generateKey("N#"),
 }

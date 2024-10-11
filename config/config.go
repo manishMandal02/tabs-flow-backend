@@ -13,15 +13,16 @@ import (
 )
 
 var (
-	AWS_REGION                string
-	JWT_SECRET_KEY            string
-	EMAIL_SQS_QUEUE_URL       string
-	DDB_MAIN_TABLE_NAME       string
-	DDB_SESSIONS_TABLE_NAME   string
-	ZEPTO_MAIL_API_KEY        string
-	AWS_CONFIG                aws.Config
-	PADDLE_API_KEY            string
-	PADDLE_WEBHOOK_SECRET_KEY string
+	AWS_REGION                  string
+	JWT_SECRET_KEY              string
+	EMAIL_SQS_QUEUE_URL         string
+	DDB_MAIN_TABLE_NAME         string
+	DDB_SEARCH_INDEX_TABLE_NAME string
+	DDB_SESSIONS_TABLE_NAME     string
+	ZEPTO_MAIL_API_KEY          string
+	AWS_CONFIG                  aws.Config
+	PADDLE_API_KEY              string
+	PADDLE_WEBHOOK_SECRET_KEY   string
 
 	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
 	LOCAL_DEV_ENV            = false
@@ -61,6 +62,7 @@ func Init() {
 		AWS_CONFIG = cfg
 
 		DDB_MAIN_TABLE_NAME = "TabsFlow-Main_dev"
+		DDB_SEARCH_INDEX_TABLE_NAME = "TabsFlow-SearchIndex_dev"
 		DDB_SESSIONS_TABLE_NAME = "TabsFlow-Sessions_dev"
 		EMAIL_SQS_QUEUE_URL = "TabsFlow-Emails_dev"
 	} else {

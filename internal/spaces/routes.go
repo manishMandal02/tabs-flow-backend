@@ -16,11 +16,11 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	spacesRouter := http_api.NewRouter("/spaces")
 
 	// spaces
-	spacesRouter.POST("/:userId/", sh.createSpace)
+	spacesRouter.GET("/:userId/:id", sh.get)
+	spacesRouter.POST("/:userId/", sh.create)
 	spacesRouter.GET("/:userId", sh.spacesByUser)
-	spacesRouter.GET("/:userId/:id", sh.spaceById)
-	spacesRouter.PATCH("/:userId/:id", sh.updateSpace)
-	spacesRouter.DELETE("/:id", sh.deleteSpace)
+	spacesRouter.PATCH("/:userId/:id", sh.update)
+	spacesRouter.DELETE("/:id", sh.delete)
 
 	// tabs
 	spacesRouter.GET("/tabs/:userId/:spaceId", sh.getTabsInSpace)

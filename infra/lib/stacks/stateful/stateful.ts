@@ -12,9 +12,9 @@ export class StatefulStack extends Stack {
   constructor(scope: Construct, id: string, props: StatefulStackProps) {
     super(scope, id, props);
 
-    const mainTableName = `${config.AppName}-Main_${props.stage}`;
-    const sessionsTableName = `${config.AppName}-Sessions_${props.stage}`;
-    const searchIndexTableName = `${config.AppName}-SearchIndex${props.stage}`;
+    const mainTableName = `${config.AppName}-${config.dynamoDB.MainTableName}_${props.stage}`;
+    const sessionsTableName = `${config.AppName}-${config.dynamoDB.SessionsTableName}${props.stage}`;
+    const searchIndexTableName = `${config.AppName}-${config.dynamoDB.SearchIndexTableName}${props.stage}`;
 
     const mainTable = new aws_dynamodb.Table(this, mainTableName, {
       tableName: mainTableName,

@@ -31,7 +31,7 @@ export class NotesService extends Construct {
       bundling: config.lambda.GoBundling,
       environment: {
         DDB_MAIN_TABLE_NAME: props.mainDB.tableName,
-        SEARCH_INDEX_TABLE_NAME: props.searchIndexDB.tableName
+        DDB_SEARCH_INDEX_TABLE_NAME: props.searchIndexDB.tableName
       }
     });
 

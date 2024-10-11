@@ -6,11 +6,10 @@ type note struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
 	Text        string `json:"text"`
-	SpaceId     string `json:"spaceId"`
-	Domain      string `json:"domain"`
-	RemainderAt int64  `json:"remainderAt"`
-	CreatedAt   int64  `json:"createdAt"`
-	UpdatedAt   int64  `json:"updatedAt"`
+	SpaceId     string `json:"spaceId,omitempty"`
+	Domain      string `json:"domain,omitempty"`
+	RemainderAt int64  `json:"remainderAt,omitempty"`
+	UpdatedAt   int64  `json:"updatedAt,omitempty"`
 }
 
 func (n *note) validate() error {
@@ -24,15 +23,19 @@ func (n *note) validate() error {
 }
 
 var errMsg = struct {
-	noteCreate string
-	noteUpdate string
-	noteGet    string
-	notesGet   string
-	noteDelete string
+	noteCreate       string
+	noteUpdate       string
+	noteGet          string
+	notesGet         string
+	noteDelete       string
+	notesSearch      string
+	notesSearchEmpty string
 }{
-	noteCreate: "error creating note",
-	noteUpdate: "error updating note",
-	noteGet:    "error getting note",
-	notesGet:   "error getting notes",
-	noteDelete: "error deleting note",
+	noteCreate:       "error creating note",
+	noteUpdate:       "error updating note",
+	noteGet:          "error getting note",
+	notesGet:         "error getting notes",
+	noteDelete:       "error deleting note",
+	notesSearch:      "error searching notes",
+	notesSearchEmpty: "no notes found",
 }

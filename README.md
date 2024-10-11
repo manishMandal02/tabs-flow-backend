@@ -155,6 +155,21 @@ Our serverless architecture leverages various AWS services to create a scalable 
 - Env variables:
   - DDB_MAIN_TABLE_NAME
 
+### Notes Service
+
+- Manages spaces, tabs, and groups
+- API Endpoints: /spaces
+
+  - POST: /:userId
+  - GET: /:userId/:noteId
+  - GET: /:userId (notes by user)
+  - PATCH: /:userId
+  - DELETE: /:userId/:noteId
+
+- Env variables:
+  - DDB_MAIN_TABLE_NAME
+  - DDB_SEARCH_INDEX_TABLE_NAME
+
 ### Sync Service
 
 - Synchronizes local data with the cloud

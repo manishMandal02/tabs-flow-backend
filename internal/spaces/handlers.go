@@ -19,7 +19,7 @@ func newSpaceHandler(sr spaceRepository) *spaceHandler {
 	}
 }
 
-func (h *spaceHandler) spaceById(w http.ResponseWriter, r *http.Request) {
+func (h *spaceHandler) get(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("id")
 
@@ -60,7 +60,7 @@ func (h *spaceHandler) spacesByUser(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResMsg(w, "success")
 }
 
-func (h *spaceHandler) createSpace(w http.ResponseWriter, r *http.Request) {
+func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
 
 	userId := r.PathValue("userId")
 
@@ -92,7 +92,7 @@ func (h *spaceHandler) createSpace(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResMsg(w, "space created successfully")
 }
 
-func (h *spaceHandler) updateSpace(w http.ResponseWriter, r *http.Request) {
+func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("id")
@@ -123,7 +123,7 @@ func (h *spaceHandler) updateSpace(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResMsg(w, "space updated successfully")
 }
 
-func (h *spaceHandler) deleteSpace(w http.ResponseWriter, r *http.Request) {
+func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	spaceId := r.PathValue("id")
 	userId := r.PathValue("userId")

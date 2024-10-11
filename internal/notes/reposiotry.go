@@ -15,20 +15,25 @@ import (
 
 type noteRepository interface {
 	createNote(userId string, n *note) error
-
-	getNote(userId string, noteId int64) (*note, error)
-	getNotes(userId string, lastNoteId int64) (*[]note, error)
+	getNote(userId string, noteId string) (*note, error)
+	getNotesByUser(userId string, lastNoteId int64) (*[]note, error)
 	updateNote(userId string, n *note) error
 	deleteNote(userId string, noteId int64) error
+	// search
+	indexSearchTerms(userId, noteId string, terms []string) error
+	findSearchIndex(userId string, query string, limit int) ([]string, error)
+	getNotesByIds(userId string, noteIds *[]string) (*[]note, error)
 }
 
 type noteRepo struct {
-	db *database.DDB
+	db               *database.DDB
+	searchIndexTable *database.DDB
 }
 
-func newNoteRepository(db *database.DDB) noteRepository {
+func newNoteRepository(db *database.DDB, searchIndexTable *database.DDB) noteRepository {
 	return &noteRepo{
-		db: db,
+		db:               db,
+		searchIndexTable: searchIndexTable,
 	}
 }
 
@@ -99,11 +104,11 @@ func (r noteRepo) deleteNote(userId string, noteId int64) error {
 	return nil
 }
 
-func (r noteRepo) getNote(userId string, noteId int64) (*note, error) {
+func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%v", noteId))},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(noteId)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -131,14 +136,54 @@ func (r noteRepo) getNote(userId string, noteId int64) (*note, error) {
 	return note, nil
 }
 
-func (r noteRepo) getNotes(userId string, lastNoteId int64) (*[]note, error) {
+func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]note, error) {
+	keys := []map[string]types.AttributeValue{}
+
+	for _, noteId := range *noteIds {
+		keys = append(keys, map[string]types.AttributeValue{
+			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(noteId)},
+		})
+	}
+
+	response, err := r.db.Client.BatchGetItem(context.TODO(), &dynamodb.BatchGetItemInput{
+		RequestItems: map[string]types.KeysAndAttributes{
+			r.db.TableName: {
+				Keys: keys,
+			},
+		},
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't get notes for userId: %v", userId), err)
+		return nil, err
+	}
+
+	if len(response.Responses[r.db.TableName]) < 1 {
+		return nil, fmt.Errorf(errMsg.notesGet)
+	}
+
+	notes := []note{}
+
+	err = attributevalue.UnmarshalListOfMaps(response.Responses[r.db.TableName], &notes)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't unmarshal notes for userId: %v", userId), err)
+		return nil, err
+	}
+
+	return &notes, nil
+
+}
+
+func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.Note("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build getNotes expression for userId: %v", userId), err)
+		logger.Error(fmt.Sprintf("Couldn't build getNotesByUser() expression for userId: %v", userId), err)
 		return nil, err
 	}
 
@@ -181,8 +226,85 @@ func (r noteRepo) getNotes(userId string, lastNoteId int64) (*[]note, error) {
 	return &notes, nil
 }
 
-// TODO - search notes service
-// persistence storage for lambda
-// store notes to s3 broken into searchable tokens, after they're created, updated or  deleted
-// initialize lambda storage from s3
-// handle search queries
+// search index table
+
+func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error {
+
+	// max batch size allowed
+	batchSize := 25
+	start := 0
+	end := start + batchSize
+
+	// batch write to dynamodb search index table in batches
+	for start < len(terms) {
+		writeReqs := map[string][]types.WriteRequest{}
+		if end > len(terms) {
+			end = len(terms)
+		}
+
+		for _, term := range terms[start:end] {
+			writeReqs[r.searchIndexTable.TableName] = append(writeReqs[r.searchIndexTable.TableName], types.WriteRequest{
+				PutRequest: &types.PutRequest{
+					Item: map[string]types.AttributeValue{
+						database.PK_NAME: &types.AttributeValueMemberS{Value: createSearchTermPK(userId, term)},
+						database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SEARCH_INDEX.Note(noteId)},
+					},
+				},
+			})
+		}
+
+		_, err := r.searchIndexTable.Client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+			RequestItems: writeReqs,
+		})
+		if err != nil {
+			logger.Error(fmt.Sprintf("error batch writing search terms for noteId: %v", noteId), err)
+			return err
+		}
+	}
+	return nil
+
+}
+
+func (r noteRepo) findSearchIndex(userId string, query string, limit int) ([]string, error) {
+
+	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(createSearchTermPK(userId, query))), expression.Key("SK").BeginsWith(database.SORT_KEY_SEARCH_INDEX.Note("")))
+
+	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't build searchNotes expression for userId: %v", userId), err)
+		return nil, err
+	}
+
+	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 &r.db.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		Limit:                     aws.Int32(int32(limit)),
+	})
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't search notes for userId: %v", userId), err)
+		return nil, err
+	}
+
+	if len(response.Items) < 1 {
+		return nil, fmt.Errorf(errMsg.notesSearchEmpty)
+	}
+
+	noteIdsSK := []struct {
+		Id string `json:"SK"`
+	}{}
+
+	err = attributevalue.UnmarshalListOfMaps(response.Items, &noteIdsSK)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't unmarshal notes for userId: %v", userId), err)
+		return nil, err
+	}
+
+	noteIds := []string{}
+
+	return noteIds, nil
+}

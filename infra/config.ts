@@ -17,7 +17,8 @@ const Prod = {
 
 const dynamoDB = {
   MainTableName: 'TabsFlow',
-  SessionsTable: 'Sessions',
+  SessionsTableName: 'Sessions',
+  SearchIndexTableName: 'SearchIndex',
   PrimaryKey: 'PK',
   SortKey: 'SK',
   TTL: 'TTL'

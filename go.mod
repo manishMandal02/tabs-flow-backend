@@ -40,6 +40,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/kljensen/snowball v0.10.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
