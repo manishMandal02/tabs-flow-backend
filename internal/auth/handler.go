@@ -108,7 +108,7 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new session and set to cookie
-	res, err := createNewSession(b.Email, userAgent, h.r, false)
+	res, err := createNewSession(b.Email, userAgent, h.r)
 
 	if err != nil {
 		http.Error(w, errMsg.createSession, http.StatusInternalServerError)
@@ -136,7 +136,7 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new session and set to cookie
-	res, err := createNewSession(b.Email, userAgent, h.r, false)
+	res, err := createNewSession(b.Email, userAgent, h.r)
 
 	if err != nil {
 		logger.Error(errMsg.createSession, errors.New(errMsg.createSession))
@@ -205,7 +205,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := validateToken(c.Value)
+	claims, err := ValidateToken(c.Value)
 
 	if err != nil {
 		logger.Error(errMsg.validateSession, err)
@@ -236,7 +236,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (*lambda_events.APIGatewayCustomAuthorizerResponse, error) {
 	cookies := parseCookiesStr(ev.Headers["Cookie"])
 
-	claims, err := validateToken(cookies["access_token"])
+	claims, err := ValidateToken(cookies["access_token"])
 
 	if err != nil {
 		logger.Error("Error validating JWT token", errors.New(errMsg.invalidToken))
@@ -245,6 +245,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 	}
 
 	email, emailOK := claims["sub"].(string)
+	userId, userIdOK := claims["user_id"].(string)
 	sId, sIdOK := claims["session_id"].(string)
 	expiryTime, expiryOK := claims["exp"].(float64)
 
@@ -252,14 +253,14 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 	logger.Dev("sIdOK: %v", sIdOK)
 	logger.Dev("expiryOK: %v", expiryOK)
 
-	if !emailOK || !sIdOK || !expiryOK {
+	if !emailOK || !sIdOK || !expiryOK || !userIdOK {
 		logger.Error("Error getting token claims", errors.New(errMsg.invalidToken))
 		return nil, errors.New("Unauthorized")
 	}
 
 	if int64(expiryTime) > time.Now().Unix() {
 		// token valid, allow access
-		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, nil), nil
+		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, userId, nil), nil
 	}
 
 	// validate session
@@ -275,10 +276,8 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
 		return nil, errors.New("Unauthorized")
 	}
-	// TODO:check subscription status - check the headers for url host to make an api call
-	// active, err := checkSubscriptionStatus(email, ev.Headers[])
 
-	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r, true)
+	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r)
 
 	if err != nil {
 		return nil, errors.New("Unauthorized")
@@ -288,5 +287,9 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		"access_token": res.token,
 	}
 
-	return generatePolicy("user", "Allow", ev.MethodArn, newCookies), nil
+	return generatePolicy("user", "Allow", ev.MethodArn, userId, newCookies), nil
+}
+
+func authorizer() {
+
 }

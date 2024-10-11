@@ -146,7 +146,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
 - Manages spaces, tabs, and groups
 - API Endpoints: /spaces
 
-  - POST: /
+  - POST: /:userId
   - GET: /:spaceId
   - GET: /user/:userId
   - PATCH: /:spaceId
@@ -170,12 +170,6 @@ Our serverless architecture leverages various AWS services to create a scalable 
   - DDB_MAIN_TABLE_NAME
   - DDB_SEARCH_INDEX_TABLE_NAME
 
-### Sync Service
-
-- Synchronizes local data with the cloud
-- API Endpoints: /sync
-  - POST: /{userId}
-
 ### UsageAnalytics Service
 
 - Tracks and manages space usage data
@@ -194,8 +188,15 @@ Our serverless architecture leverages various AWS services to create a scalable 
 ### Email Service
 
 - Sends transactional emails
-- No direct API access
-- Polls an SQS queue for messages to send emails (e.g., welcome emails)
+- No direct API access, polls an SQS queue for messages
+- Events:
+
+  - SEND_OTP
+  - USER_REGISTERED
+
+- Env variables:
+  - ZEPTO_MAIL_API_KEY
+  - EMAIL_SQS_QUEUE_URL
 
 ### Scheduler Service
 

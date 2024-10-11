@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,12 +18,12 @@ import (
 
 // * helpers
 // generate new token
-func generateToken(email, sessionId string) (string, error) {
+func generateToken(email, userId, sessionId string) (string, error) {
 	// Create a new JWT token with claims
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		// Subject (user identifier)
-		"sub": email,
-		// Audience (user role)
+		// Subject (user email)
+		"sub":        email,
+		"user_id":    userId,
 		"session_id": sessionId,
 		// Issuer
 		"iss": "tabsflow-app",
@@ -45,7 +44,7 @@ func generateToken(email, sessionId string) (string, error) {
 }
 
 // validate jwt token
-func validateToken(tokenStr string) (jwt.MapClaims, error) {
+func ValidateToken(tokenStr string) (jwt.MapClaims, error) {
 
 	token, err := jwt.Parse(tokenStr, func(_ *jwt.Token) (interface{}, error) {
 		return []byte(config.JWT_SECRET_KEY), nil
@@ -90,50 +89,7 @@ type createSessionRes struct {
 	}
 }
 
-func createNewSession(email, userAgent string, aR authRepository, isAuthorizer bool) (*createSessionRes, error) {
-	ua := useragent.New(userAgent)
-
-	browser, _ := ua.Browser()
-
-	session := session{
-		Email: email,
-		Id:    utils.GenerateRandomString(20),
-		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
-		DeviceInfo: &deviceInfo{
-			Browser:  browser,
-			OS:       ua.OS(),
-			Platform: ua.Platform(),
-			IsMobile: ua.Mobile(),
-		},
-	}
-
-	err := aR.createSession(&session)
-
-	if err != nil {
-		logger.Error(errMsg.createSession, err)
-		return nil, err
-	}
-
-	newToken, err := generateToken(email, session.Id)
-
-	if err != nil {
-		logger.Error(errMsg.createToken, err)
-		return nil, err
-	}
-
-	if isAuthorizer {
-		// if authorizer, return token only
-		return &createSessionRes{token: newToken}, nil
-	}
-
-	cookie := &http.Cookie{
-		Name:     "access_token",
-		Value:    newToken,
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-	}
+func createNewSession(email, userAgent string, aR authRepository) (*createSessionRes, error) {
 
 	//  check if user exits
 	userId, err := aR.userIdByEmail(email)
@@ -171,6 +127,45 @@ func createNewSession(email, userAgent string, aR authRepository, isAuthorizer b
 
 	}
 
+	ua := useragent.New(userAgent)
+
+	browser, _ := ua.Browser()
+
+	session := session{
+		Email: email,
+		Id:    utils.GenerateRandomString(20),
+		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
+		DeviceInfo: &deviceInfo{
+			Browser:  browser,
+			OS:       ua.OS(),
+			Platform: ua.Platform(),
+			IsMobile: ua.Mobile(),
+		},
+	}
+
+	err = aR.createSession(&session)
+
+	if err != nil {
+		logger.Error(errMsg.createSession, err)
+		return nil, err
+	}
+
+	newToken, err := generateToken(email, userId, session.Id)
+
+	if err != nil {
+		logger.Error(errMsg.createToken, err)
+		return nil, err
+	}
+
+	cookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    newToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	}
+
 	return &createSessionRes{
 		cookie: cookie,
 		data:   *resData,
@@ -178,7 +173,7 @@ func createNewSession(email, userAgent string, aR authRepository, isAuthorizer b
 }
 
 // generate policy for lambda authorizer
-func generatePolicy(principalId, effect, resource string, cookies map[string]string) *lambda_events.APIGatewayCustomAuthorizerResponse {
+func generatePolicy(principalId, effect, resource, userId string, cookies map[string]string) *lambda_events.APIGatewayCustomAuthorizerResponse {
 	authResponse := lambda_events.APIGatewayCustomAuthorizerResponse{PrincipalID: principalId}
 
 	if effect != "" && resource != "" {
@@ -197,11 +192,18 @@ func generatePolicy(principalId, effect, resource string, cookies map[string]str
 	if cookies != nil {
 		cookieStrings := make([]string, 0, len(cookies))
 		for key, value := range cookies {
-			cookieStrings = append(cookieStrings, fmt.Sprintf("%s=%s; HttpOnly; Secure; SameSite=Strict", key, value))
+			cookieStrings = append(cookieStrings, fmt.Sprintf("%s=%s; HttpOnly; Secure; SameSite=Strict; Expires:%v", key, value, time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Format(time.RFC1123)))
 		}
 		authResponse.Context = map[string]interface{}{
 			"Set-Cookie": strings.Join(cookieStrings, ", "),
 		}
+	}
+
+	if userId != "" {
+		if authResponse.Context == nil {
+			authResponse.Context = map[string]interface{}{}
+		}
+		authResponse.Context["UserId"] = userId
 	}
 
 	if effect != "Allow" {
@@ -216,49 +218,4 @@ func generatePolicy(principalId, effect, resource string, cookies map[string]str
 	logger.Dev("authorizer response: %v", authResponse)
 
 	return &authResponse
-}
-
-func checkSubscriptionStatus(userId, urlHost string) (bool, error) {
-	p := "https"
-
-	if config.LOCAL_DEV_ENV {
-		p = "http"
-	}
-
-	authServiceURL := fmt.Sprintf("%s://%s/users/%s/subscription/status", p, urlHost, userId)
-
-	headers := map[string]string{
-		"Content-Type": "application/json",
-	}
-
-	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, nil)
-
-	if err != nil {
-		logger.Error("Error checking subscription status", err)
-		return false, err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		logger.Error("Error checking subscription status", errors.New(respBody))
-		return false, errors.New(respBody)
-	}
-
-	var sub struct {
-		Data struct {
-			Active bool `json:"active"`
-		} `json:"data"`
-	}
-
-	err = json.Unmarshal([]byte(respBody), &sub)
-
-	if err != nil {
-		logger.Error("Error unmarshaling subscription status", err)
-		return false, err
-	}
-
-	if !sub.Data.Active {
-		return false, nil
-	}
-
-	return true, nil
 }

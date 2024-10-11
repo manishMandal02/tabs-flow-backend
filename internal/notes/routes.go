@@ -13,17 +13,22 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	nr := newNoteRepository(db, searchIndexTable)
 	nh := newNoteHandler(nr)
 
+	// middleware to get userId from jwt token
+	userIdMiddleware := newUserIdMiddleware()
+
 	notesRouter := http_api.NewRouter("/notes")
 
-	notesRouter.GET("/:userId/:noteId", nh.get)
-	// query: lastNoteId={lastNoteId}
-	notesRouter.GET("/:userId", nh.getAllByUser)
-	// query: query={searchTerm}, limit={maxLimit}
-	notesRouter.GET("/:userId/search", nh.search)
-	notesRouter.POST("/:userId", nh.create)
-	notesRouter.PATCH("/:userId", nh.update)
+	notesRouter.Use(userIdMiddleware)
 
-	notesRouter.DELETE("/:userId/:noteId", nh.delete)
+	notesRouter.POST("/", nh.create)
+	notesRouter.GET("/:noteId", nh.get)
+	// query: lastNoteId={lastNoteId}
+	notesRouter.GET("/my", nh.getAllByUser)
+	// query: query={searchTerm}, limit={maxLimit}
+	notesRouter.GET("/search", nh.search)
+	notesRouter.PATCH("/", nh.update)
+
+	notesRouter.DELETE("/:noteId", nh.delete)
 
 	// serve API routes
 	notesRouter.ServeHTTP(w, r)

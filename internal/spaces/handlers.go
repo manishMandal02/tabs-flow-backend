@@ -95,12 +95,6 @@ func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
 func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	userId := r.PathValue("userId")
-	spaceId := r.PathValue("id")
-
-	if userId == "" || spaceId == "" {
-		http.Error(w, errMsg.groupsSet, http.StatusBadRequest)
-		return
-	}
 
 	s := space{}
 
@@ -112,7 +106,7 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.sr.updateSpace(userId, spaceId, &s)
+	err = h.sr.updateSpace(userId, &s)
 
 	if err != nil {
 		logger.Error("error updating space", err)
@@ -125,7 +119,7 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 
 func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 
-	spaceId := r.PathValue("id")
+	spaceId := r.PathValue("spaceId")
 	userId := r.PathValue("userId")
 
 	if userId == "" || spaceId == "" {
@@ -352,4 +346,23 @@ func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 	}
 
 	http_api.SuccessResMsg(w, "snoozed tab deleted successfully")
+}
+
+//* helpers
+
+// middleware to get userId from jwt token present in req cookies
+func newUserIdMiddleware() http_api.Handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		// get userId from jwt token
+
+		userId := r.Header.Get("UserId")
+
+		if userId == "" {
+			http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
+			return
+		}
+
+		r.SetPathValue("userId", userId)
+	}
 }

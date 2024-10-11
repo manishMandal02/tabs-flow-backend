@@ -13,28 +13,33 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	sr := newSpaceRepository(db)
 	sh := newSpaceHandler(sr)
 
+	// middleware to get userId from jwt token
+	userIdMiddleware := newUserIdMiddleware()
+
 	spacesRouter := http_api.NewRouter("/spaces")
 
+	spacesRouter.Use(userIdMiddleware)
+
 	// spaces
-	spacesRouter.GET("/:userId/:id", sh.get)
-	spacesRouter.POST("/:userId/", sh.create)
-	spacesRouter.GET("/:userId", sh.spacesByUser)
-	spacesRouter.PATCH("/:userId/:id", sh.update)
-	spacesRouter.DELETE("/:id", sh.delete)
+	spacesRouter.POST("/", sh.create)
+	spacesRouter.GET("/:id", sh.get)
+	spacesRouter.GET("/my", sh.spacesByUser)
+	spacesRouter.PATCH("/", sh.update)
+	spacesRouter.DELETE("/:spaceId", sh.delete)
 
 	// tabs
-	spacesRouter.GET("/tabs/:userId/:spaceId", sh.getTabsInSpace)
-	spacesRouter.POST("/tabs/:userId/:spaceId", sh.setTabsInSpace)
+	spacesRouter.GET("/:spaceId/tabs", sh.getTabsInSpace)
+	spacesRouter.POST("/:spaceId/tabs", sh.setTabsInSpace)
 
 	// groups
-	spacesRouter.GET("/groups/:userId/:spaceId", sh.getGroupsInSpace)
-	spacesRouter.POST("/groups/:userId/:spaceId", sh.setGroupsInSpace)
+	spacesRouter.GET("/:spaceId/groups", sh.getGroupsInSpace)
+	spacesRouter.POST("/:spaceId/groups", sh.setGroupsInSpace)
 
 	// snoozed tabs
-	// query param: snoozedAt=unix timestamp
-	spacesRouter.GET("/snoozed-tabs/:userId/:spaceId", sh.getSnoozedTabs)
-	spacesRouter.POST("/snoozed-tabs/:userId/:spaceId", sh.createSnoozedTab)
-	spacesRouter.DELETE("/snoozed-tabs/:userId/:spaceId", sh.deleteSnoozedTab)
+	spacesRouter.POST("/:spaceId/snoozed-tabs", sh.createSnoozedTab)
+	// query param: snoozedAt={timestamp}
+	spacesRouter.GET("/:spaceId/snoozed-tabs", sh.getSnoozedTabs)
+	spacesRouter.DELETE("/:spaceId/snoozed-tabs", sh.deleteSnoozedTab)
 
 	// serve API routes
 	spacesRouter.ServeHTTP(w, r)

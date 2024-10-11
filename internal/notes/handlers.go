@@ -307,3 +307,20 @@ func getNoteIdsBySearchTerms(userId string, searchTerms []string, limit int, r n
 
 	return notesIdsMatched, nil
 }
+
+// middleware to get userId from jwt token present in req cookies
+func newUserIdMiddleware() http_api.Handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		// get userId from jwt token
+
+		userId := r.Header.Get("UserId")
+
+		if userId == "" {
+			http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
+			return
+		}
+
+		r.SetPathValue("userId", userId)
+	}
+}

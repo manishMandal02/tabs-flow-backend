@@ -20,7 +20,7 @@ type spaceRepository interface {
 	createSpace(userId string, s *space) error
 	getSpaceById(userId, spaceId string) (*space, error)
 	getSpacesByUser(userId string) (*[]space, error)
-	updateSpace(userId, spaceId string, s *space) error
+	updateSpace(userId string, s *space) error
 	deleteSpace(userId, spaceId string) error
 	setTabsForSpace(userId, spaceId string, t *[]tab) error
 	getTabsForSpace(userId, spaceId string) (*[]tab, error)
@@ -142,10 +142,10 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 	return &spaces, nil
 }
 
-func (r spaceRepo) updateSpace(userId, spaceId string, s *space) error {
+func (r spaceRepo) updateSpace(userId string, s *space) error {
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Space(spaceId)},
+		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Space(s.Id)},
 	}
 
 	var update expression.UpdateBuilder
