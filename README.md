@@ -41,34 +41,32 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 ## Entities
 
-| Entity         | Description               | Attributes                                                    |
-| -------------- | ------------------------- | ------------------------------------------------------------- |
-| User           | user profile              | Id, email, FullName, ProfilePic,                              |
-| Preferences    | app preferences           | UserId, CmdPalette{}, Notes{}, AutoDiscard{}, OpenSpace, etc. |
-| Space          | workspaces                | Id, UserId, Title, Emoji, Theme, WindowId ActiveTabIndex      |
-| Tab            | tabs within space         | SpaceId, Index, Title, URL, FaviconURL, GroupId               |
-| Group          | tab groups                | Id, SpaceId, Title, Color, Collapsed                          |
-| Note           | user notes                | Id, UserId, SpaceId,, Title, Note, RemainderAt, UpdatedAt     |
-| SnoozedTab     | snoozed tabs in space     | SpaceId, Title, URL, FaviconURL, SnoozedUntil                 |
-| UsageAnalytics | space usage analytics     | UserId, SpaceUsage{}                                          |
-| Notification   | notification & remainders | UserId, Type, Timestamp, Note{}, SnoozedTab{}                 |
-| Subscription   | user subscriptions        | Id, PlanId, Plan, Status, Start, End, NextBillingDate         |
+| Entity       | Description               | Attributes                                                    |
+| ------------ | ------------------------- | ------------------------------------------------------------- |
+| User         | user profile              | Id, email, FullName, ProfilePic,                              |
+| Preferences  | app preferences           | UserId, CmdPalette{}, Notes{}, AutoDiscard{}, OpenSpace, etc. |
+| Space        | workspaces                | Id, UserId, Title, Emoji, Theme, WindowId ActiveTabIndex      |
+| Tab          | tabs within space         | SpaceId, Index, Title, URL, FaviconURL, GroupId               |
+| Group        | tab groups                | Id, SpaceId, Title, Color, Collapsed                          |
+| Note         | user notes                | Id, UserId, SpaceId,, Title, Note, RemainderAt, UpdatedAt     |
+| SnoozedTab   | snoozed tabs in space     | SpaceId, Title, URL, FaviconURL, SnoozedUntil                 |
+| Notification | notification & remainders | UserId, Type, Timestamp, Note{}, SnoozedTab{}                 |
+| Subscription | user subscriptions        | Id, PlanId, Plan, Status, Start, End, NextBillingDate         |
 
 ## Data Access Patterns (DynamoDB)
 
-| Access Pattern               | Entities Retrieved |
-| ---------------------------- | ------------------ |
-| Get User by id               | User               |
-| Get User by email            | User               |
-| Get Preferences by userId    | Preferences        |
-| Get Spaces by userId         | Spaces             |
-| Get Tabs by spaceId          | Tabs               |
-| Get Groups by spaceId        | Tabs               |
-| Get SnoozedTabs by spaceId   | SnoozedTabs        |
-| Get Notes by userId          | Notes              |
-| Get Notifications by userId  | Notifications      |
-| Get Subscription by userId   | Subscription       |
-| Get UsageAnalytics by userId | UsageAnalytics     |
+| Access Pattern              | Entities Retrieved |
+| --------------------------- | ------------------ |
+| Get User by id              | User               |
+| Get User by email           | User               |
+| Get Preferences by userId   | Preferences        |
+| Get Spaces by userId        | Spaces             |
+| Get Tabs by spaceId         | Tabs               |
+| Get Groups by spaceId       | Tabs               |
+| Get SnoozedTabs by spaceId  | SnoozedTabs        |
+| Get Notes by userId         | Notes              |
+| Get Notifications by userId | Notifications      |
+| Get Subscription by userId  | Subscription       |
 
 ## Main Table Design (DynamoDB)
 
@@ -82,7 +80,6 @@ Our serverless architecture leverages various AWS services to create a scalable 
 |                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
 |                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
 |                    | U#Notification#{Id/CreatedAt}          | Type, Timestamp, Note{}, SnoozedTab{}                    |
-|                    | U#UsageAnalytics                       | SpaceUsage{}                                             |
 |                    | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex |
 |                    | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }             |
 |                    | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                            |
@@ -169,13 +166,6 @@ Our serverless architecture leverages various AWS services to create a scalable 
 - Env variables:
   - DDB_MAIN_TABLE_NAME
   - DDB_SEARCH_INDEX_TABLE_NAME
-
-### UsageAnalytics Service
-
-- Tracks and manages space usage data
-- API Endpoints: /user-analytics
-  - GET: /{userId}
-  - PATCH: /{userId}
 
 ### Notifications Service
 
