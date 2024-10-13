@@ -26,7 +26,7 @@ func NewQueue() *Queue {
 }
 
 // sqs helper fn to send messages
-func (q *Queue) AddMessage(ev Event) error {
+func (q Queue) AddMessage(ev Event) error {
 
 	res, err := q.client.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		DelaySeconds:      *aws.Int32(1),
@@ -43,7 +43,7 @@ func (q *Queue) AddMessage(ev Event) error {
 	return nil
 }
 
-func (q *Queue) DeleteMessage(r string) error {
+func (q Queue) DeleteMessage(r string) error {
 
 	_, err := q.client.DeleteMessage(context.TODO(), &sqs.DeleteMessageInput{
 		QueueUrl:      &q.url,

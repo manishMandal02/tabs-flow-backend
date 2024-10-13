@@ -9,8 +9,8 @@ import (
 
 func Router(w http.ResponseWriter, r *http.Request) {
 	db := database.New()
-	nr := newNotificationRepository(db)
-	h := newNotificationHandler(nr)
+	nr := newRepository(db)
+	h := newHandler(nr)
 
 	// middleware to get userId from jwt token
 	userIdMiddleware := newUserIdMiddleware()

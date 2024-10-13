@@ -57,6 +57,10 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 		logger.Error(fmt.Sprintf("error indexing search terms for note: %v", note), err)
 	}
 
+	// TODO: if remainder is set, create a schedule to send reminder
+
+	// scheduler := events.NewScheduler()
+
 	http_api.SuccessResMsg(w, "Note created successfully")
 }
 
@@ -170,6 +174,8 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: if remainder is updated/removed, update/delete the schedule if it has been set previously
+
 	// TODO: if title, note or domain is updated, re-index search terms
 
 	http_api.SuccessResMsg(w, "Note updated successfully")
@@ -194,6 +200,8 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// TODO: if remainder was set and schedule was created, then delete it
 
 	http_api.SuccessResMsg(w, "Note deleted successfully")
 

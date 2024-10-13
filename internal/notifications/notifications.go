@@ -8,12 +8,6 @@ const (
 	NotificationTypeUnSnoozedType NotificationType = "un_snoozed_tab"
 )
 
-type noteNotification struct {
-	Id     string `json:"id"`
-	Title  string `json:"title"`
-	Domain string `json:"domain"`
-}
-
 type snoozedTabNotification struct {
 	Id    string `json:"id"`
 	Title string `json:"title"`
@@ -27,7 +21,7 @@ type notification struct {
 	Timestamp  int64                  `json:"timestamp"`
 	Title      string                 `json:"title,omitempty"`
 	Message    string                 `json:"message,omitempty"`
-	Note       noteNotification       `json:"note,omitempty"`
+	Note       string                 `json:"note,omitempty"`
 	SnoozedTab snoozedTabNotification `json:"snoozedTab,omitempty"`
 }
 

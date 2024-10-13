@@ -23,7 +23,7 @@ type noteRepo struct {
 	db *database.DDB
 }
 
-func newNotificationRepository(db *database.DDB) notificationRepository {
+func newRepository(db *database.DDB) notificationRepository {
 	return &noteRepo{
 		db: db,
 	}

@@ -12,7 +12,7 @@ type notificationHandler struct {
 	r notificationRepository
 }
 
-func newNotificationHandler(r notificationRepository) *notificationHandler {
+func newHandler(r notificationRepository) *notificationHandler {
 	return &notificationHandler{
 		r: r,
 	}
@@ -38,6 +38,8 @@ func (h *notificationHandler) create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg.notificationCreate, http.StatusBadGateway)
 		return
 	}
+
+	// TODO - create a schedule to remainder 
 
 	http_api.SuccessResMsg(w, "notification created successfully")
 

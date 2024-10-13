@@ -255,6 +255,8 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// TODO: create a schedule for the tab, to un-snooze the tab
+
 	http_api.SuccessResMsg(w, "tab snoozed successfully")
 }
 
@@ -344,6 +346,8 @@ func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, errMsg.snoozedTabsDelete, http.StatusBadGateway)
 		return
 	}
+
+	// TODO: delete the schedule
 
 	http_api.SuccessResMsg(w, "snoozed tab deleted successfully")
 }
