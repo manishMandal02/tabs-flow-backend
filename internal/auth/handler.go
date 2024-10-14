@@ -58,12 +58,13 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send email message to SQS queue
-	event := &events.SendOTP_Payload{
+	// send USER_REGISTERED event to email service (queue)
+	event := events.New(events.EventTypeUserRegistered, &events.SendOTPPayload{
 		Email: b.Email,
 		OTP:   otp,
-	}
+	})
 
-	sqs := events.NewQueue()
+	sqs := events.NewEmailQueue()
 
 	err = sqs.AddMessage(event)
 
@@ -288,8 +289,4 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 	}
 
 	return generatePolicy("user", "Allow", ev.MethodArn, userId, newCookies), nil
-}
-
-func authorizer() {
-
 }

@@ -16,7 +16,7 @@ var (
 	AWS_REGION                  string
 	JWT_SECRET_KEY              string
 	EMAIL_QUEUE_URL             string
-	NOTIFICATION_QUEUE_URL      string
+	NOTIFICATIONS_QUEUE_URL     string
 	NOTIFICATIONS_QUEUE_ARN     string
 	SCHEDULER_ROLE_ARN          string
 	DDB_MAIN_TABLE_NAME         string
@@ -28,6 +28,7 @@ var (
 	PADDLE_WEBHOOK_SECRET_KEY   string
 
 	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
+	DATE_TIME_FORMAT         = "2006-01-02T15:04:05"
 	LOCAL_DEV_ENV            = false
 	TRAIL_DAYS               = 14
 	OTP_EXPIRY_TIME_IN_MIN   = 5
@@ -68,7 +69,7 @@ func Init() {
 		DDB_SEARCH_INDEX_TABLE_NAME = "TabsFlow-SearchIndex_dev"
 		DDB_SESSIONS_TABLE_NAME = "TabsFlow-Sessions_dev"
 		EMAIL_QUEUE_URL = "TabsFlow-Emails_dev"
-		NOTIFICATION_QUEUE_URL = "TabsFlow-Notifications_dev"
+		NOTIFICATIONS_QUEUE_URL = "TabsFlow-Notifications_dev"
 		// TODO - set role arn for scheduler
 		SCHEDULER_ROLE_ARN = "arn:aws:iam::410381041692:role/TabsFlow-SchedulerRole_dev"
 		NOTIFICATIONS_QUEUE_ARN = "arn:aws:sqs:ap-south-1:410381041692:TabsFlow-Notifications_dev"
@@ -84,7 +85,7 @@ func Init() {
 		DDB_MAIN_TABLE_NAME = os.Getenv("DDB_MAIN_TABLE_NAME")
 		DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
 		EMAIL_QUEUE_URL = os.Getenv("EMAIL_QUEUE_URL")
-		NOTIFICATION_QUEUE_URL = os.Getenv("NOTIFICATION_QUEUE_URL")
+		NOTIFICATIONS_QUEUE_URL = os.Getenv("NOTIFICATIONS_QUEUE_URL")
 		SCHEDULER_ROLE_ARN = os.Getenv("SCHEDULER_ROLE_ARN")
 		NOTIFICATIONS_QUEUE_ARN = os.Getenv("NOTIFICATIONS_QUEUE_ARN")
 	}

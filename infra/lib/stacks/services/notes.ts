@@ -32,13 +32,15 @@ export class NotesService extends Construct {
       bundling: config.lambda.GoBundling,
       environment: {
         DDB_MAIN_TABLE_NAME: props.mainDB.tableName,
-        DDB_SEARCH_INDEX_TABLE_NAME: props.searchIndexDB.tableName
+        DDB_SEARCH_INDEX_TABLE_NAME: props.searchIndexDB.tableName,
+        NOTIFICATIONS_QUEUE_URL: props.notificationQueue.queueUrl
       }
     });
 
-    // grant permissions to lambda to read/write to dynamodb and send message to email queue
+    // grant permissions to lambda to read/write to dynamodb and send message to queue
     props.mainDB.grantReadWriteData(notesServiceLambda);
     props.searchIndexDB.grantReadWriteData(notesServiceLambda);
+    props.notificationQueue.grantSendMessages(notesServiceLambda);
 
     // add notes resource/endpoints to api gateway
     const notesResource = props.apiGW.root.addResource('notes').addProxy({ anyMethod: false });

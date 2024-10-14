@@ -30,12 +30,14 @@ export class SpaceService extends Construct {
       architecture: config.lambda.Architecture,
       bundling: config.lambda.GoBundling,
       environment: {
-        DDB_MAIN_TABLE_NAME: props.db.tableName
+        DDB_MAIN_TABLE_NAME: props.db.tableName,
+        NOTIFICATIONS_QUEUE_URL: props.notificationQueue.queueUrl
       }
     });
 
-    // grant permissions to lambda to read/write to dynamodb and send message to email queue
+    // grant permissions to lambda to read/write to dynamodb and send message to queue
     props.db.grantReadWriteData(spaceServiceLambda);
+    props.notificationQueue.grantSendMessages(spaceServiceLambda);
 
     // add spaces resource/endpoints to api gateway
     const spacesResource = props.apiGW.root.addResource('spaces').addProxy({ anyMethod: false });

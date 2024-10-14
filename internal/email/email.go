@@ -10,36 +10,59 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
-func SendEmail(_ context.Context, ev lambda_events.SQSEvent) error {
+func SendEmail(_ context.Context, event lambda_events.SQSEvent) error {
 	// TODO:handle multiple events process
 
-	eventType, err := events.ParseEventType(*ev.Records[0].MessageAttributes["event_type"].StringValue)
+	var err error
 
-	if err != nil {
-		logger.Error("Error paring SQS event", err)
+	if len(event.Records) == 0 {
+		err = fmt.Errorf("no records found in event")
+		logger.Error(err.Error(), err)
 		return err
 	}
 
-	switch eventType {
-	case events.SEND_OTP:
+	message := event.Records[0]
+
+	eventType := *message.MessageAttributes["event_type"].StringValue
+
+	if eventType == "" {
+		err = fmt.Errorf("event_type is empty")
+		logger.Error("event_type field missing in message", err)
+		return err
+	}
+
+	logger.Info("event_type: %v", eventType)
+
+	switch events.EventType(eventType) {
+	case events.EventTypeSendOTP:
+		ev := &events.Event[events.SendOTPPayload]{}
+
+		err := ev.FromJSON(message.Body)
+
+		if err != nil {
+			logger.Error("error un_marshalling event", err)
+			return err
+		}
+
 		to := &NameAddr{
-			Name:    *ev.Records[0].MessageAttributes["email"].StringValue,
-			Address: *ev.Records[0].MessageAttributes["email"].StringValue,
+			Name:    ev.Payload.Email,
+			Address: ev.Payload.Email,
 		}
 
 		z := NewZeptoMail()
 
-		otp := *ev.Records[0].MessageAttributes["otp"].StringValue
+		otp := ev.Payload.OTP
 
-		err := z.SendOTPMail(otp, to)
+		err = z.SendOTPMail(otp, to)
 
 		if err != nil {
 			return err
 		}
-		// remove message from sqs
-		q := events.NewQueue()
 
-		err = q.DeleteMessage(ev.Records[0].ReceiptHandle)
+		// remove message from sqs
+		q := events.NewEmailQueue()
+
+		err = q.DeleteMessage(message.ReceiptHandle)
 
 		if err != nil {
 			return err
@@ -47,26 +70,33 @@ func SendEmail(_ context.Context, ev lambda_events.SQSEvent) error {
 
 		return nil
 
-	case events.USER_REGISTERED:
+	case events.EventTypeUserRegistered:
 		z := NewZeptoMail()
 
-		to := &NameAddr{
-			Name:    *ev.Records[0].MessageAttributes["name"].StringValue,
-			Address: *ev.Records[0].MessageAttributes["email"].StringValue,
+		ev := &events.Event[events.UserRegisteredPayload]{}
+
+		err = ev.FromJSON(message.Body)
+
+		if err != nil {
+			logger.Error("error un_marshalling event", err)
+			return err
 		}
 
-		trailEndDate := *ev.Records[0].MessageAttributes["trail_end_date"].StringValue
+		to := &NameAddr{
+			Name:    ev.Payload.Email,
+			Address: ev.Payload.Email,
+		}
 
-		err := z.sendWelcomeMail(to, trailEndDate)
+		err = z.sendWelcomeMail(to, ev.Payload.TrailEndDate)
 
 		if err != nil {
 			return err
 		}
 
 		// remove message from sqs
-		q := events.NewQueue()
+		q := events.NewEmailQueue()
 
-		err = q.DeleteMessage(ev.Records[0].ReceiptHandle)
+		err = q.DeleteMessage(message.ReceiptHandle)
 
 		if err != nil {
 			return err

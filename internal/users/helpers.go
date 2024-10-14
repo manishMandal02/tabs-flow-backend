@@ -44,6 +44,7 @@ func setDefaultUserPreferences(userId string, r userRepository) error {
 	return nil
 
 }
+
 func setDefaultUserData(user *User, r userRepository) error {
 	// set default preferences for user
 	err := setDefaultUserPreferences(user.Id, r)
@@ -71,13 +72,13 @@ func setDefaultUserData(user *User, r userRepository) error {
 	}
 
 	// send USER_REGISTERED event to email service (queue)
-	event := &events.UserRegisteredPayload{
+	event := events.New(events.EventTypeUserRegistered, &events.UserRegisteredPayload{
 		Email:        user.Email,
 		Name:         user.FullName,
 		TrailEndDate: trialEndDate.Format(time.DateOnly),
-	}
+	})
 
-	sqs := events.NewQueue()
+	sqs := events.NewEmailQueue()
 
 	err = sqs.AddMessage(event)
 

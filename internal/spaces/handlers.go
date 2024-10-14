@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
@@ -255,7 +256,18 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: create a schedule for the tab, to un-snooze the tab
+	// create a schedule for the tab, to un-snooze the tab
+	event := events.New(events.EventTypeScheduleSnoozedTab, &events.ScheduleSnoozedTabPayload{
+		SnoozedTabId: strconv.FormatInt(sT.SnoozedAt, 10),
+		SubEvent:     events.SubEventCreate,
+	})
+
+	err = events.NewNotificationQueue().AddMessage(event)
+
+	if err != nil {
+		http.Error(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
+		return
+	}
 
 	http_api.SuccessResMsg(w, "tab snoozed successfully")
 }
@@ -347,7 +359,18 @@ func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: delete the schedule
+	//  delete notification the schedule
+	event := events.New(events.EventTypeScheduleSnoozedTab, &events.ScheduleSnoozedTabPayload{
+		SnoozedTabId: snoozedAt,
+		SubEvent:     events.SubEventDelete,
+	})
+
+	err = events.NewNotificationQueue().AddMessage(event)
+
+	if err != nil {
+		http.Error(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
+		return
+	}
 
 	http_api.SuccessResMsg(w, "snoozed tab deleted successfully")
 }

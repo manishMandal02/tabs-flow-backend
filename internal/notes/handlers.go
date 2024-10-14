@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kljensen/snowball"
+	"github.com/manishMandal02/tabsflow-backend/config"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
@@ -57,9 +60,20 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 		logger.Error(fmt.Sprintf("error indexing search terms for note: %v", note), err)
 	}
 
-	// TODO: if remainder is set, create a schedule to send reminder
+	//  if remainder is set, create a schedule to send reminder
+	if note.RemainderAt != 0 {
+		event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
+			NoteId:    note.Id,
+			SubEvent:  events.SubEventCreate,
+			TriggerAt: time.Unix(note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+		})
+		err = events.NewNotificationQueue().AddMessage(event)
 
-	// scheduler := events.NewScheduler()
+		if err != nil {
+			http.Error(w, errMsg.noteDelete, http.StatusBadGateway)
+			return
+		}
+	}
 
 	http_api.SuccessResMsg(w, "Note created successfully")
 }
@@ -151,32 +165,77 @@ func (h noteHandler) search(w http.ResponseWriter, r *http.Request) {
 func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	userId := r.URL.Query().Get("userId")
 
-	note := &note{}
+	body := struct {
+		UpdatedRemainder bool `json:"updatedRemainder"`
+		UpdatedText      bool `json:"updatedText"`
+		*note
+	}{}
 
-	err := json.NewDecoder(r.Body).Decode(note)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	err = note.validate()
+	err := json.NewDecoder(r.Body).Decode(&body)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.r.updateNote(userId, note)
+	err = body.note.validate()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = h.r.updateNote(userId, body.note)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// TODO: if remainder is updated/removed, update/delete the schedule if it has been set previously
+	// if remainder is updated/removed, update/delete the schedule if it has been set previously
 
-	// TODO: if title, note or domain is updated, re-index search terms
+	if body.UpdatedRemainder && body.note.RemainderAt != 0 {
+		// update schedule
+		event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
+			NoteId:    body.note.Id,
+			SubEvent:  events.SubEventUpdate,
+			TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+		})
+		err = events.NewNotificationQueue().AddMessage(event)
+	}
+
+	if body.UpdatedRemainder && body.note.RemainderAt == 0 {
+		// delete schedule
+		event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
+			NoteId:    body.note.Id,
+			SubEvent:  events.SubEventDelete,
+			TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+		})
+		err = events.NewNotificationQueue().AddMessage(event)
+	}
+
+	//  if title, note or domain is updated, re-index search terms
+	if body.UpdatedText {
+
+		// delete search terms
+		err = h.r.deleteSearchTerms(userId, body.note.Id, []string{})
+
+		if err != nil {
+			logger.Error(fmt.Sprintf("error deleting search terms for note_id: %v", body.note.Id), err)
+			http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
+			return
+		}
+
+		// index search terms in search table
+		terms := extractSearchTerms(body.note.Title, body.note.Text, body.note.Domain)
+		err = h.r.indexSearchTerms(userId, body.note.Id, terms)
+
+	}
+
+	if err != nil {
+		http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
+		return
+	}
 
 	http_api.SuccessResMsg(w, "Note updated successfully")
 
@@ -194,14 +253,26 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.r.deleteNote(userId, noteId)
+	note, err := h.r.deleteNote(userId, noteId)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// TODO: if remainder was set and schedule was created, then delete it
+	//  if remainder was set and schedule was created, then delete it
+	if note.RemainderAt != 0 {
+		event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
+			NoteId:    note.Id,
+			SubEvent:  events.SubEventDelete,
+			TriggerAt: time.Unix(note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+		})
+		err = events.NewNotificationQueue().AddMessage(event)
+		if err != nil {
+			http.Error(w, errMsg.noteDelete, http.StatusBadGateway)
+			return
+		}
+	}
 
 	http_api.SuccessResMsg(w, "Note deleted successfully")
 
@@ -277,7 +348,7 @@ func getNoteIdsBySearchTerms(userId string, searchTerms []string, limit int, r n
 
 	for _, term := range searchTerms {
 		stemmed, _ := snowball.Stem(term, "english", true)
-		noteIds, err := r.findSearchIndex(userId, stemmed, limit)
+		noteIds, err := r.findSearchTerms(userId, stemmed, limit)
 
 		if err != nil {
 			if err.Error() == errMsg.notesSearchEmpty {

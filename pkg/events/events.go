@@ -1,59 +1,83 @@
 package events
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
-type EventType int
+type EventType string
 
 // Events
 const (
-	SEND_OTP EventType = iota
-	USER_REGISTERED
-	SCHEDULE_TASK
+	EventTypeSendOTP               EventType = "send_otp"
+	EventTypeUserRegistered        EventType = "user_registered"
+	EventTypeScheduleNoteRemainder EventType = "schedule_note_remainder"
+	EventTypeScheduleSnoozedTab    EventType = "schedule_snoozed_tab"
 )
 
-type Event interface {
+type SubEvent string
+
+const (
+	SubEventCreate SubEvent = "create"
+	SubEventUpdate SubEvent = "update"
+	SubEventDelete SubEvent = "delete"
+)
+
+type IEvent interface {
 	GetEventType() EventType
 	ToMsgAttributes() map[string]types.MessageAttributeValue
+	ToJSON() string
+	FromJSON(jsonStr string) error
 }
 
-// String method to get the string representation of the Event
-func (e EventType) String() string {
-	return [...]string{"SEND_OTP", "USER_REGISTERED", "PASSWORD_RESET"}[e]
+type Event[T any] struct {
+	EventType EventType `json:"event_type"`
+	Payload   *T        `json:"payload"`
 }
 
-type SendOTP_Payload struct {
-	Email string `json:"email"`
-	OTP   string `json:"otp"`
+func New[e any](eventType EventType, payload *e) IEvent {
+	return Event[e]{
+		EventType: eventType,
+		Payload:   payload,
+	}
 }
 
-func (e SendOTP_Payload) GetEventType() EventType {
-	return SEND_OTP
-}
+// event_type info as map for sqs message
+func (e Event[any]) ToMsgAttributes() map[string]types.MessageAttributeValue {
 
-func (e SendOTP_Payload) ToMsgAttributes() map[string]types.MessageAttributeValue {
 	return map[string]types.MessageAttributeValue{
 		"event_type": {
 			DataType:    aws.String("String"),
-			StringValue: aws.String(SEND_OTP.String()),
-		},
-		"email": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String(e.Email),
-		},
-		"otp": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String(e.OTP),
+			StringValue: aws.String(string(e.GetEventType())),
 		},
 	}
 }
 
-func (e UserRegisteredPayload) GetEventType() EventType {
-	return USER_REGISTERED
+func (e Event[any]) ToJSON() string {
+	jsonBytes, err := json.Marshal(e)
+
+	if err != nil {
+		return ""
+	}
+
+	return string(jsonBytes)
+}
+
+func (e Event[any]) FromJSON(jsonStr string) error {
+	return json.Unmarshal([]byte(jsonStr), &e)
+}
+
+func (e Event[any]) GetEventType() EventType {
+	return e.EventType
+}
+
+//* Event Payloads
+
+type SendOTPPayload struct {
+	Email string `json:"email"`
+	OTP   string `json:"otp"`
 }
 
 type UserRegisteredPayload struct {
@@ -62,37 +86,14 @@ type UserRegisteredPayload struct {
 	TrailEndDate string `json:"trailEndDate"`
 }
 
-func (e UserRegisteredPayload) ToMsgAttributes() map[string]types.MessageAttributeValue {
-	return map[string]types.MessageAttributeValue{
-		"event_type": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String(USER_REGISTERED.String()),
-		},
-		"email": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String(e.Email),
-		},
-		"name": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String(e.Name),
-		},
-		"trail_end_date": {
-			DataType:    aws.String("String"),
-			StringValue: aws.String(e.TrailEndDate),
-		},
-	}
+type ScheduleNoteRemainderPayload struct {
+	NoteId    string   `json:"noteId"`
+	TriggerAt string   `json:"scheduleAt"`
+	SubEvent  SubEvent `json:"subEvent"`
 }
 
-// ParseEventType converts a string to EventType
-func ParseEventType(s string) (EventType, error) {
-	switch s {
-	case "SEND_OTP":
-		return SEND_OTP, nil
-	case "USER_REGISTERED":
-		return USER_REGISTERED, nil
-	case "PASSWORD_RESET":
-		return SCHEDULE_TASK, nil
-	default:
-		return EventType(-1), fmt.Errorf("unknown event type: %s", s)
-	}
+type ScheduleSnoozedTabPayload struct {
+	SnoozedTabId string   `json:"snoozedTabId"`
+	TriggerAt    string   `json:"scheduleAt"`
+	SubEvent     SubEvent `json:"subEvent"`
 }

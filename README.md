@@ -53,12 +53,11 @@ Our serverless architecture leverages various AWS services to create a scalable 
 | Notification | notification & remainders | UserId, Type, Timestamp, Note{}, SnoozedTab{}                 |
 | Subscription | user subscriptions        | Id, PlanId, Plan, Status, Start, End, NextBillingDate         |
 
-## Data Access Patterns (DynamoDB)
+## Data Access Patterns (Main Table)
 
 | Access Pattern              | Entities Retrieved |
 | --------------------------- | ------------------ |
 | Get User by id              | User               |
-| Get User by email           | User               |
 | Get Preferences by userId   | Preferences        |
 | Get Spaces by userId        | Spaces             |
 | Get Tabs by spaceId         | Tabs               |
@@ -86,11 +85,25 @@ Our serverless architecture leverages various AWS services to create a scalable 
 |                    | S#SnoozedTabs#{SpaceId}#{Id/SnoozedAt} | SpaceId, Title, URL, FaviconURL, SnoozedUntil, SnoozedAt |
 |                    | N#{NoteId/CreatedAt}                   | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt         |
 
+## Data Access Patterns (Search Table)
+
+| Access Pattern       | Attributes Retrieved |
+| -------------------- | -------------------- |
+| Get NoteIds by query | NoteId               |
+
 ## Notes Search Table Design (DynamoDB)
 
 | Partition Key (PK) | Sort Key (SK) | Item Attributes                                  |
 | ------------------ | ------------- | ------------------------------------------------ |
 | UserId#Term        | N#NoteId      | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt |
+
+## Data Access Patterns (Sessions Table)
+
+| Access Pattern | Attributes Retrieved |
+| -------------- | -------------------- |
+| User by email  | UserID               |
+| Check OTP      | OTP                  |
+| Get Session    | Session{}            |
 
 ## Sessions Table Design (DynamoDB)
 

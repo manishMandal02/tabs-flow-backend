@@ -3,6 +3,8 @@ package notes
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -16,13 +18,14 @@ import (
 type noteRepository interface {
 	createNote(userId string, n *note) error
 	getNote(userId string, noteId string) (*note, error)
+	getNotesByIds(userId string, noteIds *[]string) (*[]note, error)
 	getNotesByUser(userId string, lastNoteId int64) (*[]note, error)
 	updateNote(userId string, n *note) error
-	deleteNote(userId string, noteId int64) error
+	deleteNote(userId string, noteId int64) (*note, error)
 	// search
 	indexSearchTerms(userId, noteId string, terms []string) error
-	findSearchIndex(userId string, query string, limit int) ([]string, error)
-	getNotesByIds(userId string, noteIds *[]string) (*[]note, error)
+	findSearchTerms(userId string, query string, limit int) ([]string, error)
+	deleteSearchTerms(userId, noteId string, terms []string) error
 }
 
 type noteRepo struct {
@@ -86,22 +89,33 @@ func (r noteRepo) updateNote(userId string, n *note) error {
 	return nil
 }
 
-func (r noteRepo) deleteNote(userId string, noteId int64) error {
+func (r noteRepo) deleteNote(userId string, noteId int64) (*note, error) {
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
 		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%d", noteId))},
 	}
 
-	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
-		TableName: &r.db.TableName,
-		Key:       key,
+	res, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+		TableName:    &r.db.TableName,
+		Key:          key,
+		ReturnValues: types.ReturnValueAllOld,
 	})
 
-	if err != nil {
+	if err != nil || res.Attributes == nil {
 		logger.Error(fmt.Sprintf("Couldn't delete note for userId: %v", userId), err)
-		return err
+		return nil, err
 	}
-	return nil
+
+	var n = note{}
+
+	err = attributevalue.UnmarshalMap(res.Attributes, &n)
+
+	if err != nil {
+		logger.Error(fmt.Sprintf("Couldn't unmarshal note for userId: %v", userId), err)
+		return nil, err
+	}
+
+	return &n, nil
 }
 
 func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
@@ -229,11 +243,14 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, erro
 // search index table
 
 func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error {
-
 	// max batch size allowed
 	batchSize := 25
 	start := 0
 	end := start + batchSize
+
+	var err error
+
+	wg := sync.WaitGroup{}
 
 	// batch write to dynamodb search index table in batches
 	for start < len(terms) {
@@ -241,6 +258,8 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 		if end > len(terms) {
 			end = len(terms)
 		}
+
+		wg.Add(1)
 
 		for _, term := range terms[start:end] {
 			writeReqs[r.searchIndexTable.TableName] = append(writeReqs[r.searchIndexTable.TableName], types.WriteRequest{
@@ -252,20 +271,21 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 				},
 			})
 		}
-
-		_, err := r.searchIndexTable.Client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
-			RequestItems: writeReqs,
-		})
-		if err != nil {
-			logger.Error(fmt.Sprintf("error batch writing search terms for noteId: %v", noteId), err)
-			return err
-		}
+		go func(reqs map[string][]types.WriteRequest) {
+			defer wg.Done()
+			_, err = r.searchIndexTable.Client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+				RequestItems: writeReqs,
+			})
+			if err != nil {
+				logger.Error(fmt.Sprintf("error batch writing search terms for noteId: %v", noteId), err)
+			}
+		}(writeReqs)
 	}
 	return nil
 
 }
 
-func (r noteRepo) findSearchIndex(userId string, query string, limit int) ([]string, error) {
+func (r noteRepo) findSearchTerms(userId string, query string, limit int) ([]string, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(createSearchTermPK(userId, query))), expression.Key("SK").BeginsWith(database.SORT_KEY_SEARCH_INDEX.Note("")))
 
@@ -294,7 +314,7 @@ func (r noteRepo) findSearchIndex(userId string, query string, limit int) ([]str
 	}
 
 	noteIdsSK := []struct {
-		Id string `json:"SK"`
+		Id string `json:"id" dynamodbav:"SK"`
 	}{}
 
 	err = attributevalue.UnmarshalListOfMaps(response.Items, &noteIdsSK)
@@ -306,5 +326,70 @@ func (r noteRepo) findSearchIndex(userId string, query string, limit int) ([]str
 
 	noteIds := []string{}
 
+	for _, note := range noteIdsSK {
+		id := strings.Split(note.Id, "#")[1]
+		noteIds = append(noteIds, id)
+	}
+
 	return noteIds, nil
+}
+
+func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error {
+
+	// max batch size allowed
+	batchSize := 25
+	start := 0
+	end := start + batchSize
+	var err error
+
+	wg := sync.WaitGroup{}
+
+	// batch write to dynamodb search index table in batches
+	for start < len(terms) {
+		deleteReqs := map[string][]types.WriteRequest{}
+		if end > len(terms) {
+			end = len(terms)
+		}
+
+		wg.Add(1)
+
+		for _, term := range terms[start:end] {
+			deleteReqs[r.searchIndexTable.TableName] = append(deleteReqs[r.searchIndexTable.TableName], types.WriteRequest{
+				DeleteRequest: &types.DeleteRequest{
+					Key: map[string]types.AttributeValue{
+						database.PK_NAME: &types.AttributeValueMemberS{Value: createSearchTermPK(userId, term)},
+						database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SEARCH_INDEX.Note(noteId)},
+					},
+				},
+			})
+		}
+
+		go func(reqs map[string][]types.WriteRequest) {
+			defer wg.Done()
+			_, err = r.searchIndexTable.Client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+				RequestItems: reqs,
+			})
+
+			if err != nil {
+				logger.Error(fmt.Sprintf("error batch deleting search terms for noteId: %v", noteId), err)
+			}
+		}(deleteReqs)
+
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+func (r noteRepo) getAllSearchTerms(userId string, noteId string) ([]string, error) {
+	// TODO - get all search terms for note
+
+	return nil, nil
+}
+
+// TODO - delete all search terms for user
+func (r noteRepo) deleteAllSearchTerms(userId string, noteId int64) error {
+
+	return nil
 }

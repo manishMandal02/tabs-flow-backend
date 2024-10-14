@@ -15,28 +15,37 @@ type Queue struct {
 	url    string
 }
 
-func NewQueue() *Queue {
+func NewEmailQueue() *Queue {
 	client := sqs.NewFromConfig(config.AWS_CONFIG)
 
 	return &Queue{
 		client: client,
 		url:    config.EMAIL_QUEUE_URL,
 	}
+}
+
+func NewNotificationQueue() *Queue {
+	client := sqs.NewFromConfig(config.AWS_CONFIG)
+
+	return &Queue{
+		client: client,
+		url:    config.NOTIFICATIONS_QUEUE_URL,
+	}
 
 }
 
 // sqs helper fn to send messages
-func (q Queue) AddMessage(ev Event) error {
+func (q Queue) AddMessage(ev IEvent) error {
 
 	res, err := q.client.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		DelaySeconds:      *aws.Int32(1),
 		QueueUrl:          &q.url,
-		MessageBody:       aws.String(ev.GetEventType().String()),
+		MessageBody:       aws.String(ev.ToJSON()),
 		MessageAttributes: ev.ToMsgAttributes(),
 	})
 
 	if err != nil || res.MessageId == nil {
-		logger.Error(fmt.Sprintf("Error sending message to SQS queue for event_type: %v", ev.GetEventType().String()), err)
+		logger.Error(fmt.Sprintf("Error sending message to SQS queue for event_type: %v", ev.GetEventType()), err)
 		return err
 	}
 

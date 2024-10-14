@@ -11,3 +11,9 @@ func Dev(format string, args ...interface{}) {
 
 	fmt.Println("🛜  Logger:Dev:", msg)
 }
+
+func Info(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+
+	fmt.Println("ℹ️  Logger:Info:", msg)
+}

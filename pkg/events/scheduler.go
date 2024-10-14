@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	eb_scheduler "github.com/aws/aws-sdk-go-v2/service/scheduler"
 	"github.com/aws/aws-sdk-go-v2/service/scheduler/types"
 	"github.com/manishMandal02/tabsflow-backend/config"
@@ -18,37 +19,28 @@ func NewScheduler() *scheduler {
 	}
 }
 
+// creates a schedule
+//
+// name - name of the schedule
+//
+// scheduleExpression - date & time to trigger the target. ex: at(yyyy-mm-ddThh:mm:ss)
 func (s scheduler) CreateSchedule(name, scheduleExpression string) error {
 
 	_, err := s.client.CreateSchedule(context.TODO(), &eb_scheduler.CreateScheduleInput{
 		Name:               &name,
 		ScheduleExpression: &scheduleExpression,
+		// TODO - set timezone
+		ScheduleExpressionTimezone: aws.String(""),
 		FlexibleTimeWindow: &types.FlexibleTimeWindow{
 			Mode: types.FlexibleTimeWindowModeOff,
 		},
+
 		Target: &types.Target{
-			Arn:     &config.SCHEDULER_ARN,
+			Arn:     &config.NOTIFICATIONS_QUEUE_ARN,
 			RoleArn: &config.SCHEDULER_ROLE_ARN,
 			Input:   &name,
 		},
 	})
-
-	/*
-
-			client.CreateSchedule(context.TODO(), &scheduler.CreateScheduleInput{
-			Name:                       &note.Id,
-			ScheduleExpression:         &note.Remainder,
-			ScheduleExpressionTimezone: &config.TIMEZONE,
-			FlexibleTimeWindow: &scheduler.FlexibleTimeWindow{
-				Mode: "OFF",
-			},
-			Target: &types.Target{
-				Arn:     &config.SCHEDULER_ARN,
-				RoleArn: &config.SCHEDULER_ROLE_ARN,
-				Input:   &note.Remainder,
-			},
-		})
-	*/
 
 	if err != nil {
 		return err
