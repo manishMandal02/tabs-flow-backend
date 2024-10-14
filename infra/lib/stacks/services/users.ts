@@ -31,7 +31,7 @@ export class UserService extends Construct {
       architecture: config.lambda.Architecture,
       bundling: config.lambda.GoBundling,
       environment: {
-        EMAIL_SQS_QUEUE_URL: props.emailQueue.queueUrl,
+        EMAIL_QUEUE_URL: props.emailQueue.queueUrl,
         DDB_MAIN_TABLE_NAME: props.db.tableName
       }
     });

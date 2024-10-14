@@ -34,7 +34,7 @@ export class AuthService extends Construct {
       architecture: config.lambda.Architecture,
       environment: {
         JWT_SECRET_KEY,
-        EMAIL_SQS_QUEUE_URL: props.emailQueue.queueUrl,
+        EMAIL_QUEUE_URL: props.emailQueue.queueUrl,
         DDB_SESSIONS_TABLE_NAME: props.sessionsDB.tableName
       }
     });

@@ -26,6 +26,11 @@ func (s scheduler) CreateSchedule(name, scheduleExpression string) error {
 		FlexibleTimeWindow: &types.FlexibleTimeWindow{
 			Mode: types.FlexibleTimeWindowModeOff,
 		},
+		Target: &types.Target{
+			Arn:     &config.SCHEDULER_ARN,
+			RoleArn: &config.SCHEDULER_ROLE_ARN,
+			Input:   &name,
+		},
 	})
 
 	/*

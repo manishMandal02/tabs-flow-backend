@@ -20,7 +20,7 @@ func NewQueue() *Queue {
 
 	return &Queue{
 		client: client,
-		url:    config.EMAIL_SQS_QUEUE_URL,
+		url:    config.EMAIL_QUEUE_URL,
 	}
 
 }

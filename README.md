@@ -113,7 +113,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
   - POST: /send-otp
 - Env variables:
   - JWT_SECRET_KEY
-  - EMAIL_SQS_QUEUE_URL
+  - EMAIL_QUEUE_URL
   - DDB_SESSIONS_TABLE_NAME
 
 ### Users Service
@@ -133,7 +133,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
   - POST: /:id/subscription/webhook
 
 - Env variables:
-  - EMAIL_SQS_QUEUE_URL
+  - EMAIL_QUEUE_URL
   - DDB_MAIN_TABLE_NAME
   - PADDLE_API_KEY
   - PADDLE_WEBHOOK_SECRET_KEY
@@ -186,7 +186,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 - Env variables:
   - ZEPTO_MAIL_API_KEY
-  - EMAIL_SQS_QUEUE_URL
+  - EMAIL_QUEUE_URL
 
 ### Scheduler Service
 

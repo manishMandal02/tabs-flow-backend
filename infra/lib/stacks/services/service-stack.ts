@@ -8,6 +8,7 @@ import { UserService } from './users';
 import { RestApi } from './rest-api';
 import { SpaceService } from './spaces';
 import { NotesService } from './notes';
+import { NotificationsService } from './notifications';
 
 type ServiceStackProps = StackProps & {
   stage: string;
@@ -54,7 +55,16 @@ export class ServiceStack extends Stack {
       sessionsDB,
       stage: props.stage,
       apiGW: apiG.restAPI,
-      emailQueue: emailService.queue
+      emailQueue: emailService.Queue
+    });
+
+    const notificationsService = new NotificationsService(this, {
+      lambdaRole,
+      db: mainDB,
+      stage: props.stage,
+      apiGW: apiG.restAPI,
+      emailQueue: emailService.Queue,
+      apiAuthorizer: authService.apiAuthorizer
     });
 
     new UserService(this, {
@@ -63,7 +73,7 @@ export class ServiceStack extends Stack {
       stage: props.stage,
       apiGW: apiG.restAPI,
       apiAuthorizer: authService.apiAuthorizer,
-      emailQueue: emailService.queue
+      emailQueue: emailService.Queue
     });
 
     new SpaceService(this, {
@@ -71,7 +81,8 @@ export class ServiceStack extends Stack {
       db: mainDB,
       stage: props.stage,
       apiGW: apiG.restAPI,
-      apiAuthorizer: authService.apiAuthorizer
+      apiAuthorizer: authService.apiAuthorizer,
+      notificationQueue: notificationsService.Queue
     });
 
     new NotesService(this, {
@@ -80,7 +91,8 @@ export class ServiceStack extends Stack {
       lambdaRole,
       apiGW: apiG.restAPI,
       stage: props.stage,
-      apiAuthorizer: authService.apiAuthorizer
+      apiAuthorizer: authService.apiAuthorizer,
+      notificationQueue: notificationsService.Queue
     });
   }
 }

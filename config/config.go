@@ -15,7 +15,10 @@ import (
 var (
 	AWS_REGION                  string
 	JWT_SECRET_KEY              string
-	EMAIL_SQS_QUEUE_URL         string
+	EMAIL_QUEUE_URL             string
+	NOTIFICATION_QUEUE_URL      string
+	NOTIFICATIONS_QUEUE_ARN     string
+	SCHEDULER_ROLE_ARN          string
 	DDB_MAIN_TABLE_NAME         string
 	DDB_SEARCH_INDEX_TABLE_NAME string
 	DDB_SESSIONS_TABLE_NAME     string
@@ -64,7 +67,11 @@ func Init() {
 		DDB_MAIN_TABLE_NAME = "TabsFlow-Main_dev"
 		DDB_SEARCH_INDEX_TABLE_NAME = "TabsFlow-SearchIndex_dev"
 		DDB_SESSIONS_TABLE_NAME = "TabsFlow-Sessions_dev"
-		EMAIL_SQS_QUEUE_URL = "TabsFlow-Emails_dev"
+		EMAIL_QUEUE_URL = "TabsFlow-Emails_dev"
+		NOTIFICATION_QUEUE_URL = "TabsFlow-Notifications_dev"
+		// TODO - set role arn for scheduler
+		SCHEDULER_ROLE_ARN = "arn:aws:iam::410381041692:role/TabsFlow-SchedulerRole_dev"
+		NOTIFICATIONS_QUEUE_ARN = "arn:aws:sqs:ap-south-1:410381041692:TabsFlow-Notifications_dev"
 	} else {
 		// lambda config
 		config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(AWS_REGION))
@@ -76,7 +83,10 @@ func Init() {
 
 		DDB_MAIN_TABLE_NAME = os.Getenv("DDB_MAIN_TABLE_NAME")
 		DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
-		EMAIL_SQS_QUEUE_URL = os.Getenv("EMAIL_SQS_QUEUE_URL")
+		EMAIL_QUEUE_URL = os.Getenv("EMAIL_QUEUE_URL")
+		NOTIFICATION_QUEUE_URL = os.Getenv("NOTIFICATION_QUEUE_URL")
+		SCHEDULER_ROLE_ARN = os.Getenv("SCHEDULER_ROLE_ARN")
+		NOTIFICATIONS_QUEUE_ARN = os.Getenv("NOTIFICATIONS_QUEUE_ARN")
 	}
 
 	AWS_REGION = os.Getenv("AWS_REGION")

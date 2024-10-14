@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 
 import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
-import { aws_apigateway, aws_dynamodb, aws_iam } from 'aws-cdk-lib';
+import { aws_apigateway, aws_dynamodb, aws_iam, aws_sqs } from 'aws-cdk-lib';
 
 import { config } from '../../../config';
 
@@ -12,6 +12,7 @@ type NotesServiceProps = {
   searchIndexDB: aws_dynamodb.ITable;
   lambdaRole: aws_iam.Role;
   apiAuthorizer: aws_apigateway.RequestAuthorizer;
+  notificationQueue: aws_sqs.Queue;
 };
 
 export class NotesService extends Construct {

@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { Duration, aws_iam, aws_lambda } from 'aws-cdk-lib';
+import { Duration, aws_iam } from 'aws-cdk-lib';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
 import * as eventSources from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -13,14 +13,14 @@ type EmailServiceProps = {
 };
 
 export class EmailService extends Construct {
-  queue: sqs.Queue;
-  constructor(scope: Construct, props: EmailServiceProps, id: string = 'EmailService') {
+  Queue: sqs.Queue;
+  constructor(scope: Construct, props: EmailServiceProps, id = 'EmailService') {
     super(scope, id);
 
     const { ZEPTO_MAIL_API_KEY } = config.Env;
 
     const queueName = `${config.AppName}-Emails_${props.stage}`;
-    //- sqs queue
+    // sqs queue
     const dlqEmail = new sqs.Queue(this, queueName + '-dlq', {
       visibilityTimeout: Duration.seconds(300)
     });
@@ -49,7 +49,7 @@ export class EmailService extends Construct {
       bundling: config.lambda.GoBundling,
       environment: {
         ZEPTO_MAIL_API_KEY,
-        EMAIL_SQS_QUEUE_URL: emailQueue.queueUrl
+        EMAIL_QUEUE_URL: emailQueue.queueUrl
       }
     });
 
@@ -57,8 +57,8 @@ export class EmailService extends Construct {
     emailQueue.grantConsumeMessages(emailServiceFunction);
 
     // add sqs as event source
-    emailServiceFunction.addEventSource(new eventSources.SqsEventSource(emailQueue));
+    emailServiceFunction.addEventSource(new eventSources.SqsEventSource(emailQueue, { batchSize: 1 }));
 
-    this.queue = emailQueue;
+    this.Queue = emailQueue;
   }
 }
