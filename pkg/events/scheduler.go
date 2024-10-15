@@ -24,7 +24,7 @@ func NewScheduler() *scheduler {
 // name - name of the schedule
 //
 // scheduleExpression - date & time to trigger the target. ex: at(yyyy-mm-ddThh:mm:ss)
-func (s scheduler) CreateSchedule(name, scheduleExpression string) error {
+func (s scheduler) CreateSchedule(name, scheduleExpression string, event *string) error {
 
 	_, err := s.client.CreateSchedule(context.TODO(), &eb_scheduler.CreateScheduleInput{
 		Name:               &name,
@@ -38,7 +38,7 @@ func (s scheduler) CreateSchedule(name, scheduleExpression string) error {
 		Target: &types.Target{
 			Arn:     &config.NOTIFICATIONS_QUEUE_ARN,
 			RoleArn: &config.SCHEDULER_ROLE_ARN,
-			Input:   &name,
+			Input:   event,
 		},
 	})
 

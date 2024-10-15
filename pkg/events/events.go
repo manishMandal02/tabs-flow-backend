@@ -11,10 +11,13 @@ type EventType string
 
 // Events
 const (
-	EventTypeSendOTP               EventType = "send_otp"
-	EventTypeUserRegistered        EventType = "user_registered"
+	EventTypeSendOTP        EventType = "send_otp"
+	EventTypeUserRegistered EventType = "user_registered"
+
 	EventTypeScheduleNoteRemainder EventType = "schedule_note_remainder"
 	EventTypeScheduleSnoozedTab    EventType = "schedule_snoozed_tab"
+	EventTypeTriggerNoteRemainder  EventType = "trigger_note_remainder"
+	EventTypeTriggerSnoozedTab     EventType = "trigger_snoozed_tab"
 )
 
 type SubEvent string
