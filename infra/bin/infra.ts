@@ -6,7 +6,7 @@ import { StatefulStack } from '../lib/stacks/stateful';
 
 const app = new App();
 
-// TODO:figure the multi region and environments deployment
+// TODO: figure the multi region and environments deployment
 const config = {
   stage: 'dev'
 };

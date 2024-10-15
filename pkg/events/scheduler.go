@@ -29,7 +29,7 @@ func (s scheduler) CreateSchedule(name, scheduleExpression string) error {
 	_, err := s.client.CreateSchedule(context.TODO(), &eb_scheduler.CreateScheduleInput{
 		Name:               &name,
 		ScheduleExpression: &scheduleExpression,
-		// TODO - set timezone
+		// TODO: set timezone
 		ScheduleExpressionTimezone: aws.String(""),
 		FlexibleTimeWindow: &types.FlexibleTimeWindow{
 			Mode: types.FlexibleTimeWindowModeOff,

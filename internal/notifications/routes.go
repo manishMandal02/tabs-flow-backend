@@ -21,7 +21,7 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	notificationsRouter.GET("/:id", h.get)
 	notificationsRouter.GET("/my", h.getUserNotifications)
-	notificationsRouter.POST("/", h.create)
+	// notificationsRouter.POST("/", h.create)
 	notificationsRouter.DELETE("/", h.delete)
 
 	// serve API routes

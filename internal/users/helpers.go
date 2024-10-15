@@ -34,7 +34,7 @@ func setDefaultUserPreferences(userId string, r userRepository) error {
 			defer wg.Done()
 			err := r.setPreferences(userId, k, v)
 			if err != nil {
-				logger.Error(fmt.Sprintf("Error setting default preferences for userId: %v\n, data: %v ", userId, v), err)
+				logger.Errorf("Error setting default preferences for userId: %v\n. data: %v.  \n[Error]: %v", userId, v, err)
 			}
 		}(userId, k, v)
 	}
@@ -148,7 +148,7 @@ func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *i
 	}
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error  un_marshaling sub preferences for userId: %v", userId), err)
+		logger.Errorf("Error  un_marshaling sub preferences for u \n[Error]: %vserId:. %v", userId, err)
 		return "", nil, err
 	}
 

@@ -152,12 +152,12 @@ func (z *ZeptoMail) sendWelcomeMail(to *NameAddr, trailEndDate string) error {
 func sendMail(url string, headers map[string]string, body []byte) error {
 	res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, url, headers, body)
 	if err != nil {
-		logger.Error(fmt.Sprintf("[email_service] Error sending email. Request body: %s", string(body)), err)
+		logger.Errorf("[email_service] Error sending email. Request body: %s, [Error]: %v", string(body), err)
 		return err
 	}
 
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
-		logger.Error(fmt.Sprintf("[email_service] Unsuccessful response from ZeptoMail. Status: %s, Body: %s", res.Status, respBody), nil)
+		logger.Errorf("[email_service] Unsuccessful response from ZeptoMail. Status: %s, Body: %s", res.Status, respBody)
 		return fmt.Errorf("unsuccessful response from ZeptoMail: %s", res.Status)
 	}
 

@@ -47,7 +47,7 @@ func (r spaceRepo) createSpace(userId string, s *space) error {
 	av, err := attributevalue.MarshalMap(s)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal space: %v", s), err)
+		logger.Errorf("Couldn't marshal space: %v. \n[Error]: %v", s, err)
 		return err
 	}
 
@@ -60,7 +60,7 @@ func (r spaceRepo) createSpace(userId string, s *space) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't create space: %v", s), err)
+		logger.Errorf("Couldn't create space: %v. \n[Error]: %v", s, err)
 		return err
 	}
 
@@ -80,7 +80,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get space for userId: %v", userId), err)
+		logger.Errorf("Couldn't get space for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -93,7 +93,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 	err = attributevalue.UnmarshalMap(response.Item, s)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal space for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal space for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -111,7 +111,7 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build getSpacesByUser expression for userId: %v", userId), err)
+		logger.Errorf("Couldn't build getSpacesByUser expression for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
@@ -122,7 +122,7 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get spaces for userId: %v", userId), err)
+		logger.Errorf("Couldn't get spaces for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -135,7 +135,7 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 	err = attributevalue.UnmarshalListOfMaps(response.Items, &spaces)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal spaces for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal spaces for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -187,7 +187,7 @@ func (r spaceRepo) updateSpace(userId string, s *space) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't update space for userId: %v", userId), err)
+		logger.Errorf("Couldn't update space for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -207,7 +207,7 @@ func (r spaceRepo) deleteSpace(userId, spaceId string) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't delete space for userId: %v", userId), err)
+		logger.Errorf("Couldn't delete space for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -219,7 +219,7 @@ func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
 	tabs, err := attributevalue.MarshalList(*t)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal tabs: %v", t), err)
+		logger.Errorf("Couldn't marshal tabs: %v. \n[Error]: %v", t, err)
 		return err
 	}
 
@@ -235,7 +235,7 @@ func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't set tabs for space for userId: %v", userId), err)
+		logger.Errorf("Couldn't set tabs for space for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -254,7 +254,7 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get tabs for space for userId: %v", userId), err)
+		logger.Errorf("Couldn't get tabs for space for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 	if len(response.Item) == 0 {
@@ -274,7 +274,7 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 	err = attributevalue.Unmarshal(tabsAttr, &tabs)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal tabs for space for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal tabs for space for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -286,7 +286,7 @@ func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
 	groups, err := attributevalue.MarshalList(*g)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal groups: %v", g), err)
+		logger.Errorf("Couldn't marshal groups: %v. \n[Error]: %v", g, err)
 		return err
 	}
 
@@ -301,7 +301,7 @@ func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't set groups for space for userId: %v", userId), err)
+		logger.Errorf("Couldn't set groups for space for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -321,7 +321,7 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get groups for space for userId: %v", userId), err)
+		logger.Errorf("Couldn't get groups for space for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -342,7 +342,7 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	err = attributevalue.Unmarshal(groupsAttr, &groups)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal groups for space for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal groups for space for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -356,7 +356,7 @@ func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *snoozedTab) error {
 	snoozedTabs, err := attributevalue.MarshalMap(*t)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal snoozed tabs: %v", t), err)
+		logger.Errorf("Couldn't marshal snoozed tabs: %v. \n[Error]: %v", t, err)
 		return err
 	}
 
@@ -370,7 +370,7 @@ func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *snoozedTab) error {
 		Item:      snoozedTabs,
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't add snoozed tab for userId: %v", userId), err)
+		logger.Errorf("Couldn't add snoozed tab for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -392,7 +392,7 @@ func (r spaceRepo) getSnoozedTab(userId, spaceId string, snoozedAt int64) (*snoo
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get snoozed tab for userId: %v", userId), err)
+		logger.Errorf("Couldn't get snoozed tab for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -404,7 +404,7 @@ func (r spaceRepo) getSnoozedTab(userId, spaceId string, snoozedAt int64) (*snoo
 	err = attributevalue.UnmarshalMap(response.Item, snoozedTab)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal snoozed tab for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal snoozed tab for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -419,7 +419,7 @@ func (r spaceRepo) getAllSnoozedTabs(userId string, lastSnoozedTabId int64) (*[]
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build getSnoozedTabs expression for userId: %v", userId), err)
+		logger.Errorf("Couldn't build getSnoozedTabs expression for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -442,7 +442,7 @@ func (r spaceRepo) getAllSnoozedTabs(userId string, lastSnoozedTabId int64) (*[]
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get snoozed tabs for userId: %v", userId), err)
+		logger.Errorf("Couldn't get snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -455,7 +455,7 @@ func (r spaceRepo) getAllSnoozedTabs(userId string, lastSnoozedTabId int64) (*[]
 	err = attributevalue.UnmarshalListOfMaps(response.Items, &snoozedTabs)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal snoozed tabs for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -469,7 +469,7 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build getSnoozedTabs expression for userId: %v", userId), err)
+		logger.Errorf("Couldn't build getSnoozedTabs expression for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -492,7 +492,7 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get snoozed tabs for userId: %v", userId), err)
+		logger.Errorf("Couldn't get snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -504,7 +504,7 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 	err = attributevalue.UnmarshalListOfMaps(response.Items, &snoozedTabs)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal snoozed tabs for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -525,7 +525,7 @@ func (r spaceRepo) deleteSnoozedTab(userId, spaceId string, snoozedAt int64) err
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't delete snoozed tab for userId: %v", userId), err)
+		logger.Errorf("Couldn't delete snoozed tab for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 

@@ -113,13 +113,13 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, bodyJson)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error fetching user id from Auth Service for email: %v", body.Email), err)
+		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", body.Email, err)
 		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		logger.Error(fmt.Sprintf("User does not have a valid session profile for email: %v", body.Email), err)
+		logger.Errorf("User does not have a valid session profile for email: %v. \n [Error]: %v", body.Email, err)
 		//  Logout
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
 		// http.Error(w, errMsg.createUser, http.StatusInternalServerError)
@@ -136,12 +136,12 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal([]byte(respBody), &userIdData)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error un_marshaling user id data for email: %v", body.Email), err)
+		logger.Errorf("Error un_marshaling user id data for email: %v. \n [Error]: %v", body.Email, err)
 		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
 		return
 	}
 	if userIdData.Data.UserId != user.Id {
-		logger.Error(fmt.Sprintf("User Id mismatch for email: %v", body.Email), err)
+		logger.Errorf("User Id mismatch for email: %v. \n [Error]: %v", body.Email, err)
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
 		return
 	}

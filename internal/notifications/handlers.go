@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
@@ -16,33 +15,6 @@ func newHandler(r notificationRepository) *notificationHandler {
 	return &notificationHandler{
 		r: r,
 	}
-}
-
-func (h *notificationHandler) create(w http.ResponseWriter, r *http.Request) {
-	userId := r.PathValue("userId")
-
-	n := notification{}
-
-	err := json.NewDecoder(r.Body).Decode(&n)
-
-	if err != nil {
-		logger.Error("error decoding notification", err)
-		http.Error(w, errMsg.notificationCreate, http.StatusBadRequest)
-		return
-	}
-
-	err = h.r.createNotification(userId, &n)
-
-	if err != nil {
-		logger.Error("error creating notification", err)
-		http.Error(w, errMsg.notificationCreate, http.StatusBadGateway)
-		return
-	}
-
-	// TODO - create a schedule to remainder 
-
-	http_api.SuccessResMsg(w, "notification created successfully")
-
 }
 
 func (h *notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +70,24 @@ func (h *notificationHandler) getUserNotifications(w http.ResponseWriter, r *htt
 	http_api.SuccessResData(w, notifications)
 
 }
+
+// func (h *notificationHandler) create(w http.ResponseWriter, r *http.Request) {
+// 	userId := r.PathValue("userId")
+// 	n := notification{}
+// 	err := json.NewDecoder(r.Body).Decode(&n)
+// 	if err != nil {
+// 		logger.Error("error decoding notification", err)
+// 		http.Error(w, errMsg.notificationCreate, http.StatusBadRequest)
+// 		return
+// 	}
+// 	err = h.r.createNotification(userId, &n)
+// 	if err != nil {
+// 		logger.Error("error creating notification", err)
+// 		http.Error(w, errMsg.notificationCreate, http.StatusBadGateway)
+// 		return
+// 	}
+// 	http_api.SuccessResMsg(w, "notification created successfully")
+// }
 
 //* helpers
 

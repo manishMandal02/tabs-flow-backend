@@ -3,7 +3,6 @@ package users
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -51,7 +50,7 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't query for userId: %v", id), err)
+		logger.Errorf("Couldn't query for userId: %v. \n[Error]: %v", id, err)
 		return nil, err
 	}
 
@@ -64,7 +63,7 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	}
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal query result for user_id: %v", id), err)
+		logger.Errorf("Couldn't unmarshal query result for user_id: %v. \n[Error]: %v", id, err)
 		return nil, err
 	}
 
@@ -84,7 +83,7 @@ func (r *userRepo) insertUser(user *User) error {
 	item, err := attributevalue.MarshalMap(profile)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal user: %#v", user), err)
+		logger.Errorf("Couldn't marshal user: %#v. \n[Error]: %v", user, err)
 		return err
 	}
 
@@ -94,7 +93,7 @@ func (r *userRepo) insertUser(user *User) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't put item for user: %v", user.Id), err)
+		logger.Errorf("Couldn't put item for userId: %v. \n[Error]: %v", user.Id, err)
 		return err
 	}
 
@@ -113,7 +112,7 @@ func (r userRepo) updateUser(id, name string) error {
 	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build expression for updateUser query for the user_id: %v", id), err)
+		logger.Errorf("Couldn't build expression for updateUser query for the user_id: %v. \n[Error]: %v", id, err)
 		return err
 	}
 
@@ -127,7 +126,7 @@ func (r userRepo) updateUser(id, name string) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't updateUser, user_id: %v", id), err)
+		logger.Errorf("Couldn't updateUser, user_id: %v. \n[Error]: %v", id, err)
 		return err
 	}
 
@@ -143,7 +142,7 @@ func (r userRepo) deleteAccount(id string) error {
 	allSKs, err := database.Helpers.GetAllSKs(r.db, id)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get all dynamic sort keys for user_id: %v", id), err)
+		logger.Errorf("Couldn't get all dynamic sort keys for user_id: %v. \n[Error]: %v", id, err)
 		return errors.New(errMsg.deleteUser)
 	}
 
@@ -175,7 +174,7 @@ func (r userRepo) deleteAccount(id string) error {
 		})
 
 		if err != nil {
-			logger.Error(fmt.Sprintf("Couldn't batch delete items for user_id: %v", id), err)
+			logger.Errorf("Couldn't batch delete items for user_id: %v. \n[Error]: %v", id, err)
 			return errors.New(errMsg.deleteUser)
 		}
 	}
@@ -191,7 +190,7 @@ func (r userRepo) getAllPreferences(id string) (*preferences, error) {
 	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build getPreferences expression for userId: %#v", id), err)
+		logger.Errorf("Couldn't build getPreferences expression for userId: %#v. \n[Error]: %v", id, err)
 		return nil, err
 	}
 
@@ -203,7 +202,7 @@ func (r userRepo) getAllPreferences(id string) (*preferences, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get preferences for userId : %#v", id), err)
+		logger.Errorf("Couldn't get preferences for userId : %#v. \n[Error]: %v", id, err)
 		return nil, err
 	}
 
@@ -286,7 +285,7 @@ func (r userRepo) updatePreferences(userId, sk string, pData interface{}) error 
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't update preferences for userId: %v", userId), err)
+		logger.Errorf("Couldn't update preferences for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -307,7 +306,7 @@ func (r userRepo) getSubscription(userId string) (*subscription, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get subscription for userId: %v", userId), err)
+		logger.Errorf("Couldn't get subscription for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 	if len(response.Item) == 0 {
@@ -318,7 +317,7 @@ func (r userRepo) getSubscription(userId string) (*subscription, error) {
 	err = attributevalue.UnmarshalMap(response.Item, s)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal subscription for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal subscription for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -341,7 +340,7 @@ func (r userRepo) setSubscription(userId string, s *subscription) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't set subscription for userId: %v", userId), err)
+		logger.Errorf("Couldn't set subscription for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -393,7 +392,7 @@ func (r userRepo) updateSubscription(userId string, sData *subscription) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't update subscription for userId: %v", userId), err)
+		logger.Errorf("Couldn't update subscription for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 

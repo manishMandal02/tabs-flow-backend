@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -53,7 +52,7 @@ func (r *authRepo) saveOTP(data *emailOTP) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't save OTP to db for email: %v", data.Email), err)
+		logger.Errorf("Couldn't save OTP to db for email: %v, \n[Error:] %v", data.Email, err)
 		return errors.New(errMsg.sendOTP)
 	}
 
@@ -74,7 +73,7 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get OTP from db for email: %#v", email), err)
+		logger.Errorf("Couldn't get OTP from db for email: %#v: \n[Error]: %v", email, err)
 		return false, errors.New(errMsg.validateOTP)
 	}
 
@@ -90,14 +89,14 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 	err = attributevalue.UnmarshalMap(response.Item, &ttl)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal OTP ttl from db for email: %#v", email), err)
+		logger.Errorf("Couldn't unmarshal OTP ttl from db for email: %#v: \n[Error]: %v", email, err)
 		return false, errors.New(errMsg.inValidOTP)
 	}
 
 	ttlInt, err := strconv.ParseInt(ttl.TTL, 10, 64)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't convert TTL to int for email: %#v", email), err)
+		logger.Errorf("Couldn't convert TTL to int for email: %#v: \n[Error]: %v", email, err)
 		return false, errors.New(errMsg.inValidOTP)
 	}
 
@@ -120,7 +119,7 @@ func (r *authRepo) attachUserId(data *emailWithUserId) error {
 		Item:      key,
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't attach user id to email: %#v", data.Email), err)
+		logger.Errorf("Couldn't attach user id to email: %#v, \n[Error]: %v", data.Email, err)
 		return errors.New(errMsg.createSession)
 	}
 
@@ -134,7 +133,7 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build getUserID expression for email: %#v", email), err)
+		logger.Errorf("Couldn't build getUserID expression for email: %#v: \n[Error]: %v", email, err)
 		return "", errors.New(errMsg.createSession)
 	}
 
@@ -146,7 +145,7 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get user id from db for email: %#v", email), err)
+		logger.Errorf("Couldn't get user id from db for email: %#v: \n[Error]: %v", email, err)
 		return "", errors.New(errMsg.getUserId)
 	}
 
@@ -161,7 +160,7 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 	err = attributevalue.UnmarshalMap(response.Items[0], &s)
 
 	if err != nil || s.UserId == "" {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal user id from db for email: %#v", email), err)
+		logger.Errorf("Couldn't unmarshal user id from db for email: %#v: \n[Error]: %v", email, err)
 		return "", errors.New(errMsg.getUserId)
 	}
 
@@ -169,7 +168,9 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 	userId := strings.Split(s.UserId, "#")[1]
 
 	if userId == "" {
-		logger.Error(fmt.Sprintf("Couldn't get user id from sort_key: %#v", s.UserId), err)
+		// logger.Errorf("Couldn't get user id from sort_key: %#v", s: \n[Error]: %v.UserId, err)
+		logger.Errorf("Couldn't get user id from sort_key: %#v: \n[Error]: %v", s.UserId, err)
+
 		return "", nil
 	}
 
@@ -199,7 +200,7 @@ func (r *authRepo) createSession(s *session) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't create session for email: %#v", s.Email), err)
+		logger.Errorf("Couldn't create session for email: %#v. \n[Error]: %v", s.Email, err)
 		return errors.New(errMsg.createSession)
 	}
 
@@ -218,7 +219,8 @@ func (r *authRepo) deleteSession(email, id string) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't delete session for user with email: %#v", email), err)
+		logger.Errorf("Couldn't delete session for user with email: %#v: \n[Error]: %v", email, err)
+
 		return errors.New(errMsg.deleteSession)
 	}
 
@@ -237,7 +239,7 @@ func (r *authRepo) validateSession(email, id string) (bool, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get session from db, for email: %#v", email), err)
+		logger.Errorf("Couldn't get session from db, for email: %#v: \n[Error]: %v", email, err)
 		return false, errors.New(errMsg.validateSession)
 	}
 
@@ -246,7 +248,7 @@ func (r *authRepo) validateSession(email, id string) (bool, error) {
 	err = attributevalue.UnmarshalMap(response.Item, &userSession)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal session expiry from db for email: %#v", email), err)
+		logger.Errorf("Couldn't unmarshal session expiry from db for email: %#v: \n[Error]: %v", email, err)
 		return false, errors.New(errMsg.validateSession)
 	}
 

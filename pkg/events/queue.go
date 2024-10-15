@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -45,7 +44,7 @@ func (q Queue) AddMessage(ev IEvent) error {
 	})
 
 	if err != nil || res.MessageId == nil {
-		logger.Error(fmt.Sprintf("Error sending message to SQS queue for event_type: %v", ev.GetEventType()), err)
+		logger.Errorf("Error sending message to SQS queue for event_type: %v. \n [Error]: %v", ev.GetEventType(), err)
 		return err
 	}
 
@@ -60,7 +59,7 @@ func (q Queue) DeleteMessage(r string) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error deleting message from SQS queue for receipt_handle: %v", r), err)
+		logger.Errorf("Error deleting message from SQS queue for receipt_handle: %v. \n [Error]: %v", r, err)
 		return err
 	}
 

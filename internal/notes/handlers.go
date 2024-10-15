@@ -57,7 +57,7 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 	err = h.r.indexSearchTerms(userId, note.Id, terms)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("error indexing search terms for note: %v", note), err)
+		logger.Errorf("error indexing search terms for note: %v. [Error]: %v", note, err)
 	}
 
 	//  if remainder is set, create a schedule to send reminder
@@ -166,8 +166,6 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	userId := r.URL.Query().Get("userId")
 
 	body := struct {
-		UpdatedRemainder bool `json:"updatedRemainder"`
-		UpdatedText      bool `json:"updatedText"`
 		*note
 	}{}
 
@@ -185,6 +183,15 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get old note
+	oldNote, err := h.r.getNote(userId, body.note.Id)
+
+	if err != nil {
+		http.Error(w, errMsg.noteUpdate, http.StatusInternalServerError)
+		return
+
+	}
+
 	err = h.r.updateNote(userId, body.note)
 
 	if err != nil {
@@ -193,46 +200,50 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if remainder is updated/removed, update/delete the schedule if it has been set previously
+	if oldNote.RemainderAt != body.note.RemainderAt {
+		if body.note.RemainderAt != 0 {
+			// update schedule
+			event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
+				NoteId:    body.note.Id,
+				SubEvent:  events.SubEventUpdate,
+				TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+			})
+			err = events.NewNotificationQueue().AddMessage(event)
+		}
 
-	if body.UpdatedRemainder && body.note.RemainderAt != 0 {
-		// update schedule
-		event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
-			NoteId:    body.note.Id,
-			SubEvent:  events.SubEventUpdate,
-			TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
-		})
-		err = events.NewNotificationQueue().AddMessage(event)
-	}
+		if body.note.RemainderAt == 0 {
+			// delete schedule
+			event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
+				NoteId:    body.note.Id,
+				SubEvent:  events.SubEventDelete,
+				TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+			})
+			err = events.NewNotificationQueue().AddMessage(event)
+		}
 
-	if body.UpdatedRemainder && body.note.RemainderAt == 0 {
-		// delete schedule
-		event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
-			NoteId:    body.note.Id,
-			SubEvent:  events.SubEventDelete,
-			TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
-		})
-		err = events.NewNotificationQueue().AddMessage(event)
 	}
 
 	//  if title, note or domain is updated, re-index search terms
-	if body.UpdatedText {
+	if oldNote.Domain != body.note.Domain || oldNote.Title != body.note.Title || oldNote.Text != body.note.Text {
+		// delete previous search terms
+		oldTerms := extractSearchTerms(oldNote.Title, oldNote.Text, oldNote.Domain)
 
-		// delete search terms
-		err = h.r.deleteSearchTerms(userId, body.note.Id, []string{})
+		err = h.r.deleteSearchTerms(userId, oldNote.Id, oldTerms)
 
 		if err != nil {
-			logger.Error(fmt.Sprintf("error deleting search terms for note_id: %v", body.note.Id), err)
+			logger.Errorf("error deleting search terms for noteId: %v. \n[Error]: %v", body.note.Id, err)
 			http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
 			return
 		}
 
-		// index search terms in search table
+		// index new search terms for note
 		terms := extractSearchTerms(body.note.Title, body.note.Text, body.note.Domain)
 		err = h.r.indexSearchTerms(userId, body.note.Id, terms)
 
 	}
 
 	if err != nil {
+		logger.Errorf("error indexing search terms for noteId: %v. \n[Error]: %v", body.note.Id, err)
 		http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
 		return
 	}
@@ -348,7 +359,7 @@ func getNoteIdsBySearchTerms(userId string, searchTerms []string, limit int, r n
 
 	for _, term := range searchTerms {
 		stemmed, _ := snowball.Stem(term, "english", true)
-		noteIds, err := r.findSearchTerms(userId, stemmed, limit)
+		noteIds, err := r.noteIdsBySearchTerm(userId, stemmed, limit)
 
 		if err != nil {
 			if err.Error() == errMsg.notesSearchEmpty {

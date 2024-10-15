@@ -11,7 +11,7 @@ import (
 )
 
 func SendEmail(_ context.Context, event lambda_events.SQSEvent) error {
-	// TODO:handle multiple events process
+	// TODO: handle multiple events process
 
 	var err error
 
@@ -104,7 +104,7 @@ func SendEmail(_ context.Context, event lambda_events.SQSEvent) error {
 		return nil
 
 	default:
-		logger.Error(fmt.Sprintf("Unknown sqs event: %v", eventType), fmt.Errorf("unknown event"))
+		logger.Errorf("Unknown sqs event: %v", eventType)
 	}
 	return nil
 }

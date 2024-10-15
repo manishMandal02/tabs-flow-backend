@@ -25,7 +25,7 @@ type noteRepository interface {
 	deleteNote(userId string, noteId int64) (*note, error)
 	// search
 	indexSearchTerms(userId, noteId string, terms []string) error
-	findSearchTerms(userId string, query string, limit int) ([]string, error)
+	noteIdsBySearchTerm(userId string, query string, limit int) ([]string, error)
 	deleteSearchTerms(userId, noteId string, terms []string) error
 }
 
@@ -45,7 +45,7 @@ func (r noteRepo) createNote(userId string, n *note) error {
 	av, err := attributevalue.MarshalMap(n)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal note: %v", n), err)
+		logger.Errorf("Couldn't marshal note: %v, \n[Error]: %v", n, err)
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (r noteRepo) createNote(userId string, n *note) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't create note for userId: %v", userId), err)
+		logger.Errorf("Couldn't create note for userId: %v, \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -70,7 +70,7 @@ func (r noteRepo) updateNote(userId string, n *note) error {
 	av, err := attributevalue.MarshalMap(n)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't marshal note: %v", n), err)
+		logger.Errorf("Couldn't marshal note: %v. \n[Error]: %v", n, err)
 		return err
 	}
 
@@ -83,7 +83,7 @@ func (r noteRepo) updateNote(userId string, n *note) error {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't update note for userId: %v", userId), err)
+		logger.Errorf("Couldn't update note for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 
@@ -103,7 +103,7 @@ func (r noteRepo) deleteNote(userId string, noteId int64) (*note, error) {
 	})
 
 	if err != nil || res.Attributes == nil {
-		logger.Error(fmt.Sprintf("Couldn't delete note for userId: %v", userId), err)
+		logger.Errorf("Couldn't delete note for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -112,7 +112,7 @@ func (r noteRepo) deleteNote(userId string, noteId int64) (*note, error) {
 	err = attributevalue.UnmarshalMap(res.Attributes, &n)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal note for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal note for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -132,7 +132,7 @@ func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get note for userId: %v", userId), err)
+		logger.Errorf("Couldn't get note for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -144,7 +144,7 @@ func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
 
 	err = attributevalue.UnmarshalMap(response.Item, note)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal note for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal note for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -170,7 +170,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]note, erro
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get notes for userId: %v", userId), err)
+		logger.Errorf("Couldn't get notes for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -183,7 +183,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]note, erro
 	err = attributevalue.UnmarshalListOfMaps(response.Responses[r.db.TableName], &notes)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal notes for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal notes for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -198,7 +198,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, erro
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build getNotesByUser() expression for userId: %v", userId), err)
+		logger.Errorf("Couldn't build getNotesByUser() expression for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -221,7 +221,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, erro
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't get notes for userId: %v", userId), err)
+		logger.Errorf("Couldn't get notes for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -234,7 +234,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, erro
 	err = attributevalue.UnmarshalListOfMaps(response.Items, &notes)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal notes for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal notes for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -278,7 +278,7 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 				RequestItems: writeReqs,
 			})
 			if err != nil {
-				logger.Error(fmt.Sprintf("error batch writing search terms for noteId: %v", noteId), err)
+				logger.Errorf("error batch writing search terms for noteId: %v. \n[Error]: %v", noteId, err)
 			}
 		}(writeReqs)
 	}
@@ -286,14 +286,14 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 
 }
 
-func (r noteRepo) findSearchTerms(userId string, query string, limit int) ([]string, error) {
+func (r noteRepo) noteIdsBySearchTerm(userId string, query string, limit int) ([]string, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(createSearchTermPK(userId, query))), expression.Key("SK").BeginsWith(database.SORT_KEY_SEARCH_INDEX.Note("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't build searchNotes expression for userId: %v", userId), err)
+		logger.Errorf("Couldn't build searchNotes expression for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -306,7 +306,7 @@ func (r noteRepo) findSearchTerms(userId string, query string, limit int) ([]str
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't search notes for userId: %v", userId), err)
+		logger.Errorf("Couldn't search notes for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -321,7 +321,7 @@ func (r noteRepo) findSearchTerms(userId string, query string, limit int) ([]str
 	err = attributevalue.UnmarshalListOfMaps(response.Items, &noteIdsSK)
 
 	if err != nil {
-		logger.Error(fmt.Sprintf("Couldn't unmarshal notes for userId: %v", userId), err)
+		logger.Errorf("Couldn't unmarshal notes for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
 
@@ -372,25 +372,13 @@ func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error
 			})
 
 			if err != nil {
-				logger.Error(fmt.Sprintf("error batch deleting search terms for noteId: %v", noteId), err)
+				logger.Errorf("error batch deleting search terms for noteId: %v. \n[Error]: %v", noteId, err)
 			}
 		}(deleteReqs)
 
 	}
 
 	wg.Wait()
-
-	return nil
-}
-
-func (r noteRepo) getAllSearchTerms(userId string, noteId string) ([]string, error) {
-	// TODO - get all search terms for note
-
-	return nil, nil
-}
-
-// TODO - delete all search terms for user
-func (r noteRepo) deleteAllSearchTerms(userId string, noteId int64) error {
 
 	return nil
 }
