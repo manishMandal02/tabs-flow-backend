@@ -2,7 +2,7 @@ package notifications
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
@@ -80,7 +80,7 @@ func (nr *noteRepo) getNotification(userId, notificationId string) (notification
 	}
 
 	if result.Item == nil {
-		return notification{}, fmt.Errorf(errMsg.notificationsEmpty)
+		return notification{}, errors.New(errMsg.notificationsEmpty)
 	}
 
 	var n notification
@@ -117,7 +117,7 @@ func (nr *noteRepo) getUserNotifications(userId string) ([]notification, error) 
 	}
 
 	if result.Count < 1 {
-		return nil, fmt.Errorf(errMsg.notificationsEmpty)
+		return nil, errors.New(errMsg.notificationsEmpty)
 	}
 
 	var notifications []notification

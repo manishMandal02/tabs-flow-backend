@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -73,7 +72,8 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(http_api.RespBody{Success: true, Message: "OTP sent successfully"})
+	http_api.SuccessResMsg(w, "OTP sent successfully")
+
 }
 
 func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
@@ -100,8 +100,6 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg.validateOTP, http.StatusBadGateway)
 		return
 	}
-
-	logger.Dev(fmt.Sprintf("OTP valid: %v", valid))
 
 	if !valid {
 		http.Error(w, errMsg.inValidOTP, http.StatusBadRequest)

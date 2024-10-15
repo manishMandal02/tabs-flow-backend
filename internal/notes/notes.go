@@ -27,6 +27,7 @@ var errMsg = struct {
 	noteUpdate       string
 	noteGet          string
 	notesGet         string
+	notesGetEmpty    string
 	noteDelete       string
 	notesSearch      string
 	notesSearchEmpty string
@@ -34,6 +35,7 @@ var errMsg = struct {
 	noteCreate:       "error creating note",
 	noteUpdate:       "error updating note",
 	noteGet:          "error getting note",
+	notesGetEmpty:    "no notes found",
 	notesGet:         "error getting notes",
 	noteDelete:       "error deleting note",
 	notesSearch:      "error searching notes",

@@ -67,8 +67,6 @@ func NewZeptoMail() *ZeptoMail {
 
 func (z *ZeptoMail) SendOTPMail(otp string, to *NameAddr) error {
 
-	logger.Dev(fmt.Sprintf("Sending otp mail to %v", *to))
-
 	body := &otpEmailBody{
 		ZeptoMailBody: &ZeptoMailBody{
 			TemplateKey: ZeptoMailTemplates["otp"],

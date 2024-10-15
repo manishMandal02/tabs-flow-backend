@@ -60,7 +60,7 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	err = attributevalue.UnmarshalMap(response.Item, &user)
 
 	if response.Item == nil || response.Item["PK"] == nil {
-		return nil, fmt.Errorf(errMsg.userNotFound)
+		return nil, errors.New(errMsg.userNotFound)
 	}
 
 	if err != nil {
@@ -69,7 +69,7 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	}
 
 	if user.Id == "" {
-		return nil, fmt.Errorf(errMsg.userNotFound)
+		return nil, errors.New(errMsg.userNotFound)
 	}
 
 	return user, nil

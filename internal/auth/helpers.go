@@ -99,7 +99,7 @@ func createNewSession(email, userAgent string, aR authRepository) (*createSessio
 		NewUser bool   `json:"isNewUser"`
 	}
 
-	resData := &respData{}
+	var resData *respData
 
 	if err != nil || userId == "" {
 		// new user

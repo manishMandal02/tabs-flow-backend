@@ -2,6 +2,7 @@ package notes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -136,7 +137,7 @@ func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
 	}
 
 	if len(response.Item) == 0 {
-		return nil, fmt.Errorf(errMsg.noteGet)
+		return nil, errors.New(errMsg.notesGetEmpty)
 	}
 
 	note := &note{}
@@ -174,7 +175,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]note, erro
 	}
 
 	if len(response.Responses[r.db.TableName]) < 1 {
-		return nil, fmt.Errorf(errMsg.notesGet)
+		return nil, errors.New(errMsg.notesGet)
 	}
 
 	notes := []note{}
@@ -225,7 +226,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, erro
 	}
 
 	if len(response.Items) < 1 {
-		return nil, fmt.Errorf(errMsg.notesGet)
+		return nil, errors.New(errMsg.notesGet)
 	}
 
 	notes := []note{}
@@ -310,7 +311,7 @@ func (r noteRepo) findSearchTerms(userId string, query string, limit int) ([]str
 	}
 
 	if len(response.Items) < 1 {
-		return nil, fmt.Errorf(errMsg.notesSearchEmpty)
+		return nil, errors.New(errMsg.notesSearchEmpty)
 	}
 
 	noteIdsSK := []struct {

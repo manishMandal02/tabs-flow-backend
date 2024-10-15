@@ -85,7 +85,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 	}
 
 	if len(response.Item) == 0 {
-		return nil, fmt.Errorf(errMsg.spaceGet)
+		return nil, errors.New(errMsg.spaceGet)
 	}
 
 	s := &space{}
@@ -98,7 +98,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 	}
 
 	if s.Id == "" {
-		return nil, fmt.Errorf(errMsg.spaceGet)
+		return nil, errors.New(errMsg.spaceGet)
 	}
 
 	return s, nil
@@ -127,7 +127,7 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 	}
 
 	if len(response.Items) < 1 {
-		return nil, fmt.Errorf(errMsg.spaceGetAllByUser)
+		return nil, errors.New(errMsg.spaceGetAllByUser)
 	}
 
 	spaces := []space{}
@@ -258,7 +258,7 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 		return nil, err
 	}
 	if len(response.Item) == 0 {
-		return nil, fmt.Errorf(errMsg.tabsGet)
+		return nil, errors.New(errMsg.tabsGet)
 	}
 
 	tabsAttr, ok := response.Item["Tabs"]
@@ -266,7 +266,7 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 	if !ok {
 		errStr := fmt.Sprintf("Tab attribute not found for spaceId: %v for userId: %v", spaceId, userId)
 		logger.Error(errStr, err)
-		return nil, fmt.Errorf(errStr)
+		return nil, errors.New(errStr)
 	}
 
 	tabs := []tab{}
@@ -326,7 +326,7 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	}
 
 	if len(response.Item) == 0 {
-		return nil, fmt.Errorf(errMsg.groupsGet)
+		return nil, errors.New(errMsg.groupsGet)
 	}
 
 	groupsAttr, ok := response.Item["Groups"]
@@ -334,7 +334,7 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	if !ok {
 		errStr := fmt.Sprintf("Groups attribute not found for spaceId: %v for userId: %v", spaceId, userId)
 		logger.Error(errStr, err)
-		return nil, fmt.Errorf(errStr)
+		return nil, errors.New(errStr)
 	}
 
 	groups := []group{}
@@ -397,7 +397,7 @@ func (r spaceRepo) getSnoozedTab(userId, spaceId string, snoozedAt int64) (*snoo
 	}
 
 	if len(response.Item) == 0 {
-		return nil, fmt.Errorf(errMsg.snoozedTabsGet)
+		return nil, errors.New(errMsg.snoozedTabsGet)
 	}
 	snoozedTab := &snoozedTab{}
 
@@ -447,7 +447,7 @@ func (r spaceRepo) getAllSnoozedTabs(userId string, lastSnoozedTabId int64) (*[]
 	}
 
 	if len(response.Items) < 1 {
-		return nil, fmt.Errorf(errMsg.snoozedTabsGet)
+		return nil, errors.New(errMsg.snoozedTabsGet)
 	}
 
 	snoozedTabs := []snoozedTab{}
@@ -497,7 +497,7 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 	}
 
 	if len(response.Items) < 1 {
-		return nil, fmt.Errorf(errMsg.snoozedTabsGet)
+		return nil, errors.New(errMsg.snoozedTabsGet)
 	}
 	snoozedTabs := []snoozedTab{}
 

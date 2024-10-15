@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	ErrorInvalidRequest        = "Invalid request"
-	ErrorRouteNotFound         = "Route not found"
-	ErrorMethodNotAllowed      = "Method not allowed"
-	ErrorEmptyLambdaEvent      = "Empty lambda event"
-	ErrorCouldNotMarshalItem   = "Could not marshal item"
-	ErrorCouldNotUnMarshalItem = "Could not  unmarshal item"
+	ErrorInvalidRequest   = "Invalid request"
+	ErrorRouteNotFound    = "Route not found"
+	ErrorMethodNotAllowed = "Method not allowed"
+	ErrorEmptyLambdaEvent = "Empty lambda event"
+	ErrorMarshalling      = "Error marshaling"
+	ErrorUnMarshalling    = "Error un_marshaling "
 )
 
 type ErrorBody struct {
@@ -27,17 +27,30 @@ type RespBody struct {
 func SuccessResData(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(RespBody{Success: true, Data: data})
+	err := json.NewEncoder(w).Encode(RespBody{Success: true, Data: data})
+
+	if err != nil {
+		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
+		return
+	}
 }
 
 func SuccessResMsg(w http.ResponseWriter, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg})
+	err := json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg})
+	if err != nil {
+		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
+		return
+	}
 }
 
 func SuccessResMsgWithBody(w http.ResponseWriter, msg string, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg, Data: data})
+	err := json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg, Data: data})
+	if err != nil {
+		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
+		return
+	}
 }
