@@ -61,7 +61,9 @@ export class NotificationsService extends Construct {
       environment: {
         NOTIFICATIONS_QUEUE_ARN: notificationsQueue.queueArn,
         SCHEDULER_ROLE_ARN: schedulerRole.roleArn,
-        EMAIL_QUEUE_URL: props.emailQueue.queueUrl
+        EMAIL_QUEUE_URL: props.emailQueue.queueUrl,
+        VAPID_PRIVATE_KEY: config.Env.VAPID_PRIVATE_KEY,
+        VAPID_PUBLIC_KEY: config.Env.VAPID_PUBLIC_KEY
       }
     });
 

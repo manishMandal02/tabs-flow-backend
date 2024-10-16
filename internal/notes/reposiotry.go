@@ -17,12 +17,12 @@ import (
 )
 
 type noteRepository interface {
-	createNote(userId string, n *note) error
-	getNote(userId string, noteId string) (*note, error)
-	getNotesByIds(userId string, noteIds *[]string) (*[]note, error)
-	getNotesByUser(userId string, lastNoteId int64) (*[]note, error)
-	updateNote(userId string, n *note) error
-	deleteNote(userId string, noteId int64) (*note, error)
+	createNote(userId string, n *Note) error
+	GetNote(userId string, noteId string) (*Note, error)
+	getNotesByIds(userId string, noteIds *[]string) (*[]Note, error)
+	getNotesByUser(userId string, lastNoteId int64) (*[]Note, error)
+	updateNote(userId string, n *Note) error
+	deleteNote(userId string, noteId int64) (*Note, error)
 	// search
 	indexSearchTerms(userId, noteId string, terms []string) error
 	noteIdsBySearchTerm(userId string, query string, limit int) ([]string, error)
@@ -34,14 +34,14 @@ type noteRepo struct {
 	searchIndexTable *database.DDB
 }
 
-func newNoteRepository(db *database.DDB, searchIndexTable *database.DDB) noteRepository {
+func NewNoteRepository(db *database.DDB, searchIndexTable *database.DDB) noteRepository {
 	return &noteRepo{
 		db:               db,
 		searchIndexTable: searchIndexTable,
 	}
 }
 
-func (r noteRepo) createNote(userId string, n *note) error {
+func (r noteRepo) createNote(userId string, n *Note) error {
 	av, err := attributevalue.MarshalMap(n)
 
 	if err != nil {
@@ -66,7 +66,7 @@ func (r noteRepo) createNote(userId string, n *note) error {
 	return nil
 }
 
-func (r noteRepo) updateNote(userId string, n *note) error {
+func (r noteRepo) updateNote(userId string, n *Note) error {
 	av, err := attributevalue.MarshalMap(n)
 
 	if err != nil {
@@ -90,7 +90,7 @@ func (r noteRepo) updateNote(userId string, n *note) error {
 	return nil
 }
 
-func (r noteRepo) deleteNote(userId string, noteId int64) (*note, error) {
+func (r noteRepo) deleteNote(userId string, noteId int64) (*Note, error) {
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
 		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%d", noteId))},
@@ -107,7 +107,7 @@ func (r noteRepo) deleteNote(userId string, noteId int64) (*note, error) {
 		return nil, err
 	}
 
-	var n = note{}
+	var n = Note{}
 
 	err = attributevalue.UnmarshalMap(res.Attributes, &n)
 
@@ -119,7 +119,7 @@ func (r noteRepo) deleteNote(userId string, noteId int64) (*note, error) {
 	return &n, nil
 }
 
-func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
+func (r noteRepo) GetNote(userId string, noteId string) (*Note, error) {
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
@@ -140,7 +140,7 @@ func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
 		return nil, errors.New(errMsg.notesGetEmpty)
 	}
 
-	note := &note{}
+	note := &Note{}
 
 	err = attributevalue.UnmarshalMap(response.Item, note)
 	if err != nil {
@@ -151,7 +151,7 @@ func (r noteRepo) getNote(userId string, noteId string) (*note, error) {
 	return note, nil
 }
 
-func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]note, error) {
+func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, error) {
 	keys := []map[string]types.AttributeValue{}
 
 	for _, noteId := range *noteIds {
@@ -178,7 +178,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]note, erro
 		return nil, errors.New(errMsg.notesGet)
 	}
 
-	notes := []note{}
+	notes := []Note{}
 
 	err = attributevalue.UnmarshalListOfMaps(response.Responses[r.db.TableName], &notes)
 
@@ -191,7 +191,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]note, erro
 
 }
 
-func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, error) {
+func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.Note("")))
 
@@ -229,7 +229,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]note, erro
 		return nil, errors.New(errMsg.notesGet)
 	}
 
-	notes := []note{}
+	notes := []Note{}
 
 	err = attributevalue.UnmarshalListOfMaps(response.Items, &notes)
 

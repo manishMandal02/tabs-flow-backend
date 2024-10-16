@@ -10,7 +10,7 @@ import (
 func Router(w http.ResponseWriter, r *http.Request) {
 
 	db := database.New()
-	sr := newSpaceRepository(db)
+	sr := NewSpaceRepository(db)
 	sh := newSpaceHandler(sr)
 
 	// middleware to get userId from jwt token

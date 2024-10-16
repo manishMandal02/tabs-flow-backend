@@ -39,7 +39,7 @@ type group struct {
 	Theme     string `json:"theme"`
 }
 
-type snoozedTab struct {
+type SnoozedTab struct {
 	URL          string `json:"url"`
 	Title        string `json:"title"`
 	Icon         string `json:"icon"`

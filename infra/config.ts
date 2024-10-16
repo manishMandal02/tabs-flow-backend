@@ -50,9 +50,11 @@ const getEnv = (key: string) => {
 };
 
 const Env = {
-  API_DOMAIN: getEnv('API_DOMAIN'),
+  API_DOMAIN_NAME: getEnv('API_DOMAIN_NAME'),
   JWT_SECRET_KEY: getEnv('JWT_SECRET_KEY'),
-  ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY')
+  ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY'),
+  VAPID_PRIVATE_KEY: getEnv('VAPID_PRIVATE_KEY'),
+  VAPID_PUBLIC_KEY: getEnv('VAPID_PUBLIC_KEY')
 };
 
 export const config = {

@@ -28,7 +28,7 @@ func newNoteHandler(nr noteRepository) *noteHandler {
 func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 	userId := r.URL.Query().Get("userId")
 
-	note := &note{}
+	note := &Note{}
 
 	err := json.NewDecoder(r.Body).Decode(note)
 
@@ -63,6 +63,7 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 	//  if remainder is set, create a schedule to send reminder
 	if note.RemainderAt != 0 {
 		event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
+			UserId:    userId,
 			NoteId:    note.Id,
 			SubEvent:  events.SubEventCreate,
 			TriggerAt: time.Unix(note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
@@ -88,7 +89,7 @@ func (h noteHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notes, err := h.r.getNote(userId, noteId)
+	notes, err := h.r.GetNote(userId, noteId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -166,7 +167,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	userId := r.URL.Query().Get("userId")
 
 	body := struct {
-		*note
+		*Note
 	}{}
 
 	err := json.NewDecoder(r.Body).Decode(&body)
@@ -176,7 +177,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = body.note.validate()
+	err = body.Note.validate()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -184,7 +185,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get old note
-	oldNote, err := h.r.getNote(userId, body.note.Id)
+	oldNote, err := h.r.GetNote(userId, body.Note.Id)
 
 	if err != nil {
 		http.Error(w, errMsg.noteUpdate, http.StatusInternalServerError)
@@ -192,7 +193,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	err = h.r.updateNote(userId, body.note)
+	err = h.r.updateNote(userId, body.Note)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -200,23 +201,23 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if remainder is updated/removed, update/delete the schedule if it has been set previously
-	if oldNote.RemainderAt != body.note.RemainderAt {
-		if body.note.RemainderAt != 0 {
+	if oldNote.RemainderAt != body.Note.RemainderAt {
+		if body.Note.RemainderAt != 0 {
 			// update schedule
 			event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
-				NoteId:    body.note.Id,
+				NoteId:    body.Note.Id,
 				SubEvent:  events.SubEventUpdate,
-				TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+				TriggerAt: time.Unix(body.Note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
 			})
 			err = events.NewNotificationQueue().AddMessage(event)
 		}
 
-		if body.note.RemainderAt == 0 {
+		if body.Note.RemainderAt == 0 {
 			// delete schedule
 			event := events.New(events.EventTypeScheduleNoteRemainder, &events.ScheduleNoteRemainderPayload{
-				NoteId:    body.note.Id,
+				NoteId:    body.Note.Id,
 				SubEvent:  events.SubEventDelete,
-				TriggerAt: time.Unix(body.note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
+				TriggerAt: time.Unix(body.Note.RemainderAt, 0).Format(config.DATE_TIME_FORMAT),
 			})
 			err = events.NewNotificationQueue().AddMessage(event)
 		}
@@ -224,26 +225,26 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//  if title, note or domain is updated, re-index search terms
-	if oldNote.Domain != body.note.Domain || oldNote.Title != body.note.Title || oldNote.Text != body.note.Text {
+	if oldNote.Domain != body.Note.Domain || oldNote.Title != body.Note.Title || oldNote.Text != body.Note.Text {
 		// delete previous search terms
 		oldTerms := extractSearchTerms(oldNote.Title, oldNote.Text, oldNote.Domain)
 
 		err = h.r.deleteSearchTerms(userId, oldNote.Id, oldTerms)
 
 		if err != nil {
-			logger.Errorf("error deleting search terms for noteId: %v. \n[Error]: %v", body.note.Id, err)
+			logger.Errorf("error deleting search terms for noteId: %v. \n[Error]: %v", body.Note.Id, err)
 			http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
 			return
 		}
 
 		// index new search terms for note
-		terms := extractSearchTerms(body.note.Title, body.note.Text, body.note.Domain)
-		err = h.r.indexSearchTerms(userId, body.note.Id, terms)
+		terms := extractSearchTerms(body.Note.Title, body.Note.Text, body.Note.Domain)
+		err = h.r.indexSearchTerms(userId, body.Note.Id, terms)
 
 	}
 
 	if err != nil {
-		logger.Errorf("error indexing search terms for noteId: %v. \n[Error]: %v", body.note.Id, err)
+		logger.Errorf("error indexing search terms for noteId: %v. \n[Error]: %v", body.Note.Id, err)
 		http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
 		return
 	}

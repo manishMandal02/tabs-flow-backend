@@ -238,7 +238,7 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("spaceId")
 
-	sT := snoozedTab{}
+	sT := SnoozedTab{}
 
 	err := json.NewDecoder(r.Body).Decode(&sT)
 
@@ -258,6 +258,8 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 
 	// create a schedule for the tab, to un-snooze the tab
 	event := events.New(events.EventTypeScheduleSnoozedTab, &events.ScheduleSnoozedTabPayload{
+		UserId:       userId,
+		SpaceId:      spaceId,
 		SnoozedTabId: strconv.FormatInt(sT.SnoozedAt, 10),
 		SubEvent:     events.SubEventCreate,
 	})
@@ -321,7 +323,7 @@ func (h *spaceHandler) getSnoozedTabs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sT, err := h.sr.getSnoozedTab(userId, spaceId, snoozedAtInt)
+	sT, err := h.sr.GetSnoozedTab(userId, spaceId, snoozedAtInt)
 
 	if err != nil {
 		logger.Error("error getting snoozed tab", err)

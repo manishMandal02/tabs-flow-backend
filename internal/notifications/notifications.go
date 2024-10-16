@@ -26,16 +26,25 @@ type notification struct {
 }
 
 var errMsg = struct {
-	notificationCreate string
-	notificationUpdate string
-	notificationGet    string
-	notificationDelete string
-	notificationsGet   string
-	notificationsEmpty string
+	notificationCreate           string
+	notificationUpdate           string
+	notificationGet              string
+	notificationDelete           string
+	notificationsEmpty           string
+	notificationsSubscribe       string
+	notificationsSubscriptionGet string
 }{
-	notificationCreate: "error creating notification",
-	notificationUpdate: "error updating notification",
-	notificationDelete: "error deleting notification",
-	notificationGet:    "error getting notifications",
-	notificationsEmpty: "no notifications found",
+	notificationCreate:           "error creating notification",
+	notificationUpdate:           "error updating notification",
+	notificationDelete:           "error deleting notification",
+	notificationGet:              "error getting notifications",
+	notificationsEmpty:           "no notifications found",
+	notificationsSubscribe:       "error subscribing to notifications",
+	notificationsSubscriptionGet: "error getting notification subscription",
+}
+
+type PushSubscription struct {
+	Endpoint  string `json:"endpoint"`
+	AuthKey   string `json:"authKey"`
+	P256dhKey string `json:"p256dhKey"`
 }

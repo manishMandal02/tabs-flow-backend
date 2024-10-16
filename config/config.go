@@ -26,6 +26,8 @@ var (
 	AWS_CONFIG                  aws.Config
 	PADDLE_API_KEY              string
 	PADDLE_WEBHOOK_SECRET_KEY   string
+	VAPID_PRIVATE_KEY           string
+	VAPID_PUBLIC_KEY            string
 
 	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
 	DATE_TIME_FORMAT         = "2006-01-02T15:04:05"
@@ -95,4 +97,6 @@ func Init() {
 	ZEPTO_MAIL_API_KEY = os.Getenv("ZEPTO_MAIL_API_KEY")
 	PADDLE_API_KEY = os.Getenv("PADDLE_API_KEY")
 	PADDLE_WEBHOOK_SECRET_KEY = os.Getenv("PADDLE_WEBHOOK_SECRET_KEY")
+	VAPID_PRIVATE_KEY = os.Getenv("VAPID_PRIVATE_KEY")
+	VAPID_PUBLIC_KEY = os.Getenv("VAPID_PUBLIC_KEY")
 }

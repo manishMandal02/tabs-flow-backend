@@ -29,7 +29,7 @@ export class RestApi extends Construct {
 
     // Create an ACM certificate for your domain
     const certificate = new acm.Certificate(this, 'Certificate', {
-      domainName: config.Env.API_DOMAIN,
+      domainName: config.Env.API_DOMAIN_NAME,
       validation: acm.CertificateValidation.fromEmail(),
       certificateName: config.AppName + 'api-cert'
     });
@@ -40,7 +40,7 @@ export class RestApi extends Construct {
 
     // Create a custom domain name for your API
     const domainName = new apiGateway.DomainName(this, 'CustomDomainName', {
-      domainName: config.Env.API_DOMAIN,
+      domainName: config.Env.API_DOMAIN_NAME,
       certificate: certificate,
       endpointType: apiGateway.EndpointType.REGIONAL
     });

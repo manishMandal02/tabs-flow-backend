@@ -41,17 +41,18 @@ Our serverless architecture leverages various AWS services to create a scalable 
 
 ## Entities
 
-| Entity       | Description               | Attributes                                                    |
-| ------------ | ------------------------- | ------------------------------------------------------------- |
-| User         | user profile              | Id, email, FullName, ProfilePic,                              |
-| Preferences  | app preferences           | UserId, CmdPalette{}, Notes{}, AutoDiscard{}, OpenSpace, etc. |
-| Space        | workspaces                | Id, UserId, Title, Emoji, Theme, WindowId ActiveTabIndex      |
-| Tab          | tabs within space         | SpaceId, Index, Title, URL, FaviconURL, GroupId               |
-| Group        | tab groups                | Id, SpaceId, Title, Color, Collapsed                          |
-| Note         | user notes                | Id, UserId, SpaceId,, Title, Note, RemainderAt, UpdatedAt     |
-| SnoozedTab   | snoozed tabs in space     | SpaceId, Title, URL, FaviconURL, SnoozedUntil                 |
-| Notification | notification & remainders | UserId, Type, Timestamp, Note{}, SnoozedTab{}                 |
-| Subscription | user subscriptions        | Id, PlanId, Plan, Status, Start, End, NextBillingDate         |
+| Entity                   | Description                     | Attributes                                                    |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------- |
+| User                     | user profile                    | Id, email, FullName, ProfilePic,                              |
+| Preferences              | app preferences                 | UserId, CmdPalette{}, Notes{}, AutoDiscard{}, OpenSpace, etc. |
+| Space                    | workspaces                      | Id, UserId, Title, Emoji, Theme, WindowId ActiveTabIndex      |
+| Tab                      | tabs within space               | SpaceId, Index, Title, URL, FaviconURL, GroupId               |
+| Group                    | tab groups                      | Id, SpaceId, Title, Color, Collapsed                          |
+| Note                     | user notes                      | Id, UserId, SpaceId,, Title, Note, RemainderAt, UpdatedAt     |
+| SnoozedTab               | snoozed tabs in space           | SpaceId, Title, URL, FaviconURL, SnoozedUntil                 |
+| Notification             | notifications & remainders      | UserId, Type, Timestamp, Note{}, SnoozedTab{}                 |
+| NotificationSubscription | notification subscription insfo | UserId,Endpoint, AuthKey, P256dhKey                           |
+| Subscription             | user subscriptions              | Id, PlanId, Plan, Status, Start, End, NextBillingDate         |
 
 ## Data Access Patterns (Main Table)
 
@@ -79,6 +80,7 @@ Our serverless architecture leverages various AWS services to create a scalable 
 |                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
 |                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
 |                    | U#Notification#{Id/CreatedAt}          | Type, Timestamp, Note{}, SnoozedTab{}                    |
+|                    | U#NotificationSubscription             | UserId,Endpoint, AuthKey, P256dhKey                      |
 |                    | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex |
 |                    | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }             |
 |                    | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }                            |

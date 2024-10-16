@@ -10,7 +10,7 @@ import (
 func Router(w http.ResponseWriter, r *http.Request) {
 	db := database.New()
 	searchIndexTable := database.NewSearchIndexTable()
-	nr := newNoteRepository(db, searchIndexTable)
+	nr := NewNoteRepository(db, searchIndexTable)
 	nh := newNoteHandler(nr)
 
 	// middleware to get userId from jwt token

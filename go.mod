@@ -20,6 +20,7 @@ require (
 )
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.3.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.32 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.13 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.21 // indirect
@@ -39,12 +40,13 @@ require (
 	github.com/ggicci/owl v0.8.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kljensen/snowball v0.10.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 )

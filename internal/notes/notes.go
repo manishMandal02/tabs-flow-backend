@@ -2,7 +2,7 @@ package notes
 
 import "github.com/go-playground/validator/v10"
 
-type note struct {
+type Note struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
 	Text        string `json:"text"`
@@ -12,7 +12,7 @@ type note struct {
 	UpdatedAt   int64  `json:"updatedAt,omitempty"`
 }
 
-func (n *note) validate() error {
+func (n *Note) validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	err := validate.Struct(n)
 	if err != nil {

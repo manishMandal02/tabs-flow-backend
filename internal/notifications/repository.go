@@ -13,10 +13,12 @@ import (
 )
 
 type notificationRepository interface {
-	createNotification(userId string, notification *notification) error
+	create(userId string, notification *notification) error
+	get(userId, notificationId string) (notification, error)
+	delete(userId, notificationId string) error
+	subscribe(userId string, s *PushSubscription) error
+	getSubscriptionInfo(userId string) (*PushSubscription, error)
 	getUserNotifications(userId string) ([]notification, error)
-	getNotification(userId, notificationId string) (notification, error)
-	deleteNotification(userId, notificationId string) error
 }
 
 type noteRepo struct {
@@ -29,7 +31,7 @@ func newRepository(db *database.DDB) notificationRepository {
 	}
 }
 
-func (nr *noteRepo) createNotification(userId string, notification *notification) error {
+func (nr *noteRepo) create(userId string, notification *notification) error {
 
 	item, err := attributevalue.MarshalMap(notification)
 
@@ -58,7 +60,68 @@ func (nr *noteRepo) createNotification(userId string, notification *notification
 	return nil
 }
 
-func (nr *noteRepo) getNotification(userId, notificationId string) (notification, error) {
+func (nr *noteRepo) subscribe(userId string, s *PushSubscription) error {
+
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{
+			Value: userId,
+		},
+		database.SK_NAME: &types.AttributeValueMemberS{
+			Value: database.SORT_KEY.NotificationSubscription,
+		},
+	}
+
+	_, err := nr.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: &nr.db.TableName,
+		Item:      key,
+	})
+
+	if err != nil {
+		logger.Error("error putting notification subscription to dynamodb", err)
+		return err
+	}
+
+	return nil
+}
+
+func (nr *noteRepo) getSubscriptionInfo(userId string) (*PushSubscription, error) {
+
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{
+			Value: userId,
+		},
+		database.SK_NAME: &types.AttributeValueMemberS{
+			Value: database.SORT_KEY.NotificationSubscription,
+		},
+	}
+
+	result, err := nr.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: &nr.db.TableName,
+		Key:       key,
+	})
+
+	if err != nil {
+		logger.Error("error getting notification subscription from dynamodb", err)
+		return nil, err
+	}
+
+	if result.Item == nil {
+		logger.Errorf(errMsg.notificationsSubscriptionGet)
+		return nil, errors.New(errMsg.notificationsSubscriptionGet)
+	}
+
+	var s PushSubscription
+	err = attributevalue.UnmarshalMap(result.Item, &s)
+	if err != nil {
+		logger.Error("error un_marshalling notification subscription", err)
+		return nil, err
+	}
+
+	return &s, nil
+
+}
+
+func (nr *noteRepo) get(userId, notificationId string) (notification, error) {
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{
@@ -133,7 +196,7 @@ func (nr *noteRepo) getUserNotifications(userId string) ([]notification, error) 
 
 }
 
-func (nr *noteRepo) deleteNotification(userId, notificationId string) error {
+func (nr *noteRepo) delete(userId, notificationId string) error {
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{

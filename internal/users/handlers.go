@@ -108,7 +108,7 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		p = "http"
 	}
 
-	authServiceURL := fmt.Sprintf("%s://%s/auth/user/", p, r.Host)
+	authServiceURL := fmt.Sprintf("%s://%s/auth/user/", p, config.API_DOMAIN_NAME)
 
 	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, bodyJson)
 
