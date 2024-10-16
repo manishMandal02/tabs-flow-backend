@@ -3,6 +3,7 @@ package email
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
 
@@ -10,101 +11,106 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
-func SendEmail(_ context.Context, event lambda_events.SQSEvent) error {
-	// TODO: handle multiple events process
-
-	var err error
-
+func SendEmail(_ context.Context, event lambda_events.SQSEvent) (interface{}, error) {
 	if len(event.Records) == 0 {
-		err = fmt.Errorf("no records found in event")
+		err := fmt.Errorf("no records found in event")
 		logger.Error(err.Error(), err)
-		return err
+		return nil, err
+	}
+	//  process batch of events
+	for _, record := range event.Records {
+		event := events.Event[any]{}
+
+		logger.Info("processing event_type: %v", event.EventType)
+
+		err := event.FromJSON(record.Body)
+		if err != nil {
+			logger.Errorf("error un_marshalling event: %v", err)
+			continue
+		}
+
+		err = processEvent(&event)
+
+		if err != nil {
+			logger.Errorf("error processing event: %v", err)
+			continue
+		}
+
+		// remove message from sqs
+		q := events.NewEmailQueue()
+
+		err = q.DeleteMessage(record.ReceiptHandle)
+
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
-	message := event.Records[0]
+	return nil, nil
+}
 
-	eventType := *message.MessageAttributes["event_type"].StringValue
+func processEvent(event *events.Event[any]) error {
 
-	if eventType == "" {
-		err = fmt.Errorf("event_type is empty")
-		logger.Error("event_type field missing in message", err)
-		return err
-	}
-
-	logger.Info("event_type: %v", eventType)
-
-	switch events.EventType(eventType) {
+	switch events.EventType(event.EventType) {
 	case events.EventTypeSendOTP:
-		ev := &events.Event[events.SendOTPPayload]{}
-
-		err := ev.FromJSON(message.Body)
-
-		if err != nil {
-			logger.Error("error un_marshalling event", err)
-			return err
-		}
-
-		to := &NameAddr{
-			Name:    ev.Payload.Email,
-			Address: ev.Payload.Email,
-		}
-
-		z := NewZeptoMail()
-
-		otp := ev.Payload.OTP
-
-		err = z.SendOTPMail(otp, to)
-
-		if err != nil {
-			return err
-		}
-
-		// remove message from sqs
-		q := events.NewEmailQueue()
-
-		err = q.DeleteMessage(message.ReceiptHandle)
-
-		if err != nil {
-			return err
-		}
-
-		return nil
-
+		return validateAndHandle(event, handleSendOTPMail)
 	case events.EventTypeUserRegistered:
-		z := NewZeptoMail()
-
-		ev := &events.Event[events.UserRegisteredPayload]{}
-
-		err = ev.FromJSON(message.Body)
-
-		if err != nil {
-			logger.Error("error un_marshalling event", err)
-			return err
-		}
-
-		to := &NameAddr{
-			Name:    ev.Payload.Email,
-			Address: ev.Payload.Email,
-		}
-
-		err = z.sendWelcomeMail(to, ev.Payload.TrailEndDate)
-
-		if err != nil {
-			return err
-		}
-
-		// remove message from sqs
-		q := events.NewEmailQueue()
-
-		err = q.DeleteMessage(message.ReceiptHandle)
-
-		if err != nil {
-			return err
-		}
-		return nil
+		return validateAndHandle(event, handleUserRegistered)
 
 	default:
-		logger.Errorf("Unknown sqs event: %v", eventType)
+		logger.Errorf("Unknown sqs event: %v", event.EventType)
 	}
+
 	return nil
+
+}
+
+func handleSendOTPMail(event *events.Event[events.SendOTPPayload]) error {
+
+	to := &NameAddr{
+		Name:    event.Payload.Email,
+		Address: event.Payload.Email,
+	}
+
+	z := NewZeptoMail()
+
+	otp := event.Payload.OTP
+
+	err := z.SendOTPMail(otp, to)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handleUserRegistered(event *events.Event[events.UserRegisteredPayload]) error {
+	z := NewZeptoMail()
+
+	to := &NameAddr{
+		Name:    event.Payload.Email,
+		Address: event.Payload.Email,
+	}
+
+	err := z.sendWelcomeMail(to, event.Payload.TrailEndDate)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// * helpers
+// assert payload and handle event
+func validateAndHandle[T any](event *events.Event[any], handler func(T) error) error {
+	payload, ok := (*event.Payload).(T)
+	if !ok {
+		err := fmt.Errorf("payload is not of type %s", reflect.TypeOf((*T)(nil)).Elem())
+		logger.Errorf("Error asserting payload: %v", err)
+		return err
+	}
+	return handler(payload)
 }
