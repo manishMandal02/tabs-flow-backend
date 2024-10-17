@@ -31,8 +31,8 @@ cdk-deploy-stack-service:
 cdk-deploy-stack-stateful:  
 	cd infra/ && cdk deploy StatefulStack --profile tabsflow-dev
 
-cdk-destroy:  
-	cd infra/ && cdk destroy --all --profile tabsflow-dev
+cdk-destroy-stack-service:  
+	cd infra/ && cdk destroy ServiceStack --profile tabsflow-dev
 
 go-test:
 	echo test ${name}

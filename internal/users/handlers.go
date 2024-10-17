@@ -72,11 +72,9 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	logger.Dev("userExists: %v\n, err: %v", userExists, err)
 
-	if err != nil {
-		if err.Error() != errMsg.userNotFound {
-			http.Error(w, errMsg.getUser, http.StatusInternalServerError)
-			return
-		}
+	if err != nil && err.Error() != errMsg.userNotFound {
+		http.Error(w, errMsg.getUser, http.StatusInternalServerError)
+		return
 	}
 
 	if userExists != nil {

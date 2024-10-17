@@ -58,7 +58,7 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 
 	// send email message to SQS queue
 	// send USER_REGISTERED event to email service (queue)
-	event := events.New(events.EventTypeUserRegistered, &events.SendOTPPayload{
+	event := events.New(events.EventTypeSendOTP, &events.SendOTPPayload{
 		Email: b.Email,
 		OTP:   otp,
 	})

@@ -1,22 +1,18 @@
 import { Duration } from 'aws-cdk-lib';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { Domain } from 'domain';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const Dev = {
-  Stage: 'dev'
-};
-
-const Prod = {
-  Stage: 'prod'
+const Stage = {
+  Dev: 'dev',
+  Prod: 'prod'
 };
 
 const dynamoDB = {
-  MainTableName: 'TabsFlow',
+  MainTableName: 'Main',
   SessionsTableName: 'Sessions',
   SearchIndexTableName: 'SearchIndex',
   PrimaryKey: 'PK',
@@ -50,6 +46,7 @@ const getEnv = (key: string) => {
 };
 
 const Env = {
+  DEPLOY_STAGE: getEnv('DEPLOY_STAGE'),
   API_DOMAIN_NAME: getEnv('API_DOMAIN_NAME'),
   JWT_SECRET_KEY: getEnv('JWT_SECRET_KEY'),
   ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY'),
@@ -58,8 +55,7 @@ const Env = {
 };
 
 export const config = {
-  Dev,
-  Prod,
+  Stage,
   Env,
   lambda,
   dynamoDB,

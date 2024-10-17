@@ -72,9 +72,9 @@ func Init() {
 		DDB_SESSIONS_TABLE_NAME = "TabsFlow-Sessions_dev"
 		EMAIL_QUEUE_URL = "TabsFlow-Emails_dev"
 		NOTIFICATIONS_QUEUE_URL = "TabsFlow-Notifications_dev"
-		// TODO - set role arn for scheduler
-		SCHEDULER_ROLE_ARN = "arn:aws:iam::410381041692:role/TabsFlow-SchedulerRole_dev"
-		NOTIFICATIONS_QUEUE_ARN = "arn:aws:sqs:ap-south-1:410381041692:TabsFlow-Notifications_dev"
+		// get  role arn for scheduler from aws console (only for local development)
+		SCHEDULER_ROLE_ARN = "arn:aws:iam::054037097197:role/ServiceStack-NotificationServiceSchedulerRole1E9E6E-o3aMhCWzw5qz"
+		NOTIFICATIONS_QUEUE_ARN = "arn:aws:sqs:ap-south-1:054037097197:TabsFlow-Notifications_dev"
 	} else {
 		// lambda config
 		config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(AWS_REGION))

@@ -59,6 +59,7 @@ export class NotificationsService extends Construct {
       architecture: config.lambda.Architecture,
       bundling: config.lambda.GoBundling,
       environment: {
+        DDB_MAIN_TABLE_NAME: props.db.tableName,
         NOTIFICATIONS_QUEUE_ARN: notificationsQueue.queueArn,
         SCHEDULER_ROLE_ARN: schedulerRole.roleArn,
         EMAIL_QUEUE_URL: props.emailQueue.queueUrl,

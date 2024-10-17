@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { Stack, StackProps, aws_dynamodb, aws_iam as iam, Fn } from 'aws-cdk-lib';
+import { Stack, StackProps, aws_dynamodb, aws_iam as iam, aws_ssm as ssm, Fn, Lazy } from 'aws-cdk-lib';
 
 import { EmailService } from './email';
 import { AuthService } from './auth';
@@ -18,9 +18,15 @@ export class ServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: ServiceStackProps) {
     super(scope, id, props);
 
-    const mainTableArn = Fn.importValue('MainTableArn');
-    const sessionsTableArn = Fn.importValue('SessionsTableArn');
-    const searchIndexTableArn = Fn.importValue('SearchIndexTableArn');
+    const mainTableArn = Lazy.string({
+      produce: () => ssm.StringParameter.valueFromLookup(this, '/main-table-arn')
+    });
+    const sessionsTableArn = Lazy.string({
+      produce: () => ssm.StringParameter.valueFromLookup(this, '/sessions-table-arn')
+    });
+    const searchIndexTableArn = Lazy.string({
+      produce: () => ssm.StringParameter.valueFromLookup(this, '/search-index-table-arn')
+    });
 
     const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTable', mainTableArn);
     const sessionsDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(

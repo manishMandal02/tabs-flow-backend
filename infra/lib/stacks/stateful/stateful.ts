@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { CfnOutput, RemovalPolicy, Stack, StackProps, aws_dynamodb } from 'aws-cdk-lib';
+import { CfnOutput, RemovalPolicy, Stack, StackProps, aws_dynamodb, aws_ssm as ssm } from 'aws-cdk-lib';
 import { config } from '../../../config';
 
 type StatefulStackProps = StackProps & {
@@ -13,8 +13,8 @@ export class StatefulStack extends Stack {
     super(scope, id, props);
 
     const mainTableName = `${config.AppName}-${config.dynamoDB.MainTableName}_${props.stage}`;
-    const sessionsTableName = `${config.AppName}-${config.dynamoDB.SessionsTableName}${props.stage}`;
-    const searchIndexTableName = `${config.AppName}-${config.dynamoDB.SearchIndexTableName}${props.stage}`;
+    const sessionsTableName = `${config.AppName}-${config.dynamoDB.SessionsTableName}_${props.stage}`;
+    const searchIndexTableName = `${config.AppName}-${config.dynamoDB.SearchIndexTableName}_${props.stage}`;
 
     const mainTable = new aws_dynamodb.Table(this, mainTableName, {
       tableName: mainTableName,
@@ -27,7 +27,7 @@ export class StatefulStack extends Stack {
         name: config.dynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING
       },
-      removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+      removalPolicy: props.stage === config.Stage.Dev ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
     });
 
     const sessionsTable = new aws_dynamodb.Table(this, sessionsTableName, {
@@ -42,7 +42,7 @@ export class StatefulStack extends Stack {
         type: aws_dynamodb.AttributeType.STRING
       },
       timeToLiveAttribute: config.dynamoDB.TTL,
-      removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+      removalPolicy: props.stage === config.Stage.Dev ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
     });
 
     const searchIndexTable = new aws_dynamodb.Table(this, searchIndexTableName, {
@@ -56,22 +56,23 @@ export class StatefulStack extends Stack {
         name: config.dynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING
       },
-      removalPolicy: props.stage === config.Dev.Stage ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+      removalPolicy: props.stage === config.Stage.Dev ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
     });
 
-    new CfnOutput(this, 'MainTableArn', {
-      exportName: 'MainTableArn',
-      value: mainTable.tableArn
+    new ssm.StringParameter(this, 'MainTableArn', {
+      parameterName: `/main-table-arn`,
+      stringValue: mainTable.tableArn,
+      tier: ssm.ParameterTier.STANDARD
     });
-
-    new CfnOutput(this, 'SessionsTableArn', {
-      exportName: 'SessionsTableArn',
-      value: sessionsTable.tableArn
+    new ssm.StringParameter(this, 'SessionsTableArn', {
+      parameterName: `/sessions-table-arn`,
+      stringValue: sessionsTable.tableArn,
+      tier: ssm.ParameterTier.STANDARD
     });
-
-    new CfnOutput(this, 'SearchIndexTableArn', {
-      exportName: 'SearchIndexTableArn',
-      value: searchIndexTable.tableArn
+    new ssm.StringParameter(this, 'SearchIndexTableArn', {
+      parameterName: `/search-index-table-arn`,
+      stringValue: searchIndexTable.tableArn,
+      tier: ssm.ParameterTier.STANDARD
     });
   }
 }

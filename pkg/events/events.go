@@ -41,10 +41,22 @@ type Event[T any] struct {
 }
 
 func New[e any](eventType EventType, payload *e) IEvent {
-	return Event[e]{
+	return &Event[e]{
 		EventType: eventType,
 		Payload:   payload,
 	}
+}
+
+func NewFromJSON[T any](jsonStr string) (*Event[T], error) {
+	var ev Event[T]
+
+	err := json.Unmarshal([]byte(jsonStr), &ev)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ev, nil
 }
 
 // event_type info as map for sqs message
@@ -68,8 +80,10 @@ func (e Event[any]) ToJSON() string {
 	return string(jsonBytes)
 }
 
-func (e Event[any]) FromJSON(jsonStr string) error {
+func (e *Event[T]) FromJSON(jsonStr string) error {
+
 	return json.Unmarshal([]byte(jsonStr), &e)
+
 }
 
 func (e Event[any]) GetEventType() EventType {

@@ -1,0 +1,5 @@
+{
+  "ssm:account=054037097197:parameterName=/main-table-arn:region=ap-south-1": "arn:aws:dynamodb:ap-south-1:054037097197:table/TabsFlow-TabsFlow_dev",
+  "ssm:account=054037097197:parameterName=/sessions-table-arn:region=ap-south-1": "arn:aws:dynamodb:ap-south-1:054037097197:table/TabsFlow-Sessions_dev",
+  "ssm:account=054037097197:parameterName=/search-index-table-arn:region=ap-south-1": "arn:aws:dynamodb:ap-south-1:054037097197:table/TabsFlow-SearchIndex_dev"
+}
