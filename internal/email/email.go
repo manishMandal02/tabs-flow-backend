@@ -3,7 +3,6 @@ package email
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
 
@@ -21,15 +20,13 @@ func SendEmail(_ context.Context, event lambda_events.SQSEvent) (interface{}, er
 	for _, record := range event.Records {
 		event := events.Event[any]{}
 
+		logger.Info("processing record: %v", record.Body)
+
+		eventType := *record.MessageAttributes["event_type"].StringValue
+
 		logger.Info("processing event_type: %v", event.EventType)
 
-		err := event.FromJSON(record.Body)
-		if err != nil {
-			logger.Errorf("error un_marshalling event: %v", err)
-			continue
-		}
-
-		err = processEvent(&event)
+		err := processEvent(eventType, record.Body)
 
 		if err != nil {
 			logger.Errorf("error processing event: %v", err)
@@ -50,32 +47,48 @@ func SendEmail(_ context.Context, event lambda_events.SQSEvent) (interface{}, er
 	return nil, nil
 }
 
-func processEvent(event *events.Event[any]) error {
+func processEvent(eventType string, body string) error {
 
-	switch events.EventType(event.EventType) {
+	switch events.EventType(eventType) {
 	case events.EventTypeSendOTP:
-		return validateAndHandle(event, handleSendOTPMail)
+
+		ev, err := events.NewFromJSON[events.SendOTPPayload](body)
+
+		if err != nil {
+			logger.Errorf("error un_marshalling event: %v", err)
+			return err
+		}
+
+		return handleSendOTPMail(*ev.Payload)
+
 	case events.EventTypeUserRegistered:
-		return validateAndHandle(event, handleUserRegistered)
+		ev, err := events.NewFromJSON[events.UserRegisteredPayload](body)
+
+		if err != nil {
+			logger.Errorf("error un_marshalling event: %v", err)
+			return err
+		}
+
+		return handleUserRegistered(*ev.Payload)
 
 	default:
-		logger.Errorf("Unknown sqs event: %v", event.EventType)
+		logger.Errorf("Unknown sqs event: %v", eventType)
 	}
 
 	return nil
 
 }
 
-func handleSendOTPMail(event *events.Event[events.SendOTPPayload]) error {
+func handleSendOTPMail(payload events.SendOTPPayload) error {
 
 	to := &NameAddr{
-		Name:    event.Payload.Email,
-		Address: event.Payload.Email,
+		Name:    payload.Email,
+		Address: payload.Email,
 	}
 
 	z := NewZeptoMail()
 
-	otp := event.Payload.OTP
+	otp := payload.OTP
 
 	err := z.SendOTPMail(otp, to)
 
@@ -86,31 +99,19 @@ func handleSendOTPMail(event *events.Event[events.SendOTPPayload]) error {
 	return nil
 }
 
-func handleUserRegistered(event *events.Event[events.UserRegisteredPayload]) error {
+func handleUserRegistered(payload events.UserRegisteredPayload) error {
 	z := NewZeptoMail()
 
 	to := &NameAddr{
-		Name:    event.Payload.Email,
-		Address: event.Payload.Email,
+		Name:    payload.Email,
+		Address: payload.Email,
 	}
 
-	err := z.sendWelcomeMail(to, event.Payload.TrailEndDate)
+	err := z.sendWelcomeMail(to, payload.TrailEndDate)
 
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// * helpers
-// assert payload and handle event
-func validateAndHandle[T any](event *events.Event[any], handler func(T) error) error {
-	payload, ok := (*event.Payload).(T)
-	if !ok {
-		err := fmt.Errorf("payload is not of type %s", reflect.TypeOf((*T)(nil)).Elem())
-		logger.Errorf("Error asserting payload: %v", err)
-		return err
-	}
-	return handler(payload)
 }

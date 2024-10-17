@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"reflect"
 	"strconv"
 
 	web_push "github.com/SherClockHolmes/webpush-go"
@@ -30,38 +28,77 @@ func EventsHandler(_ context.Context, event lambda_events.SQSEvent) (interface{}
 	for _, record := range event.Records {
 		event := events.Event[any]{}
 
+		logger.Info("processing record: %v", record.Body)
+
+		eventType := *record.MessageAttributes["event_type"].StringValue
+
 		logger.Info("processing event_type: %v", event.EventType)
 
-		err := event.FromJSON(record.Body)
-		if err != nil {
-			logger.Errorf("error un_marshalling event: %v", err)
-			continue
-		}
-		err = processEvent(&event)
+		err := processEvent(eventType, record.Body)
 
 		if err != nil {
 			logger.Errorf("error processing event: %v", err)
 			continue
 		}
+
+		// remove message from sqs
+		q := events.NewEmailQueue()
+
+		err = q.DeleteMessage(record.ReceiptHandle)
+
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	return nil, nil
 }
 
-func processEvent(event *events.Event[any]) error {
-
-	switch event.EventType {
+func processEvent(eventType string, body string) error {
+	switch events.EventType(eventType) {
 	case events.EventTypeScheduleNoteRemainder:
-		return validateAndHandle(event, scheduleNoteRemainder)
+
+		ev, err := events.NewFromJSON[events.ScheduleNoteRemainderPayload](body)
+
+		if err != nil {
+			logger.Errorf("error un_marshalling event: %v", err)
+			return err
+		}
+
+		return scheduleNoteRemainder(ev.Payload)
 
 	case events.EventTypeScheduleSnoozedTab:
-		return validateAndHandle(event, scheduleSnoozedTab)
+
+		ev, err := events.NewFromJSON[events.ScheduleSnoozedTabPayload](body)
+
+		if err != nil {
+			logger.Errorf("error un_marshalling event: %v", err)
+			return err
+		}
+
+		return scheduleSnoozedTab(ev.Payload)
 
 	case events.EventTypeTriggerNoteRemainder:
-		return validateAndHandle(event, triggerNoteRemainder)
+
+		ev, err := events.NewFromJSON[events.ScheduleNoteRemainderPayload](body)
+
+		if err != nil {
+			logger.Errorf("error un_marshalling event: %v", err)
+			return err
+		}
+
+		return triggerNoteRemainder(ev.Payload)
 
 	case events.EventTypeTriggerSnoozedTab:
-		return validateAndHandle(event, triggerSnoozedTab)
+		ev, err := events.NewFromJSON[events.ScheduleSnoozedTabPayload](body)
+
+		if err != nil {
+			logger.Errorf("error un_marshalling event: %v", err)
+			return err
+		}
+
+		return triggerSnoozedTab(ev.Payload)
 	}
 
 	return nil
@@ -153,7 +190,7 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 }
 
 // send notification to user
-func triggerSnoozedTab(p events.ScheduleSnoozedTabPayload) error {
+func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	db := database.New()
 	r := newRepository(db)
 	s, err := r.getSubscriptionInfo(p.UserId)
@@ -185,18 +222,6 @@ func triggerSnoozedTab(p events.ScheduleSnoozedTabPayload) error {
 
 	return nil
 
-}
-
-// * helpers
-// assert payload and handle event
-func validateAndHandle[T any](event *events.Event[any], handler func(T) error) error {
-	payload, ok := (*event.Payload).(T)
-	if !ok {
-		err := fmt.Errorf("payload is not of type %s", reflect.TypeOf((*T)(nil)).Elem())
-		logger.Errorf("Error asserting payload: %v", err)
-		return err
-	}
-	return handler(payload)
 }
 
 func sendWebPushNotification(userId string, s *PushSubscription, body []byte) error {
