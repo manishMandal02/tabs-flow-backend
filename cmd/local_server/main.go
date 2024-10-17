@@ -38,10 +38,6 @@ func authorizer(next http_api.Handler) http_api.Handler {
 		_, sIdOK := claims["session_id"]
 		expiryTime, expiryOK := claims["exp"].(float64)
 
-		logger.Dev("emailOK: %v", emailOK)
-		logger.Dev("sIdOK: %v", sIdOK)
-		logger.Dev("expiryOK: %v", expiryOK)
-
 		if !emailOK || !sIdOK || !expiryOK || !userIdOK {
 			logger.Dev("Error getting token claims")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -54,8 +50,7 @@ func authorizer(next http_api.Handler) http_api.Handler {
 			return
 		}
 
-		// token valid, allow access
-
+		// token valid, allow
 		r.Header.Set("UserId", userId)
 
 		next(w, r)

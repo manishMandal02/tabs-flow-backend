@@ -12,13 +12,12 @@ type Handler func(w http.ResponseWriter, r *http.Request)
 type Route struct {
 	Method       string
 	PathSegments []string
-	middleware   []Handler
 	Handlers     []Handler
 }
 
 type IRouter interface {
 	ServeHTTP(w http.ResponseWriter, req *http.Request)
-	Use(handlers ...Handler)
+	Use(handlers Handler)
 	GET(path string, handlers ...Handler)
 	POST(path string, handlers ...Handler)
 	PATCH(path string, handlers ...Handler)
@@ -51,14 +50,16 @@ func (r *Route) Match(method, path string) (bool, map[string]string) {
 }
 
 type Router struct {
-	base   string
-	routes []*Route
+	base       string
+	routes     []*Route
+	middleware []Handler
 }
 
 func NewRouter(base string) IRouter {
 	return &Router{
-		base:   base,
-		routes: []*Route{},
+		base:       base,
+		routes:     []*Route{},
+		middleware: []Handler{},
 	}
 }
 
@@ -72,10 +73,8 @@ func (r *Router) AddRoute(method, path string, handlers []Handler) {
 	})
 }
 
-func (r *Router) Use(middleware ...Handler) {
-	for _, route := range r.routes {
-		route.middleware = append(route.middleware, middleware...)
-	}
+func (r *Router) Use(middleware Handler) {
+	r.middleware = append(r.middleware, middleware)
 }
 
 func (r *Router) GET(path string, handlers ...Handler) {
@@ -108,8 +107,10 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				req.SetPathValue(key, value)
 			}
 			// run middleware
-			for _, m := range route.middleware {
-				m(w, req)
+			if len(r.middleware) > 0 {
+				for _, m := range r.middleware {
+					m(w, req)
+				}
 			}
 
 			// run handlers

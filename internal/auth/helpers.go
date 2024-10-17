@@ -59,8 +59,6 @@ func ValidateToken(tokenStr string) (jwt.MapClaims, error) {
 		return nil, errors.New("invalid token")
 	}
 
-	logger.Dev("token claims: %v", token.Claims.(jwt.MapClaims))
-
 	return token.Claims.(jwt.MapClaims), nil
 }
 
@@ -118,6 +116,8 @@ func createNewSession(email, userAgent string, aR authRepository) (*createSessio
 			UserId:  newUserId,
 			NewUser: true,
 		}
+
+		userId = newUserId
 	} else {
 		// old user
 		resData = &respData{
