@@ -31,6 +31,7 @@ var (
 
 	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
 	DATE_TIME_FORMAT         = "2006-01-02T15:04:05"
+	TIME_ZONE                = "Asia/Kolkata"
 	LOCAL_DEV_ENV            = false
 	TRAIL_DAYS               = 14
 	OTP_EXPIRY_TIME_IN_MIN   = 5
@@ -73,7 +74,7 @@ func Init() {
 		EMAIL_QUEUE_URL = "TabsFlow-Emails_dev"
 		NOTIFICATIONS_QUEUE_URL = "TabsFlow-Notifications_dev"
 		// get  role arn for scheduler from aws console (only for local development)
-		SCHEDULER_ROLE_ARN = "arn:aws:iam::054037097197:role/ServiceStack-NotificationServiceSchedulerRole1E9E6E-o3aMhCWzw5qz"
+		SCHEDULER_ROLE_ARN = "arn:aws:iam::054037097197:role/ServiceStack-NotificationServiceSchedulerRole1E9E6E-jdiNw8Vnsj1d"
 		NOTIFICATIONS_QUEUE_ARN = "arn:aws:sqs:ap-south-1:054037097197:TabsFlow-Notifications_dev"
 	} else {
 		// lambda config

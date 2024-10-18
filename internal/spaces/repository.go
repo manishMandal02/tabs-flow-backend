@@ -27,7 +27,7 @@ type spaceRepository interface {
 	setGroupsForSpace(userId, spaceId string, g *[]group) error
 	getGroupsForSpace(userId, spaceId string) (*[]group, error)
 	addSnoozedTab(userId, spaceId string, t *SnoozedTab) error
-	getAllSnoozedTabs(userId string, lastSnoozedTabID int64) (*[]SnoozedTab, error)
+	getAllSnoozedTabsByUser(userId string, lastSnoozedTabID int64) (*[]SnoozedTab, error)
 	geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]SnoozedTab, error)
 	deleteSnoozedTab(userId, spaceId string, snoozedAt int64) error
 	GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*SnoozedTab, error)
@@ -85,7 +85,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 	}
 
 	if len(response.Item) == 0 {
-		return nil, errors.New(errMsg.spaceGet)
+		return nil, errors.New(errMsg.spaceNotFound)
 	}
 
 	s := &space{}
@@ -216,7 +216,8 @@ func (r spaceRepo) deleteSpace(userId, spaceId string) error {
 
 // tabs
 func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
-	tabs, err := attributevalue.MarshalList(*t)
+
+	tabs, err := attributevalue.MarshalListWithOptions(t)
 
 	if err != nil {
 		logger.Errorf("Couldn't marshal tabs: %v. \n[Error]: %v", t, err)
@@ -283,7 +284,7 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 
 // groups
 func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
-	groups, err := attributevalue.MarshalList(*g)
+	groups, err := attributevalue.MarshalList(g)
 
 	if err != nil {
 		logger.Errorf("Couldn't marshal groups: %v. \n[Error]: %v", g, err)
@@ -360,7 +361,7 @@ func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *SnoozedTab) error {
 		return err
 	}
 
-	sk := fmt.Sprintf("%s#%v", database.SORT_KEY.SnoozedTabs(spaceId), t.SnoozedUntil)
+	sk := fmt.Sprintf("%s#%v", database.SORT_KEY.SnoozedTabs(spaceId), t.SnoozedAt)
 
 	snoozedTabs[database.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
 	snoozedTabs[database.SK_NAME] = &types.AttributeValueMemberS{Value: sk}
@@ -379,12 +380,14 @@ func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *SnoozedTab) error {
 
 func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*SnoozedTab, error) {
 
-	sk := fmt.Sprintf("%s#%v", database.SORT_KEY.SnoozedTabs(spaceId), snoozedAt)
+	skSuffix := fmt.Sprintf("%s#%v", spaceId, snoozedAt)
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: sk},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.SnoozedTabs(skSuffix)},
 	}
+
+	logger.Dev("key: %v", key["SK"])
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		TableName: &r.db.TableName,
@@ -397,7 +400,7 @@ func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*Snoo
 	}
 
 	if len(response.Item) == 0 {
-		return nil, errors.New(errMsg.snoozedTabsGet)
+		return nil, errors.New(errMsg.snoozedTabsNotFound)
 	}
 	snoozedTab := &SnoozedTab{}
 
@@ -412,7 +415,7 @@ func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*Snoo
 
 }
 
-func (r spaceRepo) getAllSnoozedTabs(userId string, lastSnoozedTabId int64) (*[]SnoozedTab, error) {
+func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64) (*[]SnoozedTab, error) {
 
 	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.SnoozedTabs("")))
 
@@ -447,7 +450,7 @@ func (r spaceRepo) getAllSnoozedTabs(userId string, lastSnoozedTabId int64) (*[]
 	}
 
 	if len(response.Items) < 1 {
-		return nil, errors.New(errMsg.snoozedTabsGet)
+		return nil, errors.New(errMsg.snoozedTabsNotFound)
 	}
 
 	snoozedTabs := []SnoozedTab{}

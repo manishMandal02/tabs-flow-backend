@@ -9,7 +9,7 @@ type space struct {
 	IsSaved        bool   `json:"isSaved" validate:"required"`
 	Emoji          string `json:"emoji" validate:"required"`
 	WindowId       int    `json:"windowId" validate:"required,number"`
-	ActiveTabIndex int    `json:"activeTabIndex" validate:"required,number"`
+	ActiveTabIndex int    `json:"activeTabIndex" validate:"number"`
 }
 
 func (s *space) validate() error {
@@ -24,7 +24,7 @@ func (s *space) validate() error {
 }
 
 type tab struct {
-	Id      string `json:"id"`
+	Id      int    `json:"id"`
 	URL     string `json:"url"`
 	Title   string `json:"title"`
 	Index   int    `json:"index"`
@@ -33,10 +33,10 @@ type tab struct {
 }
 
 type group struct {
-	Id        string `json:"id"`
+	Id        int    `json:"id"`
 	Name      string `json:"name"`
-	Collapsed bool   `json:"collapsed"`
 	Theme     string `json:"theme"`
+	Collapsed bool   `json:"collapsed"`
 }
 
 type SnoozedTab struct {
@@ -48,31 +48,35 @@ type SnoozedTab struct {
 }
 
 var errMsg = struct {
-	spaceNotFound     string
-	spaceGet          string
-	spaceCreate       string
-	spaceUpdate       string
-	spaceDelete       string
-	spaceGetAllByUser string
-	tabsGet           string
-	tabsSet           string
-	groupsGet         string
-	groupsSet         string
-	snoozedTabsCreate string
-	snoozedTabsGet    string
-	snoozedTabsDelete string
+	spaceNotFound       string
+	spaceGet            string
+	spaceId             string
+	spaceCreate         string
+	spaceUpdate         string
+	spaceDelete         string
+	spaceGetAllByUser   string
+	tabsGet             string
+	tabsSet             string
+	groupsGet           string
+	groupsSet           string
+	snoozedTabsCreate   string
+	snoozedTabsGet      string
+	snoozedTabsNotFound string
+	snoozedTabsDelete   string
 }{
-	spaceNotFound:     "Space not found",
-	spaceGet:          "Error getting space",
-	spaceCreate:       "Error creating space",
-	spaceUpdate:       "Error updating space",
-	spaceDelete:       "Error deleting space",
-	spaceGetAllByUser: "Error getting spaces for user",
-	tabsGet:           "Error getting tabs for space",
-	tabsSet:           "Error setting tabs for space",
-	groupsGet:         "Error getting groups for space",
-	groupsSet:         "Error setting groups for space",
-	snoozedTabsCreate: "Error creating snoozed tab for space",
-	snoozedTabsGet:    "Error getting snoozed tabs for space",
-	snoozedTabsDelete: "Error deleting snoozed tab for space",
+	spaceNotFound:       "Space not found",
+	spaceGet:            "Error getting space",
+	spaceId:             "Invalid space id",
+	spaceCreate:         "Error creating space",
+	spaceUpdate:         "Error updating space",
+	spaceDelete:         "Error deleting space",
+	spaceGetAllByUser:   "Error getting spaces for user",
+	tabsGet:             "Error getting tabs",
+	tabsSet:             "Error setting tabs",
+	groupsGet:           "Error getting groups",
+	groupsSet:           "Error setting groups",
+	snoozedTabsNotFound: "Snoozed not found",
+	snoozedTabsCreate:   "Error creating snoozed tab",
+	snoozedTabsGet:      "Error getting snoozed tabs",
+	snoozedTabsDelete:   "Error deleting snoozed tab",
 }

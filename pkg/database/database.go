@@ -69,7 +69,7 @@ var SORT_KEY = struct {
 	TabsInSpace              keySuffix
 	GroupsInSpace            keySuffix
 	SnoozedTabs              keySuffix
-	Note                     keySuffix
+	Notes                    keySuffix
 }{
 	Profile:                  "P#Profile",
 	Subscription:             "U#Subscription",
@@ -86,7 +86,7 @@ var SORT_KEY = struct {
 	TabsInSpace:              generateKey("S#Tabs#"),
 	GroupsInSpace:            generateKey("S#Groups#"),
 	SnoozedTabs:              generateKey("S#SnoozedTabs#"),
-	Note:                     generateKey("N#"),
+	Notes:                    generateKey("N#"),
 }
 
 var SORT_KEY_SESSIONS = struct {

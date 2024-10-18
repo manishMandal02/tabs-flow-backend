@@ -21,11 +21,13 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	notesRouter.Use(userIdMiddleware)
 
 	notesRouter.POST("/", nh.create)
-	notesRouter.GET("/:noteId", nh.get)
 	// query: lastNoteId={lastNoteId}
 	notesRouter.GET("/my", nh.getAllByUser)
 	// query: query={searchTerm}, limit={maxLimit}
 	notesRouter.GET("/search", nh.search)
+
+	notesRouter.GET("/:noteId", nh.get)
+
 	notesRouter.PATCH("/", nh.update)
 
 	notesRouter.DELETE("/:noteId", nh.delete)

@@ -103,7 +103,7 @@ func handleUserRegistered(payload events.UserRegisteredPayload) error {
 	z := NewZeptoMail()
 
 	to := &NameAddr{
-		Name:    payload.Email,
+		Name:    payload.Name,
 		Address: payload.Email,
 	}
 

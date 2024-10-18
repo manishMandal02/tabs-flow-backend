@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -22,7 +23,7 @@ type noteRepository interface {
 	getNotesByIds(userId string, noteIds *[]string) (*[]Note, error)
 	getNotesByUser(userId string, lastNoteId int64) (*[]Note, error)
 	updateNote(userId string, n *Note) error
-	deleteNote(userId string, noteId int64) (*Note, error)
+	deleteNote(userId, noteId string) error
 	// search
 	indexSearchTerms(userId, noteId string, terms []string) error
 	noteIdsBySearchTerm(userId string, query string, limit int) ([]string, error)
@@ -51,7 +52,7 @@ func (r noteRepo) createNote(userId string, n *Note) error {
 
 	av[database.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
 
-	av[database.SK_NAME] = &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(n.Id)}
+	av[database.SK_NAME] = &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(n.Id)}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -67,19 +68,47 @@ func (r noteRepo) createNote(userId string, n *Note) error {
 }
 
 func (r noteRepo) updateNote(userId string, n *Note) error {
-	av, err := attributevalue.MarshalMap(n)
+
+	key := map[string]types.AttributeValue{
+		"PK": &types.AttributeValueMemberS{Value: userId},
+		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(n.Id)},
+	}
+
+	var update expression.UpdateBuilder
+	// iterate over the fields of the struct
+	v := reflect.ValueOf(n)
+
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	} else {
+		logger.Error("unexpected type", errors.New(v.Kind().String()))
+		return errors.ErrUnsupported
+	}
+
+	t := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		if fieldValue.IsZero() {
+			continue
+		}
+
+		update = update.Set(expression.Name(field.Name), expression.Value(v.Field(i).Interface()))
+	}
+
+	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 
 	if err != nil {
-		logger.Errorf("Couldn't marshal note: %v. \n[Error]: %v", n, err)
 		return err
 	}
 
-	av[database.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
-	av[database.SK_NAME] = &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(n.Id)}
-
-	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: &r.db.TableName,
-		Item:      av,
+	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName:                 &r.db.TableName,
+		Key:                       key,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
 	})
 
 	if err != nil {
@@ -90,40 +119,31 @@ func (r noteRepo) updateNote(userId string, n *Note) error {
 	return nil
 }
 
-func (r noteRepo) deleteNote(userId string, noteId int64) (*Note, error) {
+func (r noteRepo) deleteNote(userId string, noteId string) error {
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%d", noteId))},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(noteId)},
 	}
 
-	res, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
 		TableName:    &r.db.TableName,
 		Key:          key,
 		ReturnValues: types.ReturnValueAllOld,
 	})
 
-	if err != nil || res.Attributes == nil {
-		logger.Errorf("Couldn't delete note for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
-	}
-
-	var n = Note{}
-
-	err = attributevalue.UnmarshalMap(res.Attributes, &n)
-
 	if err != nil {
-		logger.Errorf("Couldn't unmarshal note for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		logger.Errorf("Couldn't delete note for userId: %v. \n[Error]: %v", userId, err)
+		return err
 	}
 
-	return &n, nil
+	return nil
 }
 
 func (r noteRepo) GetNote(userId string, noteId string) (*Note, error) {
 
 	key := map[string]types.AttributeValue{
 		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(noteId)},
+		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(noteId)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -157,7 +177,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, erro
 	for _, noteId := range *noteIds {
 		keys = append(keys, map[string]types.AttributeValue{
 			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(noteId)},
+			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(noteId)},
 		})
 	}
 
@@ -175,7 +195,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, erro
 	}
 
 	if len(response.Responses[r.db.TableName]) < 1 {
-		return nil, errors.New(errMsg.notesGet)
+		return nil, errors.New(errMsg.notesGetEmpty)
 	}
 
 	notes := []Note{}
@@ -193,7 +213,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, erro
 
 func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, error) {
 
-	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.Note("")))
+	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(userId)), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY.Notes("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -207,7 +227,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, erro
 	if lastNoteId != 0 {
 		startKey = map[string]types.AttributeValue{
 			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Note(fmt.Sprintf("%v", lastNoteId))},
+			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(fmt.Sprintf("%v", lastNoteId))},
 		}
 	}
 
@@ -226,7 +246,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, erro
 	}
 
 	if len(response.Items) < 1 {
-		return nil, errors.New(errMsg.notesGet)
+		return nil, errors.New(errMsg.notesGetEmpty)
 	}
 
 	notes := []Note{}
@@ -272,6 +292,9 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 				},
 			})
 		}
+
+		logger.Dev("number batch write reqs: %v", len(writeReqs))
+
 		go func(reqs map[string][]types.WriteRequest) {
 			defer wg.Done()
 			_, err = r.searchIndexTable.Client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
@@ -282,6 +305,9 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 			}
 		}(writeReqs)
 	}
+
+	wg.Wait()
+
 	return nil
 
 }
@@ -381,4 +407,9 @@ func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error
 	wg.Wait()
 
 	return nil
+}
+
+// * helpers
+func createSearchTermPK(userId string, term string) string {
+	return fmt.Sprintf("%s#%s", userId, term)
 }

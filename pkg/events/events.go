@@ -106,7 +106,7 @@ type UserRegisteredPayload struct {
 type ScheduleNoteRemainderPayload struct {
 	UserId    string   `json:"userId"`
 	NoteId    string   `json:"noteId"`
-	TriggerAt string   `json:"scheduleAt"`
+	TriggerAt int64    `json:"triggerAt"`
 	SubEvent  SubEvent `json:"subEvent"`
 }
 
@@ -114,6 +114,6 @@ type ScheduleSnoozedTabPayload struct {
 	UserId       string   `json:"userId"`
 	SnoozedTabId string   `json:"snoozedTabId"`
 	SpaceId      string   `json:"spaceId"`
-	TriggerAt    string   `json:"scheduleAt"`
+	TriggerAt    int64    `json:"triggerAt"`
 	SubEvent     SubEvent `json:"subEvent"`
 }

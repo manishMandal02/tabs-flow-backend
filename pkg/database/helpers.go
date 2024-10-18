@@ -28,7 +28,7 @@ func getAllSKs(db *DDB, pk string) ([]string, error) {
 		SORT_KEY.TabsInSpace(""),
 		SORT_KEY.GroupsInSpace(""),
 		SORT_KEY.SnoozedTabs(""),
-		SORT_KEY.Note(""),
+		SORT_KEY.Notes(""),
 	}
 
 	for _, prefix := range dynamicSKPrefixes {

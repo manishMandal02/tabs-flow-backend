@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"time"
 
 	web_push "github.com/SherClockHolmes/webpush-go"
 	lambda_events "github.com/aws/aws-lambda-go/events"
@@ -42,7 +43,7 @@ func EventsHandler(_ context.Context, event lambda_events.SQSEvent) (interface{}
 		}
 
 		// remove message from sqs
-		q := events.NewEmailQueue()
+		q := events.NewNotificationQueue()
 
 		err = q.DeleteMessage(record.ReceiptHandle)
 
@@ -111,16 +112,18 @@ func scheduleNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	switch p.SubEvent {
 	case events.SubEventCreate:
 		triggerEvent := events.New(events.EventTypeTriggerNoteRemainder, &events.ScheduleNoteRemainderPayload{
-			UserId:    p.UserId,
-			NoteId:    p.NoteId,
-			TriggerAt: p.TriggerAt,
+			UserId: p.UserId,
+			NoteId: p.NoteId,
 		})
 
 		evStr := triggerEvent.ToJSON()
 
-		err = scheduler.CreateSchedule(p.NoteId, p.TriggerAt, &evStr)
+		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
+
+		err = scheduler.CreateSchedule(p.NoteId, t, &evStr)
 	case events.SubEventUpdate:
-		err = scheduler.UpdateSchedule(p.NoteId, p.TriggerAt)
+		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
+		err = scheduler.UpdateSchedule(p.NoteId, t)
 	case events.SubEventDelete:
 		err = scheduler.DeleteSchedule(p.NoteId)
 	}
@@ -139,14 +142,18 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 			UserId:       p.UserId,
 			SpaceId:      p.SpaceId,
 			SnoozedTabId: p.SnoozedTabId,
-			TriggerAt:    p.TriggerAt,
 		})
 
 		evStr := triggerEvent.ToJSON()
 
-		err = scheduler.CreateSchedule(p.SnoozedTabId, p.TriggerAt, &evStr)
+		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
+
+		err = scheduler.CreateSchedule(p.SnoozedTabId, t, &evStr)
 	case events.SubEventUpdate:
-		err = scheduler.UpdateSchedule(p.SnoozedTabId, p.TriggerAt)
+
+		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
+
+		err = scheduler.UpdateSchedule(p.SnoozedTabId, t)
 	case events.SubEventDelete:
 		err = scheduler.DeleteSchedule(p.SnoozedTabId)
 	}

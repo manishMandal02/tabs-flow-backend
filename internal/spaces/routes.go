@@ -22,8 +22,8 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	// spaces
 	spacesRouter.POST("/", sh.create)
-	spacesRouter.GET("/:id", sh.get)
 	spacesRouter.GET("/my", sh.spacesByUser)
+	spacesRouter.GET("/:id", sh.get)
 	spacesRouter.PATCH("/", sh.update)
 	spacesRouter.DELETE("/:spaceId", sh.delete)
 
@@ -37,9 +37,12 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	// snoozed tabs
 	spacesRouter.POST("/:spaceId/snoozed-tabs", sh.createSnoozedTab)
+	spacesRouter.GET("/:spaceId/snoozed-tabs/:id", sh.getSnoozedTab)
 	// query param: snoozedAt={timestamp}
-	spacesRouter.GET("/:spaceId/snoozed-tabs", sh.getSnoozedTabs)
-	spacesRouter.DELETE("/:spaceId/snoozed-tabs", sh.deleteSnoozedTab)
+	spacesRouter.GET("/snoozed-tabs/my", sh.getSnoozedTabByUser)
+	// query param: snoozedAt={timestamp}
+	spacesRouter.GET("/:spaceId/snoozed-tabs", sh.getSnoozedTabsBySpace)
+	spacesRouter.DELETE("/:spaceId/snoozed-tabs/:id", sh.deleteSnoozedTab)
 
 	// serve API routes
 	spacesRouter.ServeHTTP(w, r)
