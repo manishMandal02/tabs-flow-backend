@@ -62,7 +62,7 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 	terms :=
 		extractSearchTerms(note.Title, noteText, note.Domain)
 
-	logger.Dev("Search terms: %v", terms)
+	logger.Dev("num of search terms: %v", len(terms))
 
 	err = h.r.indexSearchTerms(userId, note.Id, terms)
 
@@ -173,28 +173,31 @@ func (h noteHandler) search(w http.ResponseWriter, r *http.Request) {
 			limit = int(n)
 		}
 	}
+	logger.Dev("searchTerms: %v", searchTerms)
 
 	notesIds, err := getNoteIdsBySearchTerms(userId, searchTerms, limit, h.r)
 
 	if err != nil {
 		if err.Error() == errMsg.notesSearchEmpty {
-			http.Error(w, errMsg.notesSearchEmpty, http.StatusBadGateway)
+			http.Error(w, errMsg.notesSearchEmpty, http.StatusNotFound)
 			return
 		}
 		http.Error(w, errMsg.notesSearch, http.StatusInternalServerError)
 		return
 	}
 
+	logger.Dev("final notesIds: %v", notesIds)
+
 	// get notes that matched the search query
 	notes, err := h.r.getNotesByIds(userId, &notesIds)
 
 	if err != nil {
-		http.Error(w, errMsg.notesSearch, http.StatusInternalServerError)
+		http.Error(w, errMsg.notesSearch, http.StatusBadGateway)
 		return
 	}
 
 	if len(*notes) == 0 {
-		http.Error(w, errMsg.notesSearchEmpty, http.StatusBadGateway)
+		http.Error(w, errMsg.notesSearchEmpty, http.StatusNotFound)
 		return
 	}
 
@@ -344,6 +347,7 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	// delete search terms
 	noteText, err := getNotesTextFromNoteJSON(noteToDelete.Text)
+
 	if err != nil {
 		logger.Errorf("error getting note text from note json for noteId: %v. \n[Error]: %v", noteToDelete.Id, err)
 	}
@@ -353,6 +357,8 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 	if len(terms) < 1 {
 		logger.Errorf("error getting search terms for noteId: %v. \n[Error]: %v", noteToDelete.Id, err)
 	}
+
+	logger.Dev("num of search terms: %v", len(terms))
 
 	err = h.r.deleteSearchTerms(userId, noteId, terms)
 
@@ -412,8 +418,6 @@ func extractSearchTerms(title, note, domainName string) []string {
 
 	words := strings.Fields(allText)
 
-	logger.Dev("words: %v", words)
-
 	stemmedTerms := make(map[string]bool)
 
 	for _, word := range words {
@@ -431,8 +435,6 @@ func extractSearchTerms(title, note, domainName string) []string {
 	for term := range stemmedTerms {
 		searchTerms = append(searchTerms, term)
 	}
-
-	logger.Dev("searchTerms: %v", searchTerms)
 
 	// add domain name as search terms
 	if domainName != "" {
@@ -475,6 +477,9 @@ func getNoteIdsBySearchTerms(userId string, searchTerms []string, limit int, r n
 
 	for _, term := range searchTerms {
 		stemmed, _ := snowball.Stem(term, "english", true)
+
+		logger.Dev("stemmed term: %v", stemmed)
+
 		noteIds, err := r.noteIdsBySearchTerm(userId, stemmed, limit)
 
 		if err != nil {
@@ -493,16 +498,21 @@ func getNoteIdsBySearchTerms(userId string, searchTerms []string, limit int, r n
 		noteIdSets = append(noteIdSets, noteIdSet)
 	}
 
+	logger.Dev("num noteIdSets: %v", len(noteIdSets))
+
 	if len(noteIdSets) < 1 {
 		return nil, errors.New(errMsg.notesSearchEmpty)
 	}
 
 	// Find intersection of note IDs
 	intersection := noteIdSets[0]
-	for _, set := range noteIdSets[1:] {
-		for id := range intersection {
-			if !set[id] {
-				delete(intersection, id)
+
+	if len(noteIdSets) > 1 {
+		for _, set := range noteIdSets[1:] {
+			for id := range intersection {
+				if !set[id] {
+					delete(intersection, id)
+				}
 			}
 		}
 	}
@@ -513,7 +523,11 @@ func getNoteIdsBySearchTerms(userId string, searchTerms []string, limit int, r n
 		notesIdsMatched = append(notesIdsMatched, id)
 	}
 
-	notesIdsMatched = notesIdsMatched[:limit]
+	logger.Dev("notesIdsMatched: %v", notesIdsMatched)
+
+	if len(notesIdsMatched) > limit {
+		notesIdsMatched = notesIdsMatched[:limit]
+	}
 
 	return notesIdsMatched, nil
 }

@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"math/rand/v2"
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -15,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
+	"golang.org/x/time/rate"
 )
 
 type noteRepository interface {
@@ -185,6 +189,16 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, erro
 		RequestItems: map[string]types.KeysAndAttributes{
 			r.db.TableName: {
 				Keys: keys,
+				AttributesToGet: []string{
+					database.PK_NAME,
+					database.SK_NAME,
+					"Title",
+					"Domain",
+					"UpdatedAt",
+					"SpaceId",
+					"Id",
+					"RemainderAt",
+				},
 			},
 		},
 	})
@@ -262,59 +276,121 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, erro
 }
 
 // search index table
-
 func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error {
-	// max batch size allowed
-	batchSize := 25
-	start := 0
-	end := start + batchSize
+	const batchSize = 25
 
-	var err error
+	// Create a channel to collect errors from goroutines
+	errChan := make(chan error, len(terms)/batchSize+1)
 
-	wg := sync.WaitGroup{}
+	// Create a wait group for synchronization
+	var wg sync.WaitGroup
 
-	// batch write to dynamodb search index table in batches
-	for start < len(terms) {
-		writeReqs := map[string][]types.WriteRequest{}
+	// Create rate limiter
+	limiter := rate.NewLimiter(rate.Every(100*time.Millisecond), 5) // 10 requests per second with burst of 5
+
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Process terms in batches
+	for start := 0; start < len(terms); start += batchSize {
+		end := start + batchSize
 		if end > len(terms) {
 			end = len(terms)
 		}
 
-		wg.Add(1)
+		// Prepare batch requests
+		writeReqs := map[string][]types.WriteRequest{}
+		batchTerms := terms[start:end]
 
-		for _, term := range terms[start:end] {
-			writeReqs[r.searchIndexTable.TableName] = append(writeReqs[r.searchIndexTable.TableName], types.WriteRequest{
-				PutRequest: &types.PutRequest{
-					Item: map[string]types.AttributeValue{
-						database.PK_NAME: &types.AttributeValueMemberS{Value: createSearchTermPK(userId, term)},
-						database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SEARCH_INDEX.Note(noteId)},
+		for _, term := range batchTerms {
+			writeReqs[r.searchIndexTable.TableName] = append(
+				writeReqs[r.searchIndexTable.TableName],
+				types.WriteRequest{
+					PutRequest: &types.PutRequest{
+						Item: map[string]types.AttributeValue{
+							database.PK_NAME: &types.AttributeValueMemberS{
+								Value: createSearchTermPK(userId, term),
+							},
+							database.SK_NAME: &types.AttributeValueMemberS{
+								Value: database.SORT_KEY_SEARCH_INDEX.Note(noteId),
+							},
+						},
 					},
 				},
-			})
+			)
 		}
 
-		logger.Dev("number batch write reqs: %v", len(writeReqs))
-
+		wg.Add(1)
 		go func(reqs map[string][]types.WriteRequest) {
 			defer wg.Done()
-			_, err = r.searchIndexTable.Client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
-				RequestItems: writeReqs,
-			})
-			if err != nil {
-				logger.Errorf("error batch writing search terms for noteId: %v. \n[Error]: %v", noteId, err)
+
+			// Wait for rate limiter
+			if err := limiter.Wait(ctx); err != nil {
+				errChan <- fmt.Errorf("rate limiter error: %w", err)
+				return
+			}
+
+			// Implement retry logic with backoff
+			var lastErr error
+			for attempt := 0; attempt < 5; attempt++ {
+				if attempt > 0 {
+					// Exponential backoff with jitter
+					backoffDuration := time.Duration(math.Pow(2, float64(attempt))) * 100 * time.Millisecond
+					jitter := time.Duration(rand.Float64() * float64(backoffDuration/2))
+					time.Sleep(backoffDuration + jitter)
+				}
+
+				output, err := r.searchIndexTable.Client.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
+					RequestItems: reqs,
+				})
+
+				if err != nil {
+					lastErr = err
+					logger.Errorf("attempt %d failed: %v", attempt+1, err)
+					continue
+				}
+
+				// Handle unprocessed items
+				if len(output.UnprocessedItems) > 0 {
+					reqs = output.UnprocessedItems
+					lastErr = fmt.Errorf("unprocessed items remain")
+					continue
+				}
+
+				// Success
+				return
+			}
+
+			if lastErr != nil {
+				errChan <- fmt.Errorf("batch write failed after retries: %w", lastErr)
 			}
 		}(writeReqs)
 	}
 
-	wg.Wait()
+	// Wait for all goroutines to complete
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	// Collect errors
+	var errs []error
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	// Return combined errors if any
+	if len(errs) > 0 {
+		return fmt.Errorf("indexSearchTerms errors: %v", errs)
+	}
 
 	return nil
-
 }
 
 func (r noteRepo) noteIdsBySearchTerm(userId string, query string, limit int) ([]string, error) {
 
-	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(createSearchTermPK(userId, query))), expression.Key("SK").BeginsWith(database.SORT_KEY_SEARCH_INDEX.Note("")))
+	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(createSearchTermPK(userId, query))), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY_SEARCH_INDEX.Note("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -323,8 +399,12 @@ func (r noteRepo) noteIdsBySearchTerm(userId string, query string, limit int) ([
 		return nil, err
 	}
 
-	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
-		TableName:                 &r.db.TableName,
+	for _, v := range expr.Values() {
+		logger.Dev("Querying search notes [Expression]: %v", v)
+	}
+
+	response, err := r.searchIndexTable.Client.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 &r.searchIndexTable.TableName,
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),

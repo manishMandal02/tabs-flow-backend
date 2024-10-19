@@ -5,7 +5,7 @@ import "github.com/go-playground/validator/v10"
 type Note struct {
 	Id          string `json:"id" validate:"required"`
 	Title       string `json:"title" validate:"required"`
-	Text        string `json:"text" validate:"required"`
+	Text        string `json:"text,omitempty" validate:"required"`
 	SpaceId     string `json:"spaceId,omitempty"`
 	Domain      string `json:"domain,omitempty"`
 	RemainderAt int64  `json:"remainderAt,omitempty"`

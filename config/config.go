@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/joho/godotenv"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
@@ -58,15 +59,17 @@ func Init() {
 		// local development config
 		profile := os.Getenv("AWS_ACCOUNT_PROFILE")
 
-		cfg, err := config.LoadDefaultConfig(
-			context.Background(),
+		config, err := config.LoadDefaultConfig(context.Background(),
 			config.WithSharedConfigProfile(profile),
+			config.WithRetryer(func() aws.Retryer {
+				return retry.AddWithMaxAttempts(retry.NewStandard(), 20)
+			}),
 		)
 
 		if err != nil {
 			log.Fatalf("failed to load configuration, %v", err)
 		}
-		AWS_CONFIG = cfg
+		AWS_CONFIG = config
 
 		DDB_MAIN_TABLE_NAME = "TabsFlow-Main_dev"
 		DDB_SEARCH_INDEX_TABLE_NAME = "TabsFlow-SearchIndex_dev"
@@ -78,7 +81,14 @@ func Init() {
 		NOTIFICATIONS_QUEUE_ARN = "arn:aws:sqs:ap-south-1:054037097197:TabsFlow-Notifications_dev"
 	} else {
 		// lambda config
-		config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(AWS_REGION))
+		config, err := config.LoadDefaultConfig(context.Background(),
+			config.WithRegion(AWS_REGION),
+
+			config.WithRetryer(func() aws.Retryer {
+				return retry.AddWithMaxAttempts(retry.NewStandard(), 25)
+			}),
+		)
+
 		if err != nil {
 			log.Fatalf("failed to load configuration, %v", err)
 		}
