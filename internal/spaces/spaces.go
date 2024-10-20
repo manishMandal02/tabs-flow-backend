@@ -12,7 +12,7 @@ type space struct {
 	ActiveTabIndex int    `json:"activeTabIndex" validate:"number"`
 }
 
-func (s *space) validate() error {
+func (s space) validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	err := validate.Struct(s)

@@ -8,6 +8,7 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/auth"
 	"github.com/manishMandal02/tabsflow-backend/internal/notes"
+	"github.com/manishMandal02/tabsflow-backend/internal/notifications"
 	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
@@ -68,6 +69,7 @@ func main() {
 	mux.HandleFunc("/users/", authorizer(users.Router))
 	mux.HandleFunc("/spaces/", authorizer(spaces.Router))
 	mux.HandleFunc("/notes/", authorizer(notes.Router))
+	mux.HandleFunc("/notifications/", authorizer(notifications.Router))
 
 	// handle unknown service routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

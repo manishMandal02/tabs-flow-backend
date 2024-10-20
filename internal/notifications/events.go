@@ -105,6 +105,7 @@ func processEvent(eventType string, body string) error {
 	return nil
 }
 
+// set a schedule to trigger a note remainder notification
 func scheduleNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	scheduler := events.NewScheduler()
 	var err error
@@ -131,6 +132,7 @@ func scheduleNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	return err
 }
 
+// set a schedule to trigger a snoozed tab notification
 func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 	scheduler := events.NewScheduler()
@@ -161,7 +163,7 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	return err
 }
 
-// send notification to user
+// send note notification to user
 func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	db := database.New()
 	r := newRepository(db)
@@ -172,6 +174,25 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	}
 
 	note, err := getNote(db, p.UserId, p.NoteId)
+
+	if err != nil {
+		return err
+	}
+
+	// create notification
+	notification := notification{
+		Id:        strconv.FormatInt(time.Now().Unix(), 10),
+		Type:      notificationTypeNoteRemainder,
+		IsRead:    false,
+		Timestamp: time.Now().Unix(),
+		Note: &noteRemainderNotification{
+			Id:     note.Id,
+			Title:  note.Title,
+			Domain: note.Domain,
+		},
+	}
+
+	err = r.create(p.UserId, &notification)
 
 	if err != nil {
 		return err
@@ -196,7 +217,7 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 
 }
 
-// send notification to user
+// send snoozed tab notification to user
 func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	db := database.New()
 	r := newRepository(db)
@@ -207,6 +228,25 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	}
 
 	snoozedTab, err := getSnoozedTab(db, p.UserId, p.SpaceId, p.SnoozedTabId)
+
+	if err != nil {
+		return err
+	}
+
+	// create notification
+	notification := notification{
+		Id:        strconv.FormatInt(time.Now().Unix(), 10),
+		Type:      notificationTypeUnSnoozedType,
+		IsRead:    false,
+		Timestamp: time.Now().Unix(),
+		SnoozedTab: &snoozedTabNotification{
+			Id:    p.SnoozedTabId,
+			Title: snoozedTab.Title,
+			Icon:  snoozedTab.Icon,
+		},
+	}
+
+	err = r.create(p.UserId, &notification)
 
 	if err != nil {
 		return err
@@ -231,6 +271,7 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 }
 
+// * helpers
 func sendWebPushNotification(userId string, s *PushSubscription, body []byte) error {
 
 	ws := &web_push.Subscription{

@@ -61,23 +61,28 @@ func (nr *noteRepo) create(userId string, notification *notification) error {
 }
 
 func (nr *noteRepo) subscribe(userId string, s *PushSubscription) error {
+	item, err := attributevalue.MarshalMap(s)
 
-	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{
-			Value: userId,
-		},
-		database.SK_NAME: &types.AttributeValueMemberS{
-			Value: database.SORT_KEY.NotificationSubscription,
-		},
+	if err != nil {
+		logger.Error("error marshalling notification", err)
+		return err
 	}
 
-	_, err := nr.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+	item[database.PK_NAME] = &types.AttributeValueMemberS{
+		Value: userId,
+	}
+
+	item[database.SK_NAME] = &types.AttributeValueMemberS{
+		Value: database.SORT_KEY.NotificationSubscription,
+	}
+
+	_, err = nr.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &nr.db.TableName,
-		Item:      key,
+		Item:      item,
 	})
 
 	if err != nil {
-		logger.Error("error putting notification subscription to dynamodb", err)
+		logger.Error("error putting notification subscription to db", err)
 		return err
 	}
 

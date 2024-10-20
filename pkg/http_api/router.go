@@ -95,7 +95,7 @@ func (r *Router) DELETE(path string, handlers ...Handler) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	logger.Dev("Router req: method: %v, path: %v", req.Method, req.URL.Path)
+	logger.Dev("Router req: [Method]: %v \n[Path]: %v", req.Method, req.URL.Path)
 	for _, route := range r.routes {
 
 		match, params := route.Match(req.Method, strings.TrimPrefix(req.URL.Path, r.base))

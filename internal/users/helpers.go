@@ -172,11 +172,11 @@ func parsePaddlePlan(priceId string) *SubscriptionPlan {
 
 	plan := SubscriptionPlanTrial
 
-	if priceId == paddlePlanId.Yearly {
+	if priceId == paddlePlanId.yearly {
 		plan = SubscriptionPlanYearly
 	}
 
-	if priceId == paddlePlanId.LifeTime {
+	if priceId == paddlePlanId.lifeTime {
 		plan = SubscriptionPlanLifetime
 	}
 

@@ -56,11 +56,11 @@ const (
 
 // paddle plan/price id
 var paddlePlanId = struct {
-	Yearly   string
-	LifeTime string
+	yearly   string
+	lifeTime string
 }{
-	Yearly:   "pri_01j9gharmwn4ev55kyzywy447w",
-	LifeTime: "pri_01j9gh59zz1cs1zafbn95375h1",
+	yearly:   "pri_01j9gharmwn4ev55kyzywy447w",
+	lifeTime: "pri_01j9gh59zz1cs1zafbn95375h1",
 }
 
 type SubscriptionStatus string

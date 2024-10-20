@@ -19,9 +19,9 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	notificationsRouter.Use(userIdMiddleware)
 
-	notificationsRouter.GET("/:id", h.get)
 	notificationsRouter.GET("/my", h.getUserNotifications)
-	notificationsRouter.POST("/subscribe", h.getUserNotifications)
+	notificationsRouter.GET("/:id", h.get)
+	notificationsRouter.POST("/subscribe", h.subscribe)
 	// notificationsRouter.POST("/", h.create)
 	notificationsRouter.DELETE("/", h.delete)
 
