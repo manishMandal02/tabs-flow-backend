@@ -1,13 +1,17 @@
 package database
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/manishMandal02/tabsflow-backend/config"
+	"golang.org/x/time/rate"
 )
 
 type DDB struct {
 	Client    *dynamodb.Client
 	TableName string
+	Limiter   *rate.Limiter
 }
 
 // new instance of main table
@@ -15,6 +19,7 @@ func New() *DDB {
 	return &DDB{
 		Client:    newDBB(),
 		TableName: config.DDB_MAIN_TABLE_NAME,
+		Limiter:   newLimiter(),
 	}
 }
 
@@ -31,6 +36,7 @@ func NewSearchIndexTable() *DDB {
 	return &DDB{
 		Client:    newDBB(),
 		TableName: config.DDB_SEARCH_INDEX_TABLE_NAME,
+		Limiter:   newLimiter(),
 	}
 }
 
@@ -39,9 +45,14 @@ func newDBB() *dynamodb.Client {
 	return dynamodb.NewFromConfig(config.AWS_CONFIG)
 }
 
+func newLimiter() *rate.Limiter {
+	return rate.NewLimiter(rate.Every(20*time.Millisecond), 10)
+}
+
 const (
-	PK_NAME string = "PK"
-	SK_NAME string = "SK"
+	MAX_BATCH_SIZE    int    = 25
+	PK_NAME        string = "PK"
+	SK_NAME        string = "SK"
 )
 
 // sort keys

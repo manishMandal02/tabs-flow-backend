@@ -3,7 +3,10 @@ package users
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
+	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
@@ -136,47 +139,52 @@ func (r userRepo) updateUser(id, name string) error {
 // delete user account with all their data
 func (r userRepo) deleteAccount(id string) error {
 
-	// DynamoDB allows a maximum batch size of 25 items.
-	batchSize := 25
-
-	allSKs, err := database.Helpers.GetAllSKs(r.db, id)
+	allSKs, err := r.db.GetAllSKs(id)
 
 	if err != nil {
-		logger.Errorf("Couldn't get all dynamic sort keys for user_id: %v. \n[Error]: %v", id, err)
-		return errors.New(errMsg.deleteUser)
+		logger.Errorf("Couldn't get all SKs for userId: %v. \n[Error]: %v", id, err)
+		return err
 	}
 
-	//  prepare delete requests for all SKs
-	var deleteRequests []types.WriteRequest
+	// channel to collect errors from goroutines
+	errChan := make(chan error, len(allSKs)/database.MAX_BATCH_SIZE+1)
+
+	var wg sync.WaitGroup
+
+	// context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	reqs := []types.WriteRequest{}
+
 	for _, sk := range allSKs {
-		req := types.WriteRequest{
+		reqs = append(reqs, types.WriteRequest{
 			DeleteRequest: &types.DeleteRequest{
 				Key: map[string]types.AttributeValue{
 					database.PK_NAME: &types.AttributeValueMemberS{Value: id},
 					database.SK_NAME: &types.AttributeValueMemberS{Value: sk},
 				},
 			},
-		}
-		deleteRequests = append(deleteRequests, req)
+		})
 	}
 
-	//  perform batch request in batches of allowed limit
-	for i := 0; i < len(deleteRequests); i += batchSize {
-		end := i + batchSize
-		if end > len(deleteRequests) {
-			end = len(deleteRequests)
-		}
+	r.db.BatchWriter(ctx, &wg, errChan, reqs)
 
-		_, err := r.db.Client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
-			RequestItems: map[string][]types.WriteRequest{
-				r.db.TableName: deleteRequests[i:end],
-			},
-		})
+	// Wait for all goroutines to complete
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
 
-		if err != nil {
-			logger.Errorf("Couldn't batch delete items for user_id: %v. \n[Error]: %v", id, err)
-			return errors.New(errMsg.deleteUser)
-		}
+	// Collect errors
+	var errs []error
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	// Return combined errors if any
+	if len(errs) > 0 {
+		return fmt.Errorf("delete search index errors: %v", errs)
 	}
 
 	return nil
