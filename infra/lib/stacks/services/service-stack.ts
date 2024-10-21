@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { Stack, StackProps, aws_dynamodb, aws_iam as iam, aws_ssm as ssm, Fn, Lazy } from 'aws-cdk-lib';
+import { Stack, StackProps, aws_dynamodb, aws_iam as iam, aws_ssm as ssm, Lazy } from 'aws-cdk-lib';
 
 import { EmailService } from './email';
 import { AuthService } from './auth';
@@ -69,7 +69,6 @@ export class ServiceStack extends Stack {
       db: mainDB,
       stage: props.stage,
       apiGW: apiG.restAPI,
-      emailQueue: emailService.Queue,
       apiAuthorizer: authService.apiAuthorizer
     });
 

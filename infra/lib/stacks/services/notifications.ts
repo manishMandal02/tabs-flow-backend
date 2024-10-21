@@ -9,7 +9,6 @@ type NotificationsServicePops = {
   stage: string;
   db: aws_dynamodb.ITable;
   lambdaRole: iam.Role;
-  emailQueue: sqs.Queue;
   apiGW: aws_apigateway.RestApi;
   apiAuthorizer: aws_apigateway.RequestAuthorizer;
 };
@@ -73,7 +72,7 @@ export class NotificationsService extends Construct {
         DDB_MAIN_TABLE_NAME: props.db.tableName,
         NOTIFICATIONS_QUEUE_ARN: notificationsQueue.queueArn,
         SCHEDULER_ROLE_ARN: schedulerExecutionRole.roleArn,
-        EMAIL_QUEUE_URL: props.emailQueue.queueUrl,
+        NOTIFICATIONS_QUEUE_URL: notificationsQueue.queueUrl,
         VAPID_PRIVATE_KEY: config.Env.VAPID_PRIVATE_KEY,
         VAPID_PUBLIC_KEY: config.Env.VAPID_PUBLIC_KEY
       }
@@ -120,7 +119,7 @@ export class NotificationsService extends Construct {
 
     // sqs queue permissions
     notificationsQueue.grantConsumeMessages(notificationsServiceLambda);
-    props.emailQueue.grantSendMessages(notificationsServiceLambda);
+    notificationsQueue.grantSendMessages(notificationsServiceLambda);
 
     // grant permissions to lambda to read/write to dynamodb and send message to email queue
     props.db.grantReadWriteData(notificationsServiceLambda);

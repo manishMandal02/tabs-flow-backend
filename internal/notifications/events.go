@@ -60,6 +60,8 @@ func processEvent(eventType string, body string) error {
 	switch events.EventType(eventType) {
 	case events.EventTypeScheduleNoteRemainder:
 
+		logger.Dev("event body: %v", body)
+
 		ev, err := events.NewFromJSON[events.ScheduleNoteRemainderPayload](body)
 
 		if err != nil {
