@@ -70,8 +70,6 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	//  check if the user with this id
 	userExists, err := h.r.getUserByID(user.Id)
 
-	logger.Dev("userExists: %v\n, err: %v", userExists, err)
-
 	if err != nil && err.Error() != errMsg.userNotFound {
 		http.Error(w, errMsg.getUser, http.StatusInternalServerError)
 		return
@@ -237,8 +235,6 @@ func (h userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 
 	sk, subPref, err := parseSubPreferencesData(id, updateB)
 
-	logger.Dev("subPref: %v ", *subPref)
-
 	if err != nil {
 		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
 		return
@@ -285,7 +281,7 @@ func (h userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Requ
 
 	if active {
 		// if subscription is active, check the end date
-		endDate, err := time.Parse(time.DateOnly, s.End)
+		endDate, err := time.Parse(time.RFC3339, s.End)
 
 		if err != nil {
 			logger.Error("error parsing subscription end date", err)
@@ -293,7 +289,7 @@ func (h userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		if endDate.Unix() < time.Now().Unix() {
+		if endDate.Unix() < time.Now().UTC().Unix() {
 			active = false
 		}
 	}
@@ -340,7 +336,6 @@ func (h userHandler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 		logger.Error("error getting paddle subscription", err)
 		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusBadRequest)
 		return
-
 	}
 
 	resBody := struct {
@@ -389,14 +384,16 @@ func (h userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	body := r.Body
+
 	http_api.SuccessResMsg(w, "event acknowledged")
 
 	// process the event ><> * <>< <>< <>< <><
 
 	// get the event type
-	var ev *paddle.GenericEvent
+	var ev paddle.GenericEvent
 
-	err = json.NewDecoder(r.Body).Decode(&ev)
+	err = json.NewDecoder(body).Decode(&ev)
 
 	if err != nil {
 		logger.Error("error decoding paddle webhook event", err)
@@ -404,32 +401,114 @@ func (h userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	logger.Dev("paddle webhook event type: %v ", ev.EventType)
+
 	switch ev.EventType {
 	case paddle.EventTypeNameSubscriptionCreated:
-		// get data from the event
-		d := ev.Data.(paddlenotification.SubscriptionNotification)
+		var c paddlenotification.SubscriptionCreatedNotification
 
-		err := subscriptionEventHandler(h.r, d, false)
+		data, err := json.Marshal(ev.Data)
+
+		if err != nil {
+			logger.Error("error marshaling paddle webhook event data", err)
+			return
+		}
+
+		if err := json.Unmarshal(data, &c); err != nil {
+			logger.Error("error parsing subscription data", err)
+			return
+		}
+
+		userId, ok := c.CustomData["userId"].(string)
+
+		if !ok {
+			logger.Errorf("userId not found in subscription created event data")
+			userId = "01929a76-ce53-7e0d-b712-41a9fa1178d8"
+		}
+
+		subscriptionData := subscriptionData{
+			userId:         userId,
+			subscriptionId: c.ID,
+			priceId:        c.Items[0].Price.ID,
+			status:         string(c.Status),
+			startDate:      *c.StartedAt,
+			endDate:        *&c.CurrentBillingPeriod.EndsAt,
+			nextBillDate:   *c.NextBilledAt,
+		}
+
+		err = subscriptionEventHandler(h.r, &subscriptionData, false)
 
 		if err != nil {
 			logger.Error("Error processing SubscriptionCreated event as subscriptionWebhook()", err)
 		}
 
 	case paddle.EventTypeNameSubscriptionUpdated:
+		var u paddlenotification.SubscriptionNotification
 
-		// get data from the event
-		d := ev.Data.(paddlenotification.SubscriptionNotification)
+		data, err := json.Marshal(ev.Data)
 
-		err := subscriptionEventHandler(h.r, d, true)
+		if err != nil {
+			logger.Error("error marshaling paddle webhook event data", err)
+			return
+		}
+
+		if err := json.Unmarshal(data, &u); err != nil {
+			logger.Error("error parsing subscription data", err)
+			return
+		}
+
+		userId, ok := u.CustomData["userId"].(string)
+
+		if !ok {
+			logger.Errorf("userId not found in subscription created event data")
+			userId = "01929a76-ce53-7e0d-b712-41a9fa1178d8"
+		}
+
+		subscriptionData := subscriptionData{
+			userId:         userId,
+			subscriptionId: u.ID,
+			priceId:        u.Items[0].Price.ID,
+			status:         string(u.Status),
+			startDate:      *u.StartedAt,
+			endDate:        u.CurrentBillingPeriod.EndsAt,
+			nextBillDate:   *u.NextBilledAt,
+		}
+
+		err = subscriptionEventHandler(h.r, &subscriptionData, true)
 
 		if err != nil {
 			logger.Error("Error processing SubscriptionUpdated event as subscriptionWebhook()", err)
 		}
 
-		//  update subscription status
-
 	case paddle.EventTypeNameTransactionPaymentFailed:
+		var f paddlenotification.TransactionNotification
+
+		data, err := json.Marshal(ev.Data)
+
+		if err != nil {
+			logger.Error("error marshaling paddle webhook event data", err)
+			return
+		}
+
+		if err := json.Unmarshal(data, &f); err != nil {
+			logger.Error("error parsing payment failed event data", err)
+			return
+		}
+
+		userId, ok := f.CustomData["userId"].(string)
+
+		if !ok {
+			logger.Errorf("userId not found in subscription created event data")
+		}
+
+		logger.Dev("userId: %v", userId)
+
 		// TODO: handle payment failed
+		// show a notification to the user
+		// send an email only if paddle doesn't send a payment failed email
+
+	default:
+		logger.Errorf("not handling paddle webhook event_type: %v", ev.EventType)
 	}
 
 }

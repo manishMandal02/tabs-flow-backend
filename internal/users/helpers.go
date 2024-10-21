@@ -9,12 +9,27 @@ import (
 	"time"
 
 	paddle "github.com/PaddleHQ/paddle-go-sdk"
-	"github.com/PaddleHQ/paddle-go-sdk/pkg/paddlenotification"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
+	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
+
+// middleware to get userId from header ( set by authorizer after validating jwt token claims)
+// also check if user exits
+func newUserMiddleware(ur userRepository) http_api.Handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userId := r.Header.Get("UserId")
+
+		if userId == "" || !checkUserExits(userId, ur, w) {
+			http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
+			return
+		}
+
+		r.SetPathValue("id", userId)
+	}
+}
 
 func setDefaultUserPreferences(userId string, r userRepository) error {
 
@@ -183,37 +198,47 @@ func parsePaddlePlan(priceId string) *SubscriptionPlan {
 	return &plan
 }
 
-// process paddle subscription (create/update) event in webhook
-func subscriptionEventHandler(r userRepository, data paddlenotification.SubscriptionNotification, isUpdatedEvent bool) error {
-	userId, ok := data.CustomData["userId"].(string)
+type subscriptionData struct {
+	userId         string
+	subscriptionId string
+	status         string
+	priceId        string
+	startDate      string
+	endDate        string
+	nextBillDate   string
+}
 
-	if !ok {
-		logger.Error("Error getting userId from event custom data subscriptionWebhook()", errors.New("error paddle event"))
+// process paddle subscription (create/update) event in webhook
+func subscriptionEventHandler(r userRepository, data *subscriptionData, isUpdatedEvent bool) error {
+
+	if data.userId == "" {
+		errMsg := "error getting userId from event custom data subscriptionWebhook()"
+		logger.Errorf(errMsg)
+		return errors.New(errMsg)
 	}
 
-	plan := *parsePaddlePlan(data.Items[0].Price.ID)
+	plan := *parsePaddlePlan(data.priceId)
 
 	s := &subscription{
-		Id:     data.ID,
+		Id:     data.subscriptionId,
 		Plan:   plan,
-		Status: SubscriptionStatus(data.Status),
-		Start:  *data.StartedAt,
-		End:    data.CurrentBillingPeriod.EndsAt,
+		Status: SubscriptionStatus(data.status),
+		Start:  *&data.startDate,
+		End:    data.endDate,
 	}
 
 	if plan == SubscriptionPlanYearly {
 		// save next bill date if, subscription plan is yearly
-		s.NextBillDate = *data.NextBilledAt
+		s.NextBillDate = *&data.nextBillDate
 	}
 
 	var err error
 
 	if isUpdatedEvent {
-		err = r.updateSubscription(userId, s)
+		err = r.updateSubscription(data.userId, s)
 
 	} else {
-
-		err = r.setSubscription(userId, s)
+		err = r.setSubscription(data.userId, s)
 	}
 
 	if err != nil {

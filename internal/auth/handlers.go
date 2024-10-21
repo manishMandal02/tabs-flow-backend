@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
@@ -233,6 +234,13 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeRequest) (*lambda_events.APIGatewayCustomAuthorizerResponse, error) {
+
+	// allow paddle webhook url, without auth tokens
+	if strings.Contains(ev.Path, "/users/subscription/webhook") {
+		//  allow access
+		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, "", nil), nil
+	}
+
 	cookies := parseCookiesStr(ev.Headers["Cookie"])
 
 	claims, err := ValidateToken(cookies["access_token"])

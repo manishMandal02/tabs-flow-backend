@@ -19,6 +19,12 @@ import (
 func authorizer(next http_api.Handler) http_api.Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		// allow paddle webhook, without auth tokens
+		if r.URL.Path == "/users/subscription/webhook" {
+			next(w, r)
+			return
+		}
+
 		token, err := r.Cookie("access_token")
 
 		if err != nil {
