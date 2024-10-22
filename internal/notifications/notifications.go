@@ -38,19 +38,23 @@ var errMsg = struct {
 	notificationDelete           string
 	notificationsEmpty           string
 	notificationsSubscribe       string
+	notificationsSubscribeEmpty  string
+	notificationsUnsubscribe     string
 	notificationsSubscriptionGet string
 }{
 	notificationDelete:           "error deleting notification",
 	notificationGet:              "error getting notifications",
 	notificationsEmpty:           "no notifications found",
 	notificationsSubscribe:       "error subscribing to notifications",
+	notificationsUnsubscribe:     "error unsubscribing from notifications",
+	notificationsSubscribeEmpty:  "Not subscribed to notifications",
 	notificationsSubscriptionGet: "error getting notification subscription",
 }
 
 type PushSubscription struct {
-	Endpoint  string `json:"endpoint" validate:"required"`
-	AuthKey   string `json:"authKey" validate:"required"`
-	P256dhKey string `json:"p256dhKey" validate:"required"`
+	Endpoint  string `json:"endpoint,omitempty" validate:"required"`
+	AuthKey   string `json:"authKey,omitempty" validate:"required"`
+	P256dhKey string `json:"p256dhKey,omitempty" validate:"required"`
 }
 
 func (p PushSubscription) validate() error {

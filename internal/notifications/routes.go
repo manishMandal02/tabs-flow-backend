@@ -19,10 +19,13 @@ func Router(w http.ResponseWriter, r *http.Request) {
 
 	notificationsRouter.Use(userIdMiddleware)
 
+	// notifications subscription
+	notificationsRouter.GET("/subscription", h.getNotificationSubscription)
+	notificationsRouter.POST("/subscription", h.subscribe)
+	notificationsRouter.DELETE("/subscription", h.unsubscribe)
+
 	notificationsRouter.GET("/my", h.getUserNotifications)
 	notificationsRouter.GET("/:id", h.get)
-	notificationsRouter.POST("/subscribe", h.subscribe)
-	// notificationsRouter.POST("/", h.create)
 	notificationsRouter.DELETE("/", h.delete)
 
 	// serve API routes

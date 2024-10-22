@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -109,8 +110,11 @@ func processEvent(eventType string, body string) error {
 
 // set a schedule to trigger a note remainder notification
 func scheduleNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
-	scheduler := events.NewScheduler()
 	var err error
+
+	scheduler := events.NewScheduler()
+
+	sId := fmt.Sprintf("note_%v", p.NoteId)
 
 	switch p.SubEvent {
 	case events.SubEventCreate:
@@ -121,14 +125,14 @@ func scheduleNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 
 		evStr := triggerEvent.ToJSON()
 
-		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
+		t := time.Unix(p.TriggerAt, 0).UTC().Format(config.DATE_TIME_FORMAT)
 
-		err = scheduler.CreateSchedule(p.NoteId, t, &evStr)
+		err = scheduler.CreateSchedule(sId, t, &evStr)
 	case events.SubEventUpdate:
-		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
-		err = scheduler.UpdateSchedule(p.NoteId, t)
+		t := time.Unix(p.TriggerAt, 0).UTC().Format(config.DATE_TIME_FORMAT)
+		err = scheduler.UpdateSchedule(sId, t)
 	case events.SubEventDelete:
-		err = scheduler.DeleteSchedule(p.NoteId)
+		err = scheduler.DeleteSchedule(sId)
 	}
 
 	return err
@@ -140,6 +144,8 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	scheduler := events.NewScheduler()
 	var err error
 
+	sId := fmt.Sprintf("snoozedTab_%v", p.SnoozedTabId)
+
 	switch p.SubEvent {
 	case events.SubEventCreate:
 		triggerEvent := events.New(events.EventTypeTriggerNoteRemainder, &events.ScheduleSnoozedTabPayload{
@@ -150,16 +156,16 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 		evStr := triggerEvent.ToJSON()
 
-		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
+		t := time.Unix(p.TriggerAt, 0).UTC().Format(config.DATE_TIME_FORMAT)
 
-		err = scheduler.CreateSchedule(p.SnoozedTabId, t, &evStr)
+		err = scheduler.CreateSchedule(sId, t, &evStr)
 	case events.SubEventUpdate:
 
-		t := time.Unix(p.TriggerAt, 0).Format(config.DATE_TIME_FORMAT)
+		t := time.Unix(p.TriggerAt, 0).UTC().Format(config.DATE_TIME_FORMAT)
 
-		err = scheduler.UpdateSchedule(p.SnoozedTabId, t)
+		err = scheduler.UpdateSchedule(sId, t)
 	case events.SubEventDelete:
-		err = scheduler.DeleteSchedule(p.SnoozedTabId)
+		err = scheduler.DeleteSchedule(sId)
 	}
 
 	return err
@@ -169,7 +175,7 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	db := database.New()
 	r := newRepository(db)
-	s, err := r.getSubscriptionInfo(p.UserId)
+	s, err := r.getNotificationSubscription(p.UserId)
 
 	if err != nil {
 		return err
@@ -183,10 +189,10 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 
 	// create notification
 	notification := notification{
-		Id:        strconv.FormatInt(time.Now().Unix(), 10),
+		Id:        strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Type:      notificationTypeNoteRemainder,
 		IsRead:    false,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now().UTC().Unix(),
 		Note: &noteRemainderNotification{
 			Id:     note.Id,
 			Title:  note.Title,
@@ -223,7 +229,7 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	db := database.New()
 	r := newRepository(db)
-	s, err := r.getSubscriptionInfo(p.UserId)
+	s, err := r.getNotificationSubscription(p.UserId)
 
 	if err != nil {
 		return err
@@ -237,10 +243,10 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 	// create notification
 	notification := notification{
-		Id:        strconv.FormatInt(time.Now().Unix(), 10),
+		Id:        strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Type:      notificationTypeUnSnoozedType,
 		IsRead:    false,
-		Timestamp: time.Now().Unix(),
+		Timestamp: time.Now().UTC().Unix(),
 		SnoozedTab: &snoozedTabNotification{
 			Id:    p.SnoozedTabId,
 			Title: snoozedTab.Title,

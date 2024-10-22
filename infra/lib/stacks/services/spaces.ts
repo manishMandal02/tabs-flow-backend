@@ -5,7 +5,7 @@ import { aws_apigateway, aws_dynamodb, aws_iam, aws_sqs } from 'aws-cdk-lib';
 
 import { config } from '../../../config';
 
-type SpaceServiceProps = {
+type SpacesServiceProps = {
   stage: string;
   apiGW: aws_apigateway.RestApi;
   db: aws_dynamodb.ITable;
@@ -14,8 +14,8 @@ type SpaceServiceProps = {
   notificationQueue: aws_sqs.Queue;
 };
 
-export class SpaceService extends Construct {
-  constructor(scope: Construct, props: SpaceServiceProps, id = 'SpaceService') {
+export class SpacesService extends Construct {
+  constructor(scope: Construct, props: SpacesServiceProps, id = 'SpacesService') {
     super(scope, id);
 
     const spaceServiceLambdaName = `${id}_${props.stage}`;

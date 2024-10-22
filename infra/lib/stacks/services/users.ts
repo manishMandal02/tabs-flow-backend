@@ -6,7 +6,7 @@ import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 import { config } from '../../../config';
 
-type UserServiceProps = {
+type UsersServiceProps = {
   stage: string;
   apiGW: aws_apigateway.RestApi;
   db: aws_dynamodb.ITable;
@@ -15,8 +15,8 @@ type UserServiceProps = {
   apiAuthorizer: aws_apigateway.RequestAuthorizer;
 };
 
-export class UserService extends Construct {
-  constructor(scope: Construct, props: UserServiceProps, id = 'UserService') {
+export class UsersService extends Construct {
+  constructor(scope: Construct, props: UsersServiceProps, id = 'UsersService') {
     super(scope, id);
 
     const userServiceLambdaName = `${id}_${props.stage}`;

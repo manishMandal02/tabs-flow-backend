@@ -87,6 +87,38 @@ func (h *notificationHandler) subscribe(w http.ResponseWriter, r *http.Request) 
 	http_api.SuccessResMsg(w, "Subscribed to  notifications")
 }
 
+func (h *notificationHandler) getNotificationSubscription(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+
+	subscription, err := h.r.getNotificationSubscription(userId)
+
+	if err != nil {
+		if err.Error() == errMsg.notificationsSubscribeEmpty {
+			http_api.SuccessResData(w, PushSubscription{})
+			return
+		}
+		http.Error(w, errMsg.notificationsSubscribeEmpty, http.StatusBadGateway)
+		return
+	}
+
+	http_api.SuccessResData(w, subscription)
+
+}
+
+func (h *notificationHandler) unsubscribe(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+
+	err := h.r.deleteNotificationSubscription(userId)
+
+	if err != nil {
+		http.Error(w, errMsg.notificationsUnsubscribe, http.StatusBadGateway)
+		return
+	}
+
+	http_api.SuccessResMsg(w, "Unsubscribed from notifications")
+
+}
+
 func (h *notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	userId := r.PathValue("userId")

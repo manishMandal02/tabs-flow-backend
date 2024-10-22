@@ -17,8 +17,9 @@ type notificationRepository interface {
 	get(userId, notificationId string) (notification, error)
 	delete(userId, notificationId string) error
 	subscribe(userId string, s *PushSubscription) error
-	getSubscriptionInfo(userId string) (*PushSubscription, error)
+	getNotificationSubscription(userId string) (*PushSubscription, error)
 	getUserNotifications(userId string) ([]notification, error)
+	deleteNotificationSubscription(userId string) error
 }
 
 type noteRepo struct {
@@ -58,72 +59,6 @@ func (nr *noteRepo) create(userId string, notification *notification) error {
 	}
 
 	return nil
-}
-
-func (nr *noteRepo) subscribe(userId string, s *PushSubscription) error {
-	item, err := attributevalue.MarshalMap(s)
-
-	if err != nil {
-		logger.Error("error marshalling notification", err)
-		return err
-	}
-
-	item[database.PK_NAME] = &types.AttributeValueMemberS{
-		Value: userId,
-	}
-
-	item[database.SK_NAME] = &types.AttributeValueMemberS{
-		Value: database.SORT_KEY.NotificationSubscription,
-	}
-
-	_, err = nr.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: &nr.db.TableName,
-		Item:      item,
-	})
-
-	if err != nil {
-		logger.Error("error putting notification subscription to db", err)
-		return err
-	}
-
-	return nil
-}
-
-func (nr *noteRepo) getSubscriptionInfo(userId string) (*PushSubscription, error) {
-
-	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{
-			Value: userId,
-		},
-		database.SK_NAME: &types.AttributeValueMemberS{
-			Value: database.SORT_KEY.NotificationSubscription,
-		},
-	}
-
-	result, err := nr.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
-		TableName: &nr.db.TableName,
-		Key:       key,
-	})
-
-	if err != nil {
-		logger.Error("error getting notification subscription from dynamodb", err)
-		return nil, err
-	}
-
-	if result.Item == nil {
-		logger.Errorf(errMsg.notificationsSubscriptionGet)
-		return nil, errors.New(errMsg.notificationsSubscriptionGet)
-	}
-
-	var s PushSubscription
-	err = attributevalue.UnmarshalMap(result.Item, &s)
-	if err != nil {
-		logger.Error("error un_marshalling notification subscription", err)
-		return nil, err
-	}
-
-	return &s, nil
-
 }
 
 func (nr *noteRepo) get(userId, notificationId string) (notification, error) {
@@ -219,6 +154,97 @@ func (nr *noteRepo) delete(userId, notificationId string) error {
 
 	if err != nil {
 		logger.Error("error deleting notification", err)
+		return err
+	}
+
+	return nil
+}
+
+func (nr *noteRepo) subscribe(userId string, s *PushSubscription) error {
+	item, err := attributevalue.MarshalMap(s)
+
+	if err != nil {
+		logger.Error("error marshalling notification", err)
+		return err
+	}
+
+	item[database.PK_NAME] = &types.AttributeValueMemberS{
+		Value: userId,
+	}
+
+	item[database.SK_NAME] = &types.AttributeValueMemberS{
+		Value: database.SORT_KEY.NotificationSubscription,
+	}
+
+	_, err = nr.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: &nr.db.TableName,
+		Item:      item,
+	})
+
+	if err != nil {
+		logger.Error("error putting notification subscription to db", err)
+		return err
+	}
+
+	return nil
+}
+
+func (nr *noteRepo) getNotificationSubscription(userId string) (*PushSubscription, error) {
+
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{
+			Value: userId,
+		},
+		database.SK_NAME: &types.AttributeValueMemberS{
+			Value: database.SORT_KEY.NotificationSubscription,
+		},
+	}
+
+	result, err := nr.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: &nr.db.TableName,
+		Key:       key,
+	})
+
+	if err != nil {
+		logger.Error("error getting notification subscription from dynamodb", err)
+		return nil, err
+	}
+
+	if result.Item == nil {
+		return nil, errors.New(errMsg.notificationsSubscribeEmpty)
+	}
+
+	var s PushSubscription
+
+	err = attributevalue.UnmarshalMap(result.Item, &s)
+
+	if err != nil {
+		logger.Error("error un_marshalling notification subscription", err)
+		return nil, err
+	}
+
+	return &s, nil
+
+}
+
+func (nr *noteRepo) deleteNotificationSubscription(userId string) error {
+
+	key := map[string]types.AttributeValue{
+		database.PK_NAME: &types.AttributeValueMemberS{
+			Value: userId,
+		},
+		database.SK_NAME: &types.AttributeValueMemberS{
+			Value: database.SORT_KEY.NotificationSubscription,
+		},
+	}
+
+	_, err := nr.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+		TableName: &nr.db.TableName,
+		Key:       key,
+	})
+
+	if err != nil {
+		logger.Error("error deleting notification subscription", err)
 		return err
 	}
 

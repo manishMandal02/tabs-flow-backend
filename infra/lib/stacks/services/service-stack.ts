@@ -4,9 +4,9 @@ import { Stack, StackProps, aws_dynamodb, aws_iam as iam, aws_ssm as ssm, Lazy }
 
 import { EmailService } from './email';
 import { AuthService } from './auth';
-import { UserService } from './users';
+import { UsersService } from './users';
 import { RestApi } from './rest-api';
-import { SpaceService } from './spaces';
+import { SpacesService } from './spaces';
 import { NotesService } from './notes';
 import { NotificationsService } from './notifications';
 
@@ -72,7 +72,7 @@ export class ServiceStack extends Stack {
       apiAuthorizer: authService.apiAuthorizer
     });
 
-    new UserService(this, {
+    new UsersService(this, {
       lambdaRole,
       db: mainDB,
       stage: props.stage,
@@ -81,7 +81,7 @@ export class ServiceStack extends Stack {
       emailQueue: emailService.Queue
     });
 
-    new SpaceService(this, {
+    new SpacesService(this, {
       lambdaRole,
       db: mainDB,
       stage: props.stage,

@@ -68,16 +68,25 @@ func setDefaultUserData(user *User, r userRepository) error {
 		return err
 	}
 
-	today := time.Now()
+	today := time.Now().UTC()
 
-	trialEndDate := today.AddDate(0, 0, config.TRAIL_DAYS)
+	trialEndDate := time.Date(
+		today.Year(),
+		today.Month(),
+		today.Day()+config.TRAIL_DAYS,
+		23, // hour
+		59, // min
+		59, // sec
+		0,  // nano sec
+		time.UTC,
+	)
 
 	//  start trail subscription
 	s := &subscription{
 		Plan:   SubscriptionPlanTrial,
 		Status: SubscriptionStatusActive,
-		Start:  today.Format(time.DateOnly),
-		End:    trialEndDate.Format(time.DateOnly),
+		Start:  today.Unix(),
+		End:    trialEndDate.Unix(),
 	}
 
 	err = r.setSubscription(user.Id, s)
@@ -210,6 +219,15 @@ type subscriptionData struct {
 
 // process paddle subscription (create/update) event in webhook
 func subscriptionEventHandler(r userRepository, data *subscriptionData, isUpdatedEvent bool) error {
+	// parse date to convert it to unix timestamp for db
+	startDate, err := time.Parse(time.RFC3339, data.startDate)
+	endDate, err2 := time.Parse(time.RFC3339, data.endDate)
+	nextBillDate, err3 := time.Parse(time.RFC3339, data.nextBillDate)
+
+	if err != nil || err2 != nil || err3 != nil {
+		logger.Errorf("subscriptionEventHandler(): error parsing subscription dates: %v", err)
+		return err
+	}
 
 	if data.userId == "" {
 		errMsg := "error getting userId from event custom data subscriptionWebhook()"
@@ -223,16 +241,14 @@ func subscriptionEventHandler(r userRepository, data *subscriptionData, isUpdate
 		Id:     data.subscriptionId,
 		Plan:   plan,
 		Status: SubscriptionStatus(data.status),
-		Start:  *&data.startDate,
-		End:    data.endDate,
+		Start:  startDate.Unix(),
+		End:    endDate.Unix(),
 	}
 
 	if plan == SubscriptionPlanYearly {
 		// save next bill date if, subscription plan is yearly
-		s.NextBillDate = *&data.nextBillDate
+		s.NextBillDate = nextBillDate.Unix()
 	}
-
-	var err error
 
 	if isUpdatedEvent {
 		err = r.updateSubscription(data.userId, s)

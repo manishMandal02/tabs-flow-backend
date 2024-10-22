@@ -15,7 +15,7 @@ type NotificationsServicePops = {
 
 export class NotificationsService extends Construct {
   Queue: sqs.Queue;
-  constructor(scope: Construct, props: NotificationsServicePops, id = 'NotificationService') {
+  constructor(scope: Construct, props: NotificationsServicePops, id = 'NotificationsService') {
     super(scope, id);
 
     const queueName = `${config.AppName}-Notifications_${props.stage}`;
@@ -36,7 +36,7 @@ export class NotificationsService extends Construct {
     });
 
     // Create the scheduler execution role
-    const schedulerExecutionRole = new iam.Role(this, 'NotificationServiceSchedulerRole', {
+    const schedulerExecutionRole = new iam.Role(this, 'NotificationsServiceSchedulerRole', {
       assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
       description: 'Role that EventBridge Scheduler can assume to execute tasks'
     });

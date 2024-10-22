@@ -77,9 +77,9 @@ type subscription struct {
 	Id           string             `json:"id" dynamodbav:"Id"`
 	Plan         SubscriptionPlan   `json:"plan" dynamodbav:"Plan"`
 	Status       SubscriptionStatus `json:"status" dynamodbav:"Status"`
-	Start        string             `json:"start" dynamodbav:"Start"`
-	End          string             `json:"end" dynamodbav:"End"`
-	NextBillDate string             `json:"nextBillDate,omitempty" dynamodbav:"NextBillDate,omitempty"`
+	Start        int64              `json:"start" dynamodbav:"Start"`
+	End          int64              `json:"end" dynamodbav:"End"`
+	NextBillDate int64              `json:"nextBillDate,omitempty" dynamodbav:"NextBillDate,omitempty"`
 }
 
 type generalP struct {
@@ -149,7 +149,6 @@ var defaultUserPref = preferences{
 		Size:        "tablet",
 	},
 }
-
 
 var errMsg = struct {
 	getUser               string

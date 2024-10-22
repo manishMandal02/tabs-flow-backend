@@ -24,14 +24,13 @@ func NewScheduler() *scheduler {
 // name - name of the schedule
 //
 // dateTime - date & time to trigger the target. ex: at(yyyy-mm-ddThh:mm:ss)
-func (s scheduler) CreateSchedule(name, dateTime string, event *string) error {
+func (s scheduler) CreateSchedule(id, dateTime string, event *string) error {
 
 	scheduleExpression := fmt.Sprintf("at(%s)", dateTime)
 
 	_, err := s.client.CreateSchedule(context.TODO(), &eb_scheduler.CreateScheduleInput{
-		Name:                       &name,
-		ScheduleExpression:         &scheduleExpression,
-		ScheduleExpressionTimezone: &config.TIME_ZONE,
+		Name:               &id,
+		ScheduleExpression: &scheduleExpression,
 		FlexibleTimeWindow: &types.FlexibleTimeWindow{
 			Mode: types.FlexibleTimeWindowModeOff,
 		},

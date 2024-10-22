@@ -281,15 +281,13 @@ func (h userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Requ
 
 	if active {
 		// if subscription is active, check the end date
-		endDate, err := time.Parse(time.RFC3339, s.End)
-
 		if err != nil {
 			logger.Error("error parsing subscription end date", err)
 			http.Error(w, errMsg.subscriptionGet, http.StatusBadRequest)
 			return
 		}
 
-		if endDate.Unix() < time.Now().UTC().Unix() {
+		if s.End < time.Now().UTC().Unix() {
 			active = false
 		}
 	}

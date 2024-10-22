@@ -29,15 +29,16 @@ var (
 	PADDLE_WEBHOOK_SECRET_KEY   string
 	VAPID_PRIVATE_KEY           string
 	VAPID_PUBLIC_KEY            string
+	LOCAL_DEV_ENV               = false
+)
 
-	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
-	DATE_TIME_FORMAT         = "2006-01-02T15:04:05"
-	TIME_ZONE                = "Asia/Kolkata"
-	LOCAL_DEV_ENV            = false
+const (
 	TRAIL_DAYS               = 14
 	OTP_EXPIRY_TIME_IN_MIN   = 5
 	JWT_TOKEN_EXPIRY_IN_DAYS = 10
 	USER_SESSION_EXPIRY_DAYS = 10
+	DATE_TIME_FORMAT         = "2006-01-02T15:04:05"
+	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
 )
 
 func Init() {
