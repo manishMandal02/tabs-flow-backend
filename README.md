@@ -8,11 +8,12 @@
 - [Technologies](#technologies)
 - [Architecture](#architecture)
 - [Entities](#entities)
-- [Data Access Patterns](#data-access-patterns-dynamodb)
-- [Table Design (DynamoDB)](#table-design-dynamodb)
+- [Data Access Patterns](#data-access-patterns-main-table)
+- [Table Designs (DynamoDB)](#main-table-design-dynamodb)
+- [Data Types](#data-types)
 - [Services](#services)
+- [Folder Structure](#folder-structure)
 - [Getting Started](#getting-started)
-- [Development](#development)
 - [Deployment](#deployment)
 
 ## Project Overview
@@ -36,8 +37,6 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 ## Architecture
 
 [TODO: high-level architecture diagram here]
-
-Our serverless architecture leverages various AWS services to create a scalable and maintainable backend system. The core services are implemented as Lambda functions, with API Gateway serving as the main entry point for client requests.
 
 ## Entities
 
@@ -114,6 +113,30 @@ Our serverless architecture leverages various AWS services to create a scalable 
 | EmailId            | UserId#{userId}     |                            |
 |                    | OTP#{otp}           | TTL                        |
 |                    | Session#{sessionId} | CreatedAt, TTL, DeviceInfo |
+
+## Data Types
+
+- Date & time
+  - All dates & times are stored in UTC Unix timestamps (seconds since epoch).
+- Pricing Plans: TRAIL | YEARLY | LIFETIME
+- Subscription Status: active | canceled | past_due | paused | trialing
+- API Response
+  - Success
+    - Status Code: 200 (OK)
+    - Response Body:
+    ```json
+      {
+      "success": true,
+      "message": "success message", // only for POST/PATCH requests
+      "data": JSON object of the requested Entity, ex: User, []notes, note, []notifications etc.
+      }
+    ```
+  - Error
+    - Status Code: 500s (server error) or 400s (bad request)
+    - Response Body: (some endpoints don't response with json body, just status code and the error message text)
+    ```json
+    { "success": false, "message": "error message" }
+    ```
 
 ## Services
 
@@ -216,13 +239,39 @@ Our serverless architecture leverages various AWS services to create a scalable 
 - Sets up alerts/alarms for metrics
 - Implements structured logging (sent to CloudWatch)
 
+## Folder Structure
+
+- `/cmd` - main entry points for each service
+- `/internal` - services code domain, routes, handlers, repository
+- `/pkg` - shared code and utilities
+- `/test` - unit tests
+- `/infra` - infrastructure code (AWS CDK)
+- `Makefile` - dev, build and test commands
+- `README.md` - project documentation
+- `.air.toml` - Air configuration file for live reloading Go files
+- `.env.example` - example environment variables
+
 ## Getting Started
 
-[TODO: Instructions on how to set up the project locally]
+1. Clone the repository and navigate to the project directory.
 
-## Development
+   ```bash
+   git clone https://github.com/manishMandal02/freshtabs-backend.git
+   ```
 
-[TODO: Guidelines working on the project locally]
+2. Add environment variables: (check .env.example)
+
+3. Install dependencies:
+
+   ```bash
+   make init
+   ```
+
+4. Run the project:
+
+   ```bash
+   make dev
+   ```
 
 ## Deployment
 

@@ -150,35 +150,6 @@ var defaultUserPref = preferences{
 	},
 }
 
-// var defaultPreferences = map[string]interface{}{
-// 	"General": map[string]interface{}{
-// 		"OpenSpace":           "newWindow",
-// 		"DeleteUnsavedSpaces": "week",
-// 	},
-// 	"CmdPalette": map[string]interface{}{
-// 		"IsDisabled": false,
-// 		"Search": map[string]interface{}{
-// 			"Bookmarks": true,
-// 			"Notes":     true,
-// 		},
-// 		"DisabledCommands": []string{},
-// 	},
-// 	"Notes": map[string]interface{}{
-// 		"IsDisabled":     false,
-// 		"BubblePos":      "bottom-right",
-// 		"ShowOnAllSites": true,
-// 	},
-// 	"AutoDiscard": map[string]interface{}{
-// 		"IsDisabled":              false,
-// 		"DiscardTabsAfterIdleMin": 10,
-// 		"WhitelistedDomains":      []string{},
-// 	},
-// 	"LinkPreview": map[string]interface{}{
-// 		"IsDisabled":  false,
-// 		"OpenTrigger": "shift-click",
-// 		"Size":        "tablet",
-// 	},
-// }
 
 var errMsg = struct {
 	getUser               string
