@@ -160,6 +160,7 @@ func (nr *noteRepo) delete(userId, notificationId string) error {
 	return nil
 }
 
+// notification subscription
 func (nr *noteRepo) subscribe(userId string, s *PushSubscription) error {
 	item, err := attributevalue.MarshalMap(s)
 

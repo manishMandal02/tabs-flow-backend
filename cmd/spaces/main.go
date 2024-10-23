@@ -14,7 +14,7 @@ func main() {
 	// load config
 	config.Init()
 
-	http.HandleFunc("/users/", spaces.Router)
+	http.HandleFunc("/spaces/", spaces.Router)
 
 	lambda.Start(httpadapter.New(http.DefaultServeMux).ProxyWithContext)
 

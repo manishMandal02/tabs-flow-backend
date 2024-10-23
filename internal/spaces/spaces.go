@@ -40,11 +40,11 @@ type group struct {
 }
 
 type SnoozedTab struct {
-	URL          string `json:"url"`
-	Title        string `json:"title"`
-	Icon         string `json:"icon"`
-	SnoozedAt    int64  `json:"snoozedAt"`
-	SnoozedUntil int64  `json:"snoozedUntil"`
+	URL          string `json:"url,omitempty"`
+	Title        string `json:"title,omitempty"`
+	Icon         string `json:"icon,omitempty"`
+	SnoozedAt    int64  `json:"snoozedAt,omitempty"`
+	SnoozedUntil int64  `json:"snoozedUntil,omitempty"`
 }
 
 var errMsg = struct {

@@ -106,7 +106,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 
 func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 
-	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.Space("")))
+	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(userId)), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY.Space("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -127,7 +127,7 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 	}
 
 	if len(response.Items) < 1 {
-		return nil, errors.New(errMsg.spaceGetAllByUser)
+		return nil, errors.New(errMsg.spaceNotFound)
 	}
 
 	spaces := []space{}

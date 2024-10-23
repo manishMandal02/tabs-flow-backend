@@ -28,13 +28,26 @@ func EventsHandler(_ context.Context, event lambda_events.SQSEvent) (interface{}
 
 	//  process batch of events
 	for _, record := range event.Records {
-		event := events.Event[any]{}
 
 		logger.Info("processing record: %v", record.Body)
 
-		eventType := *record.MessageAttributes["event_type"].StringValue
+		eventType := ""
 
-		logger.Info("processing event_type: %v", event.EventType)
+		if _, ok := record.MessageAttributes["event_type"]; ok {
+			eventType = *record.MessageAttributes["event_type"].StringValue
+		} else {
+
+			var e events.Event[any]
+
+			err := e.FromJSON(record.Body)
+
+			eventType = string(e.EventType)
+
+			if err != nil {
+				logger.Errorf("error un_marshalling event from json: %v", err)
+			}
+
+		}
 
 		err := processEvent(eventType, record.Body)
 
@@ -148,7 +161,7 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 	switch p.SubEvent {
 	case events.SubEventCreate:
-		triggerEvent := events.New(events.EventTypeTriggerNoteRemainder, &events.ScheduleSnoozedTabPayload{
+		triggerEvent := events.New(events.EventTypeTriggerSnoozedTab, &events.ScheduleSnoozedTabPayload{
 			UserId:       p.UserId,
 			SpaceId:      p.SpaceId,
 			SnoozedTabId: p.SnoozedTabId,
@@ -160,7 +173,6 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 		err = scheduler.CreateSchedule(sId, t, &evStr)
 	case events.SubEventUpdate:
-
 		t := time.Unix(p.TriggerAt, 0).UTC().Format(config.DATE_TIME_FORMAT)
 
 		err = scheduler.UpdateSchedule(sId, t)
@@ -221,6 +233,8 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 
 	}
 
+	//TODO: remove remainder at
+
 	return nil
 
 }
@@ -274,6 +288,8 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 		return err
 
 	}
+
+	// TODO: delete snoozed tab
 
 	return nil
 

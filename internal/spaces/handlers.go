@@ -56,6 +56,11 @@ func (h *spaceHandler) spacesByUser(w http.ResponseWriter, r *http.Request) {
 	spaces, err := h.sr.getSpacesByUser(userId)
 
 	if err != nil {
+		if err.Error() == errMsg.spaceNotFound {
+			http_api.SuccessResData(w, []string{})
+
+			return
+		}
 		logger.Error("error getting spaces", err)
 		http.Error(w, errMsg.spaceGet, http.StatusBadGateway)
 		return
@@ -63,7 +68,6 @@ func (h *spaceHandler) spacesByUser(w http.ResponseWriter, r *http.Request) {
 
 	http_api.SuccessResData(w, spaces)
 
-	http_api.SuccessResMsg(w, "success")
 }
 
 func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
@@ -402,7 +406,8 @@ func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request
 
 	if err != nil {
 		if err.Error() == errMsg.snoozedTabsNotFound {
-			http.Error(w, errMsg.snoozedTabsNotFound, http.StatusNotFound)
+			http_api.SuccessResData(w, []SnoozedTab{})
+
 			return
 		}
 		logger.Error("error getting snoozed tabs for user", err)

@@ -41,20 +41,7 @@ export class NotificationsService extends Construct {
       description: 'Role that EventBridge Scheduler can assume to execute tasks'
     });
 
-    // Add permissions to the scheduler execution role
-    schedulerExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          'lambda:InvokeFunction'
-          // Add other permissions needed by your scheduled tasks
-        ],
-        resources: [
-          // Specify the exact Lambda ARN that the scheduler needs to invoke
-          `arn:aws:lambda:${Stack.of(this).region}:${Stack.of(this).account}:function:*`
-        ]
-      })
-    );
+    notificationsQueue.grantSendMessages(schedulerExecutionRole);
 
     const notificationsServiceLambdaName = `${id}_${props.stage}`;
 

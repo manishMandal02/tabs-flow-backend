@@ -73,7 +73,7 @@ export class AuthService extends Construct {
     const authorizer = new apiGateway.RequestAuthorizer(this, authorizerName, {
       authorizerName,
       handler: authorizerLambda,
-      identitySources: [apiGateway.IdentitySource.header('cookies')],
+      identitySources: [apiGateway.IdentitySource.header('Cookie')],
       resultsCacheTtl: Duration.minutes(5)
     });
 
