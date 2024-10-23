@@ -4,18 +4,21 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/notes"
+	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
 func main() {
 
 	// load config
 	config.Init()
+	baseMux := http.NewServeMux()
 
-	http.HandleFunc("/notes/", notes.Router)
+	baseMux.HandleFunc("/notes/", notes.Router)
 
-	lambda.Start(httpadapter.New(http.DefaultServeMux).ProxyWithContext)
+	handler := http_api.NewAPIGatewayHandler(baseMux)
+
+	lambda.Start(handler)
 
 }

@@ -54,3 +54,23 @@ func SuccessResMsgWithBody(w http.ResponseWriter, msg string, data interface{}) 
 		return
 	}
 }
+
+type responseWriterWritten struct {
+	http.ResponseWriter
+	Written bool
+}
+
+func (w *responseWriterWritten) WriteHeader(status int) {
+	w.Written = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *responseWriterWritten) Write(b []byte) (int, error) {
+	w.Written = true
+	return w.ResponseWriter.Write(b)
+}
+
+func (w *responseWriterWritten) HasWritten(s string) bool {
+	return w.Written
+
+}

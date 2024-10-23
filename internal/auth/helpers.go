@@ -199,6 +199,8 @@ func generatePolicy(principalId, effect, resource, userId string, cookies map[st
 		}
 	}
 
+	logger.Dev("userId: %v", userId)
+
 	if userId != "" {
 		if authResponse.Context == nil {
 			authResponse.Context = map[string]interface{}{}

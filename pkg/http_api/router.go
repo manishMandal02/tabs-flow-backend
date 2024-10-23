@@ -100,6 +100,10 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		match, params := route.Match(req.Method, strings.TrimPrefix(req.URL.Path, r.base))
 		if match {
+
+			// wrap the original ResponseWriter
+			rw := &responseWriterWritten{ResponseWriter: w}
+
 			logger.Dev("params: %v", params)
 
 			// set path values
@@ -109,7 +113,11 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			// run middleware
 			if len(r.middleware) > 0 {
 				for _, m := range r.middleware {
-					m(w, req)
+					m(rw, req)
+					if rw.HasWritten() {
+						// stop the req, if header was written by a middleware
+						return
+					}
 				}
 			}
 
@@ -118,7 +126,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				route.Handlers[0](w, req)
 			} else {
 				for _, h := range route.Handlers {
-					h(w, req)
+					h(rw, req)
 				}
 			}
 			return
