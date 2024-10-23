@@ -1,13 +1,11 @@
 package notes
 
 import (
-	"net/http"
-
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-func Router(w http.ResponseWriter, r *http.Request) {
+func Router() http_api.IRouter {
 	db := database.New()
 	searchIndexTable := database.NewSearchIndexTable()
 	nr := NewNoteRepository(db, searchIndexTable)
@@ -33,5 +31,5 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	notesRouter.DELETE("/:noteId", nh.delete)
 
 	// serve API routes
-	notesRouter.ServeHTTP(w, r)
+	return notesRouter
 }

@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"net/http"
-
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/database"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
@@ -19,7 +17,7 @@ func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeReq
 	return handler.lambdaAuthorizer(ev)
 }
 
-func Router(w http.ResponseWriter, r *http.Request) {
+func Router() http_api.IRouter {
 
 	db := database.NewSessionTable()
 
@@ -42,5 +40,5 @@ func Router(w http.ResponseWriter, r *http.Request) {
 	authRouter.GET("/user", handler.getUserId)
 
 	// serve API routes
-	authRouter.ServeHTTP(w, r)
+	return authRouter
 }

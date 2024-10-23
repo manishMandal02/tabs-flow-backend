@@ -70,7 +70,7 @@ func (w *responseWriterWritten) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-func (w *responseWriterWritten) HasWritten(s string) bool {
+func (w *responseWriterWritten) HasWritten() bool {
 	return w.Written
 
 }

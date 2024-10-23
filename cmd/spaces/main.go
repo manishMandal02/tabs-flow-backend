@@ -1,8 +1,6 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
@@ -14,11 +12,7 @@ func main() {
 	// load config
 	config.Init()
 
-	baseMux := http.NewServeMux()
-
-	baseMux.HandleFunc("/spaces/", spaces.Router)
-
-	handler := http_api.NewAPIGatewayHandler(baseMux)
+	handler := http_api.NewAPIGatewayHandler("/spaces/", spaces.Router())
 
 	lambda.Start(handler.Handle)
 

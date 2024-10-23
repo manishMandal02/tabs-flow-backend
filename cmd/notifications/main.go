@@ -1,8 +1,6 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/notifications"
@@ -14,11 +12,7 @@ func main() {
 	// load config
 	config.Init()
 
-	baseMux := http.NewServeMux()
-
-	baseMux.HandleFunc("/notifications/", notifications.Router)
-
-	handler := http_api.NewAPIGatewayHandlerWithSQSHandler(baseMux, notifications.EventsHandler)
+	handler := http_api.NewAPIGatewayHandlerWithSQSHandler("/notifications/", notifications.Router(), notifications.EventsHandler)
 
 	lambda.Start(handler.Handle)
 

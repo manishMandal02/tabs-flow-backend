@@ -11,17 +11,16 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/internal/notifications"
 	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
-	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 // lambda authorizer simple moc
-func authorizer(next http_api.Handler) http_api.Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
+func authorizer(next http.Handler) http.Handler {
 
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// allow paddle webhook, without auth tokens
 		if r.URL.Path == "/users/subscription/webhook" {
-			next(w, r)
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -60,8 +59,8 @@ func authorizer(next http_api.Handler) http_api.Handler {
 		// token valid, allow
 		r.Header.Set("UserId", userId)
 
-		next(w, r)
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -71,16 +70,16 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/auth/", auth.Router)
-	mux.HandleFunc("/users/", authorizer(users.Router))
-	mux.HandleFunc("/spaces/", authorizer(spaces.Router))
-	mux.HandleFunc("/notes/", authorizer(notes.Router))
-	mux.HandleFunc("/notifications/", authorizer(notifications.Router))
+	mux.Handle("/auth/", auth.Router())
+	mux.Handle("/users/", authorizer(users.Router()))
+	mux.Handle("/spaces/", authorizer(spaces.Router()))
+	mux.Handle("/notes/", authorizer(notes.Router()))
+	mux.Handle("/notifications/", authorizer(notifications.Router()))
 
 	// handle unknown service routes
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unknown Service", http.StatusNotFound)
-	})
+	}))
 
 	fmt.Println("Running auth service on port 8080")
 

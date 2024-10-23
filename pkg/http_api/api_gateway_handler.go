@@ -11,33 +11,33 @@ import (
 
 type sqsHandler func(context.Context, events.SQSEvent) (interface{}, error)
 
-// handles API Gateway proxy events
+// API Gateway proxy events handler
 type APIGatewayHandler struct {
-	baseMux    *http.ServeMux // Original multiplexer with routes
-	customMux  *http.ServeMux // Wrapped multiplexer with auth injection
+	baseURL    string
+	handler    http.Handler
 	sqsHandler sqsHandler
 }
 
-func NewAPIGatewayHandler(baseMux *http.ServeMux) *APIGatewayHandler {
+func NewAPIGatewayHandler(baseURL string, handler http.Handler) *APIGatewayHandler {
 	return &APIGatewayHandler{
-		baseMux:   baseMux,
-		customMux: http.NewServeMux(),
+		baseURL: baseURL,
+		handler: handler,
 	}
 }
-func NewAPIGatewayHandlerWithSQSHandler(baseMux *http.ServeMux, sH sqsHandler) *APIGatewayHandler {
+
+func NewAPIGatewayHandlerWithSQSHandler(baseURL string, handler http.Handler, sH sqsHandler) *APIGatewayHandler {
 	return &APIGatewayHandler{
-		baseMux:    baseMux,
-		customMux:  http.NewServeMux(),
+		baseURL:    baseURL,
+		handler:    handler,
 		sqsHandler: sH,
 	}
 }
 
-// inject UserId header
-func (h *APIGatewayHandler) injectUserId(userId string) {
-	// Wrap all routes with auth injection
-	h.customMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+// wrapper handler that injects the userId
+func (h *APIGatewayHandler) withUserID(userId string, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("UserId", userId)
-		h.baseMux.ServeHTTP(w, r)
+		handler.ServeHTTP(w, r)
 	})
 }
 
@@ -45,12 +45,9 @@ func (h *APIGatewayHandler) injectUserId(userId string) {
 func (h *APIGatewayHandler) Handle(ctx context.Context, event json.RawMessage) (interface{}, error) {
 	// Parse API GW event
 	var apiEvent events.APIGatewayProxyRequest
-
 	err := json.Unmarshal(event, &apiEvent)
-
 	if err != nil || apiEvent.RequestContext.APIID == "" {
 		// not a valid API Gateway event
-
 		// check if it is an SQS event
 		if h.sqsHandler != nil {
 			// Try to parse the event as an SQS event
@@ -63,13 +60,19 @@ func (h *APIGatewayHandler) Handle(ctx context.Context, event json.RawMessage) (
 		return nil, err
 	}
 
+	// Create mux for this request
+	mux := http.NewServeMux()
+
 	// Extract userId from authorizer context
-	userId, ok := apiEvent.RequestContext.Authorizer["UserId"].(string)
-	if ok {
-		h.injectUserId(userId)
+	if userId, ok := apiEvent.RequestContext.Authorizer["UserId"].(string); ok {
+		// Wrap the handler with userId injection
+		mux.Handle(h.baseURL, h.withUserID(userId, h.handler))
+	} else {
+		// Use original handler without userId injection
+		mux.Handle(h.baseURL, h.handler)
 	}
 
 	// serve the request
-	adapter := httpadapter.New(h.customMux)
+	adapter := httpadapter.New(mux)
 	return adapter.Proxy(apiEvent)
 }

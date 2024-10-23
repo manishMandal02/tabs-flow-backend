@@ -19,16 +19,17 @@ export class ServiceStack extends Stack {
     super(scope, id, props);
 
     const mainTableArn = Lazy.string({
-      produce: () => ssm.StringParameter.valueFromLookup(this, '/main-table-arn')
+      produce: () => ssm.StringParameter.valueForStringParameter(this, '/main-table-arn')
     });
     const sessionsTableArn = Lazy.string({
-      produce: () => ssm.StringParameter.valueFromLookup(this, '/sessions-table-arn')
+      produce: () => ssm.StringParameter.valueForStringParameter(this, '/sessions-table-arn')
     });
     const searchIndexTableArn = Lazy.string({
-      produce: () => ssm.StringParameter.valueFromLookup(this, '/search-index-table-arn')
+      produce: () => ssm.StringParameter.valueForStringParameter(this, '/search-index-table-arn')
     });
 
-    const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTable', mainTableArn);
+    const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTableAr', mainTableArn);
+
     const sessionsDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(
       this,
       'SessionsTable',

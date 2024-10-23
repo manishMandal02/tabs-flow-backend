@@ -15,6 +15,12 @@ type Route struct {
 	Handlers     []Handler
 }
 
+type Router struct {
+	base       string
+	routes     []*Route
+	middleware []Handler
+}
+
 type IRouter interface {
 	ServeHTTP(w http.ResponseWriter, req *http.Request)
 	Use(handlers Handler)
@@ -47,12 +53,6 @@ func (r *Route) Match(method, path string) (bool, map[string]string) {
 	}
 
 	return true, params
-}
-
-type Router struct {
-	base       string
-	routes     []*Route
-	middleware []Handler
 }
 
 func NewRouter(base string) IRouter {

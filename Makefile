@@ -26,7 +26,7 @@ cdk-deploy-all:
 	cd infra/ && cdk deploy --all --profile tabsflow-dev
 
 cdk-deploy-stack-service:  
-	cd infra/ && cdk deploy ServiceStack --profile tabsflow-dev
+	cd infra/ && cdk deploy ServiceStack --profile tabsflow-dev --no-previous-parameters
 
 cdk-deploy-stack-stateful:  
 	cd infra/ && cdk deploy StatefulStack --profile tabsflow-dev

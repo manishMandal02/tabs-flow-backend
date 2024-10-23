@@ -417,7 +417,7 @@ func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*Snoo
 
 func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64) (*[]SnoozedTab, error) {
 
-	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.SnoozedTabs("")))
+	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(userId)), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY.SnoozedTabs("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 

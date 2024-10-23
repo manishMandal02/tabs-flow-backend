@@ -11,6 +11,10 @@ node_modules
 cdk.out
 
 
+.VSCodeCounter
+*.VSCodeCounter/*
+
+
 ### go ignore
 # Binaries for programs and plugins
 *.exe
