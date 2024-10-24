@@ -173,17 +173,29 @@ func createNewSession(email, userAgent string, aR authRepository) (*createSessio
 }
 
 // generate policy for lambda authorizer
-func generatePolicy(principalId, effect, resource, userId string, cookies map[string]string) *lambda_events.APIGatewayCustomAuthorizerResponse {
+func generatePolicy(principalId, effect, methodArn, userId string, cookies map[string]string) *lambda_events.APIGatewayCustomAuthorizerResponse {
+
+	// remove the path and method from the arn, so it allows all the path and method even with cached data
+	arnParts := strings.Split(methodArn, ":")
+	apiGatewayArnTmp := strings.Split(arnParts[5], "/")
+	apiID := apiGatewayArnTmp[0] // This gets just the API ID
+	wildcardArn := fmt.Sprintf("arn:aws:execute-api:%s:%s:%s/%s/*",
+		arnParts[3],         // region
+		arnParts[4],         // account ID
+		apiID,               // API ID
+		apiGatewayArnTmp[1], // stage
+	)
+
 	authResponse := lambda_events.APIGatewayCustomAuthorizerResponse{PrincipalID: principalId}
 
-	if effect != "" && resource != "" {
+	if effect != "" && methodArn != "" {
 		authResponse.PolicyDocument = lambda_events.APIGatewayCustomAuthorizerPolicy{
 			Version: "2012-10-17",
 			Statement: []lambda_events.IAMPolicyStatement{
 				{
 					Action:   []string{"execute-api:Invoke"},
 					Effect:   effect,
-					Resource: []string{resource},
+					Resource: []string{wildcardArn},
 				},
 			},
 		}

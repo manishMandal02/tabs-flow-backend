@@ -54,7 +54,7 @@ func (h *APIGatewayHandler) Handle(ctx context.Context, event json.RawMessage) (
 			var sqsEvent events.SQSEvent
 			if err := json.Unmarshal(event, &sqsEvent); err == nil && len(sqsEvent.Records) > 0 {
 				// This is an SQS event
-				return h.sqsHandler(ctx, events.SQSEvent{})
+				return h.sqsHandler(ctx, sqsEvent)
 			}
 		}
 		return nil, err
