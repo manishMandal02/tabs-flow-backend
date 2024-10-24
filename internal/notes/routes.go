@@ -6,9 +6,9 @@ import (
 )
 
 func Router() http_api.IRouter {
-	db := database.New()
+	mainDB := database.New()
 	searchIndexTable := database.NewSearchIndexTable()
-	nr := NewNoteRepository(db, searchIndexTable)
+	nr := NewNoteRepository(mainDB, searchIndexTable)
 	nh := newNoteHandler(nr)
 
 	// middleware to get userId from jwt token

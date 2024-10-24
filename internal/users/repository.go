@@ -147,7 +147,7 @@ func (r userRepo) deleteAccount(id string) error {
 	}
 
 	// channel to collect errors from goroutines
-	errChan := make(chan error, len(allSKs)/database.MAX_BATCH_SIZE+1)
+	errChan := make(chan error, len(allSKs)/database.DDB_MAX_BATCH_SIZE+1)
 
 	var wg sync.WaitGroup
 

@@ -50,7 +50,7 @@ func Init() {
 	isLocalDev := *localDevFlag
 
 	if isLocalDev {
-		logger.Dev("Local development mode 🚧")
+		logger.Info("Local development mode 🚧")
 		LOCAL_DEV_ENV = true
 		err := godotenv.Load()
 		if err != nil {
@@ -95,6 +95,7 @@ func Init() {
 
 		DDB_MAIN_TABLE_NAME = os.Getenv("DDB_MAIN_TABLE_NAME")
 		DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
+		DDB_SEARCH_INDEX_TABLE_NAME = os.Getenv("DDB_SEARCH_INDEX_TABLE_NAME")
 		EMAIL_QUEUE_URL = os.Getenv("EMAIL_QUEUE_URL")
 		NOTIFICATIONS_QUEUE_URL = os.Getenv("NOTIFICATIONS_QUEUE_URL")
 		SCHEDULER_ROLE_ARN = os.Getenv("SCHEDULER_ROLE_ARN")

@@ -387,8 +387,6 @@ func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*Snoo
 		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.SnoozedTabs(skSuffix)},
 	}
 
-	logger.Dev("key: %v", key["SK"])
-
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		TableName: &r.db.TableName,
 		Key:       key,

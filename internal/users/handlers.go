@@ -377,7 +377,6 @@ func (h userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request)
 	}
 
 	if !ok {
-		logger.Dev("paddle webhook verification failed")
 		http.Error(w, "Error bad_request", http.StatusBadRequest)
 		return
 	}
@@ -398,8 +397,6 @@ func (h userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Error", http.StatusBadRequest)
 		return
 	}
-
-	logger.Dev("paddle webhook event type: %v ", ev.EventType)
 
 	switch ev.EventType {
 	case paddle.EventTypeNameSubscriptionCreated:

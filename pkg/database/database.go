@@ -50,9 +50,9 @@ func newLimiter() *rate.Limiter {
 }
 
 const (
-	MAX_BATCH_SIZE    int    = 25
-	PK_NAME        string = "PK"
-	SK_NAME        string = "SK"
+	DDB_MAX_BATCH_SIZE int    = 25
+	PK_NAME            string = "PK"
+	SK_NAME            string = "SK"
 )
 
 // sort keys

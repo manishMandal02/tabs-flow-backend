@@ -93,8 +93,8 @@ func (db DDB) GetAllSKs(pk string) ([]string, error) {
 
 func (db DDB) BatchWriter(ctx context.Context, wg *sync.WaitGroup, errChan chan error, reqs []types.WriteRequest) {
 
-	for start := 0; start < len(reqs); start += MAX_BATCH_SIZE {
-		end := start + MAX_BATCH_SIZE
+	for start := 0; start < len(reqs); start += DDB_MAX_BATCH_SIZE {
+		end := start + DDB_MAX_BATCH_SIZE
 		if end > len(reqs) {
 			end = len(reqs)
 		}
@@ -160,8 +160,8 @@ func (db DDB) BatchWriter(ctx context.Context, wg *sync.WaitGroup, errChan chan 
 
 //! not used currently
 // func (db DDB) BatchReader(ctx context.Context, wg *sync.WaitGroup, errChan chan error, keys []map[string]types.AttributeValue, res chan []map[string]types.AttributeValue) {
-// 	for start := 0; start < len(keys); start += MAX_BATCH_SIZE {
-// 		end := start + MAX_BATCH_SIZE
+// 	for start := 0; start < len(keys); start += DDB_MAX_BATCH_SIZE {
+// 		end := start + DDB_MAX_BATCH_SIZE
 // 		if end > len(keys) {
 // 			end = len(keys)
 // 		}

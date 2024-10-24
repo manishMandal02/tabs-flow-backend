@@ -466,22 +466,6 @@ func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 func newUserIdMiddleware() http_api.Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// Try to get raw Lambda context
-		if lambdaCtx, ok := r.Context().Value("apex.context").(map[string]interface{}); ok {
-
-			logger.Dev("lambda context:  %v", lambdaCtx)
-
-			// Try to access authorizer data
-			if authCtx, exists := lambdaCtx["authorizer"].(map[string]interface{}); exists {
-				logger.Dev("authCtx:  %v", authCtx)
-
-				if userId, hasUser := authCtx["UserId"].(string); hasUser {
-					logger.Dev("userId:  %v", userId)
-					r.Header.Set("UserId", userId)
-				}
-			}
-		}
-
 		// get userId from jwt token
 		userId := r.Header.Get("UserId")
 

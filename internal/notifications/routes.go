@@ -24,7 +24,7 @@ func Router() http_api.IRouter {
 
 	notificationsRouter.GET("/my", h.getUserNotifications)
 	notificationsRouter.GET("/:id", h.get)
-	notificationsRouter.DELETE("/", h.delete)
+	notificationsRouter.DELETE("/:id", h.delete)
 
 	// serve API routes
 	return notificationsRouter

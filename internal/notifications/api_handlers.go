@@ -132,12 +132,12 @@ func (h *notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 	err := h.r.delete(userId, notificationId)
 
 	if err != nil {
-		logger.Error("error deleting space", err)
+		logger.Error("error deleting notification", err)
 		http.Error(w, errMsg.notificationDelete, http.StatusBadGateway)
 		return
 	}
 
-	http_api.SuccessResMsg(w, "space deleted successfully")
+	http_api.SuccessResMsg(w, "notification deleted successfully")
 }
 
 // func (h *notificationHandler) create(w http.ResponseWriter, r *http.Request) {

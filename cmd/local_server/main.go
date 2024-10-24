@@ -11,7 +11,6 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/internal/notifications"
 	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
-	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 // lambda authorizer simple moc
@@ -45,7 +44,6 @@ func authorizer(next http.Handler) http.Handler {
 		expiryTime, expiryOK := claims["exp"].(float64)
 
 		if !emailOK || !sIdOK || !expiryOK || !userIdOK {
-			logger.Dev("Error getting token claims")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}

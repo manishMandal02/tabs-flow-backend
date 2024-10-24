@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,8 +74,6 @@ func EventsHandler(_ context.Context, event lambda_events.SQSEvent) (interface{}
 func processEvent(eventType string, body string) error {
 	switch events.EventType(eventType) {
 	case events.EventTypeScheduleNoteRemainder:
-
-		logger.Dev("event body: %v", body)
 
 		ev, err := events.NewFromJSON[events.ScheduleNoteRemainderPayload](body)
 
@@ -312,7 +311,11 @@ func sendWebPushNotification(userId string, s *PushSubscription, body []byte) er
 		VAPIDPublicKey:  config.VAPID_PUBLIC_KEY,
 	}
 
-	_, err := web_push.SendNotification(body, ws, o)
+	var bEnc = make([]byte, base64.StdEncoding.EncodedLen(len(body)))
+
+	base64.StdEncoding.Encode(bEnc, body)
+
+	_, err := web_push.SendNotification(bEnc, ws, o)
 
 	if err != nil {
 		return err

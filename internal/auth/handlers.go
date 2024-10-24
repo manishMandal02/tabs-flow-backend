@@ -256,10 +256,6 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 	sId, sIdOK := claims["session_id"].(string)
 	expiryTime, expiryOK := claims["exp"].(float64)
 
-	logger.Dev("emailOK: %v", emailOK)
-	logger.Dev("sIdOK: %v", sIdOK)
-	logger.Dev("expiryOK: %v", expiryOK)
-
 	if !emailOK || !sIdOK || !expiryOK || !userIdOK {
 		logger.Error("Error getting token claims", errors.New(errMsg.invalidToken))
 		return nil, errors.New("Unauthorized")

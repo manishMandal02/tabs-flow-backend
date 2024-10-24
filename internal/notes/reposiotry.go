@@ -277,7 +277,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, erro
 func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error {
 
 	// channel to collect errors from goroutines
-	errChan := make(chan error, len(terms)/database.MAX_BATCH_SIZE+1)
+	errChan := make(chan error, len(terms)/database.DDB_MAX_BATCH_SIZE+1)
 
 	var wg sync.WaitGroup
 
@@ -338,10 +338,6 @@ func (r noteRepo) noteIdsBySearchTerm(userId string, query string, limit int) ([
 		return nil, err
 	}
 
-	for _, v := range expr.Values() {
-		logger.Dev("Querying search notes [Expression]: %v", v)
-	}
-
 	response, err := r.searchIndexTable.Client.Query(context.TODO(), &dynamodb.QueryInput{
 		TableName:                 &r.searchIndexTable.TableName,
 		ExpressionAttributeNames:  expr.Names(),
@@ -383,7 +379,7 @@ func (r noteRepo) noteIdsBySearchTerm(userId string, query string, limit int) ([
 func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error {
 
 	// channel to collect errors from goroutines
-	errChan := make(chan error, len(terms)/database.MAX_BATCH_SIZE+1)
+	errChan := make(chan error, len(terms)/database.DDB_MAX_BATCH_SIZE+1)
 
 	var wg sync.WaitGroup
 
@@ -403,7 +399,7 @@ func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error
 			},
 		})
 	}
-	
+
 	r.db.BatchWriter(ctx, &wg, errChan, reqs)
 
 	// Wait for all goroutines to complete
