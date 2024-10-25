@@ -40,8 +40,18 @@ export class SpacesService extends Construct {
     props.notificationQueue.grantSendMessages(spaceServiceLambda);
 
     // add spaces resource/endpoints to api gateway
-    const spacesResource = props.apiGW.root.addResource('spaces').addProxy({ anyMethod: false });
+    const spacesResource = props.apiGW.root.addResource('spaces');
+
     spacesResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(spaceServiceLambda), {
+      authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
+      authorizer: props.apiAuthorizer
+    });
+
+    // add proxy resource
+    const proxyResource = spacesResource.addProxy({ anyMethod: false });
+
+    // add method to proxy resource
+    proxyResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(spaceServiceLambda), {
       authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
       authorizer: props.apiAuthorizer
     });

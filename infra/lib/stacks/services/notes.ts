@@ -43,8 +43,18 @@ export class NotesService extends Construct {
     props.notificationQueue.grantSendMessages(notesServiceLambda);
 
     // add notes resource/endpoints to api gateway
-    const notesResource = props.apiGW.root.addResource('notes').addProxy({ anyMethod: false });
+    const notesResource = props.apiGW.root.addResource('notes');
+
     notesResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(notesServiceLambda), {
+      authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
+      authorizer: props.apiAuthorizer
+    });
+
+    // add proxy resource
+    const proxyResource = notesResource.addProxy({ anyMethod: false });
+
+    // add method to proxy resource
+    proxyResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(notesServiceLambda), {
       authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
       authorizer: props.apiAuthorizer
     });

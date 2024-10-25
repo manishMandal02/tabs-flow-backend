@@ -111,9 +111,19 @@ export class NotificationsService extends Construct {
     // grant permissions to lambda to read/write to dynamodb and send message to email queue
     props.db.grantReadWriteData(notificationsServiceLambda);
 
-    // add users resource/endpoints to api gateway
-    const usersResource = props.apiGW.root.addResource('notifications').addProxy({ anyMethod: false });
-    usersResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(notificationsServiceLambda), {
+    // add notifications resource/endpoints to api gateway
+    const notificationsResource = props.apiGW.root.addResource('notifications');
+
+    notificationsResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(notificationsServiceLambda), {
+      authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
+      authorizer: props.apiAuthorizer
+    });
+
+    // add proxy resource
+    const proxyResource = notificationsResource.addProxy({ anyMethod: false });
+
+    // add method to proxy resource
+    proxyResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(notificationsServiceLambda), {
       authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
       authorizer: props.apiAuthorizer
     });

@@ -42,8 +42,18 @@ export class UsersService extends Construct {
     props.emailQueue.grantSendMessages(usersServiceLambda);
 
     // add users resource/endpoints to api gateway
-    const usersResource = props.apiGW.root.addResource('users').addProxy({ anyMethod: false });
+    const usersResource = props.apiGW.root.addResource('users');
+
     usersResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(usersServiceLambda), {
+      authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
+      authorizer: props.apiAuthorizer
+    });
+
+    // add proxy resource
+    const proxyResource = usersResource.addProxy({ anyMethod: false });
+
+    // add method to proxy resource
+    proxyResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(usersServiceLambda), {
       authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
       authorizer: props.apiAuthorizer
     });

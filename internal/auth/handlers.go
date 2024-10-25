@@ -238,7 +238,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 	// allow paddle webhook url, without auth tokens
 	if strings.Contains(ev.Path, "/users/subscription/webhook") {
 		//  allow access
-		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, "", nil), nil
+		return generatePolicy("paddle-webhook", "Allow", ev.MethodArn, "", nil), nil
 	}
 
 	cookies := parseCookiesStr(ev.Headers["Cookie"])
@@ -263,7 +263,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 
 	if int64(expiryTime) > time.Now().Unix() {
 		// token valid, allow access
-		return generatePolicy(ev.MethodArn, "Allow", ev.MethodArn, userId, nil), nil
+		return generatePolicy(userId, "Allow", ev.MethodArn, userId, nil), nil
 	}
 
 	// validate session
@@ -290,5 +290,5 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		"access_token": res.token,
 	}
 
-	return generatePolicy("user", "Allow", ev.MethodArn, userId, newCookies), nil
+	return generatePolicy(userId, "Allow", ev.MethodArn, userId, newCookies), nil
 }

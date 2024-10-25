@@ -227,5 +227,7 @@ func generatePolicy(principalId, effect, methodArn, userId string, cookies map[s
 		authResponse.Context["message"] = "Unauthorized"
 	}
 
+	logger.Dev("authorizer response: %v", authResponse)
+
 	return &authResponse
 }
