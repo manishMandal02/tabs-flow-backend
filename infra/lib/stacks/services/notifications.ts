@@ -1,6 +1,14 @@
 import { Construct } from 'constructs';
 
-import { aws_apigateway, aws_dynamodb, aws_iam as iam, Duration, aws_sqs as sqs, Stack } from 'aws-cdk-lib';
+import {
+  aws_apigateway,
+  aws_dynamodb,
+  aws_iam as iam,
+  Duration,
+  aws_sqs as sqs,
+  Stack,
+  RemovalPolicy
+} from 'aws-cdk-lib';
 import { config } from '../../../config';
 import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
 import * as eventSources from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -10,6 +18,7 @@ type NotificationsServicePops = {
   db: aws_dynamodb.ITable;
   lambdaRole: iam.Role;
   apiGW: aws_apigateway.RestApi;
+  removalPolicy: RemovalPolicy;
   apiAuthorizer: aws_apigateway.RequestAuthorizer;
 };
 
@@ -22,7 +31,8 @@ export class NotificationsService extends Construct {
 
     // sqs queue
     const dlqNotifications = new sqs.Queue(this, queueName + '-dlq', {
-      visibilityTimeout: Duration.seconds(300)
+      visibilityTimeout: Duration.seconds(300),
+      removalPolicy: props.removalPolicy
     });
 
     const notificationsQueue = new sqs.Queue(this, queueName, {
@@ -32,7 +42,8 @@ export class NotificationsService extends Construct {
       deadLetterQueue: {
         queue: dlqNotifications,
         maxReceiveCount: 3
-      }
+      },
+      removalPolicy: props.removalPolicy
     });
 
     // Create the scheduler execution role
@@ -48,13 +59,13 @@ export class NotificationsService extends Construct {
     const notificationsServiceLambda = new GoFunction(this, notificationsServiceLambdaName, {
       functionName: notificationsServiceLambdaName,
       entry: '../cmd/notifications/main.go',
-      runtime: config.lambda.Runtime,
-      timeout: config.lambda.Timeout,
-      memorySize: config.lambda.MemorySize,
-      logRetention: config.lambda.LogRetention,
+      runtime: config.Lambda.Runtime,
+      timeout: config.Lambda.Timeout,
+      memorySize: config.Lambda.MemorySize,
+      logRetention: config.Lambda.LogRetention,
       role: props.lambdaRole,
-      architecture: config.lambda.Architecture,
-      bundling: config.lambda.GoBundling,
+      architecture: config.Lambda.Architecture,
+      bundling: config.Lambda.GoBundling,
       environment: {
         DDB_MAIN_TABLE_NAME: props.db.tableName,
         NOTIFICATIONS_QUEUE_ARN: notificationsQueue.queueArn,

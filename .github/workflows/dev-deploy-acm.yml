@@ -1,0 +1,38 @@
+name: Deploy CDK Stacks to dev environment
+
+on:
+  push:
+    branches:
+      - dev-no-build
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials using OpenIDConnect
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_GITHUB_OIDC_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run ACM certificate management script
+        id: check_acm
+        run: |
+          chmod +x ./scripts/manage-acm-certificate.sh
+          ./scripts/manage-acm-certificate.sh
+
+      - name: Deploy ACM Stack (if needed)
+        if: failure() # Run this step only if the previous step fails (i.e., exit 1 from the script)
+        run: |
+          npm install -g aws-cdk
+          cdk deploy acm-stack --require-approval never
+
+      - name: Deploy Main Service Stack
+        run: |
+          npm install -g aws-cdk
+          ACM_CERTIFICATE_ARN=$(aws ssm get-parameter --name "/path/to/acmCertificateArn" --query "Parameter.Value" --output text)
+          cdk deploy --parameters acmCertificateArn=$ACM_CERTIFICATE_ARN --require-approval never

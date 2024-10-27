@@ -6,33 +6,12 @@ import * as path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+const AppName = 'TabsFlow';
+
 const Stage = {
   Dev: 'dev',
-  Prod: 'prod'
-};
-
-const dynamoDB = {
-  MainTableName: 'Main',
-  SessionsTableName: 'Sessions',
-  SearchIndexTableName: 'SearchIndex',
-  PrimaryKey: 'PK',
-  SortKey: 'SK',
-  TTL: 'TTL'
-};
-
-const lambda = {
-  MemorySize: 128,
-  Timeout: Duration.seconds(20),
-  LogRetention: RetentionDays.TWO_WEEKS,
-  Architecture: Architecture.ARM_64,
-  Runtime: Runtime.PROVIDED_AL2,
-  GoBundling: {
-    // goBuildFlags: ['-ldflags="-s -w"']
-  }
-};
-
-const common = {
-  AppName: 'TabsFlow'
+  Prod: 'prod',
+  Test: 'test'
 };
 
 // helper to get env variables
@@ -45,6 +24,35 @@ const getEnv = (key: string) => {
   return evn;
 };
 
+const dynamoDB = {
+  MainTableName: 'Main',
+  SessionsTableName: 'Sessions',
+  SearchIndexTableName: 'SearchIndex',
+  PrimaryKey: 'PK',
+  SortKey: 'SK',
+  TTL: 'TTL'
+};
+
+const ssmParamBase = `/${AppName.toLowerCase()}/${getEnv('DEPLOY_STAGE')}`;
+
+const ssmParameters = {
+  MainTableArn: `${ssmParamBase}/main-table-arn`,
+  SessionsTableArn: `${ssmParamBase}/sessions-table-arn`,
+  SearchIndexTableArn: `${ssmParamBase}/search-index-table-arn`,
+  APIDomainCertificateArn: `${ssmParamBase}/${getEnv('ACM_CERTIFICATE_ARN_SSM_PARAM_NAME')}`
+};
+
+const lambda = {
+  MemorySize: 128,
+  Timeout: Duration.seconds(20),
+  LogRetention: getEnv('DEPLOY_STAGE') === Stage.Prod ? RetentionDays.TWO_WEEKS : RetentionDays.ONE_DAY,
+  Architecture: Architecture.ARM_64,
+  Runtime: Runtime.PROVIDED_AL2,
+  GoBundling: {
+    // goBuildFlags: ['-ldflags="-s -w"']
+  }
+};
+
 const Env = {
   DEPLOY_STAGE: getEnv('DEPLOY_STAGE'),
   API_DOMAIN_NAME: getEnv('API_DOMAIN_NAME'),
@@ -55,9 +63,9 @@ const Env = {
 };
 
 export const config = {
+  AppName,
   Stage,
   Env,
-  lambda,
-  dynamoDB,
-  ...common
+  Lambda: lambda,
+  DynamoDB: dynamoDB
 };

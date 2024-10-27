@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { Duration, aws_iam } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, aws_iam } from 'aws-cdk-lib';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
 import * as eventSources from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -10,6 +10,7 @@ import { config } from '../../../config';
 type EmailServiceProps = {
   stage: string;
   lambdaRole: aws_iam.Role;
+  removalPolicy: RemovalPolicy;
 };
 
 export class EmailService extends Construct {
@@ -22,7 +23,8 @@ export class EmailService extends Construct {
     const queueName = `${config.AppName}-Emails_${props.stage}`;
     // sqs queue
     const dlqEmail = new sqs.Queue(this, queueName + '-dlq', {
-      visibilityTimeout: Duration.seconds(300)
+      visibilityTimeout: Duration.seconds(300),
+      removalPolicy: props.removalPolicy
     });
 
     const emailQueue = new sqs.Queue(this, queueName, {
@@ -32,7 +34,8 @@ export class EmailService extends Construct {
       deadLetterQueue: {
         queue: dlqEmail,
         maxReceiveCount: 3
-      }
+      },
+      removalPolicy: props.removalPolicy
     });
 
     const emailServiceLambdaName = id + '_' + props.stage;
@@ -40,13 +43,13 @@ export class EmailService extends Construct {
     const emailServiceFunction = new GoFunction(this, emailServiceLambdaName, {
       functionName: emailServiceLambdaName,
       entry: '../cmd/email/main.go',
-      runtime: config.lambda.Runtime,
-      timeout: config.lambda.Timeout,
-      memorySize: config.lambda.MemorySize,
-      logRetention: config.lambda.LogRetention,
+      runtime: config.Lambda.Runtime,
+      timeout: config.Lambda.Timeout,
+      memorySize: config.Lambda.MemorySize,
+      logRetention: config.Lambda.LogRetention,
       role: props.lambdaRole,
-      architecture: config.lambda.Architecture,
-      bundling: config.lambda.GoBundling,
+      architecture: config.Lambda.Architecture,
+      bundling: config.Lambda.GoBundling,
       environment: {
         ZEPTO_MAIL_API_KEY,
         EMAIL_QUEUE_URL: emailQueue.queueUrl

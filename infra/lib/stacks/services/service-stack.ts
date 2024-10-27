@@ -1,6 +1,14 @@
 import { Construct } from 'constructs';
 
-import { Stack, StackProps, aws_dynamodb, aws_iam as iam, aws_ssm as ssm, Lazy } from 'aws-cdk-lib';
+import {
+  Stack,
+  StackProps,
+  aws_dynamodb,
+  aws_iam as iam,
+  aws_ssm as ssm,
+  Lazy,
+  RemovalPolicy
+} from 'aws-cdk-lib';
 
 import { EmailService } from './email';
 import { AuthService } from './auth';
@@ -12,6 +20,7 @@ import { NotificationsService } from './notifications';
 
 type ServiceStackProps = StackProps & {
   stage: string;
+  removalPolicy: RemovalPolicy;
 };
 
 export class ServiceStack extends Stack {
@@ -54,7 +63,8 @@ export class ServiceStack extends Stack {
 
     const emailService = new EmailService(this, {
       lambdaRole,
-      stage: props.stage
+      stage: props.stage,
+      removalPolicy: props.removalPolicy
     });
 
     const authService = new AuthService(this, {
@@ -70,7 +80,8 @@ export class ServiceStack extends Stack {
       db: mainDB,
       stage: props.stage,
       apiGW: apiG.restAPI,
-      apiAuthorizer: authService.apiAuthorizer
+      apiAuthorizer: authService.apiAuthorizer,
+      removalPolicy: props.removalPolicy
     });
 
     new UsersService(this, {

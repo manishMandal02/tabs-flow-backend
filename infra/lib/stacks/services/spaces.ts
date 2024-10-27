@@ -22,13 +22,13 @@ export class SpacesService extends Construct {
     const spaceServiceLambda = new GoFunction(this, spaceServiceLambdaName, {
       functionName: spaceServiceLambdaName,
       entry: '../cmd/spaces/main.go',
-      runtime: config.lambda.Runtime,
-      timeout: config.lambda.Timeout,
-      memorySize: config.lambda.MemorySize,
-      logRetention: config.lambda.LogRetention,
+      runtime: config.Lambda.Runtime,
+      timeout: config.Lambda.Timeout,
+      memorySize: config.Lambda.MemorySize,
+      logRetention: config.Lambda.LogRetention,
       role: props.lambdaRole,
-      architecture: config.lambda.Architecture,
-      bundling: config.lambda.GoBundling,
+      architecture: config.Lambda.Architecture,
+      bundling: config.Lambda.GoBundling,
       environment: {
         DDB_MAIN_TABLE_NAME: props.db.tableName,
         NOTIFICATIONS_QUEUE_URL: props.notificationQueue.queueUrl

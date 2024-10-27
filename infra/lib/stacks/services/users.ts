@@ -23,13 +23,13 @@ export class UsersService extends Construct {
     const usersServiceLambda = new GoFunction(this, userServiceLambdaName, {
       functionName: userServiceLambdaName,
       entry: '../cmd/users/main.go',
-      runtime: config.lambda.Runtime,
-      timeout: config.lambda.Timeout,
-      memorySize: config.lambda.MemorySize,
-      logRetention: config.lambda.LogRetention,
+      runtime: config.Lambda.Runtime,
+      timeout: config.Lambda.Timeout,
+      memorySize: config.Lambda.MemorySize,
+      logRetention: config.Lambda.LogRetention,
       role: props.lambdaRole,
-      architecture: config.lambda.Architecture,
-      bundling: config.lambda.GoBundling,
+      architecture: config.Lambda.Architecture,
+      bundling: config.Lambda.GoBundling,
       environment: {
         EMAIL_QUEUE_URL: props.emailQueue.queueUrl,
         DDB_MAIN_TABLE_NAME: props.db.tableName

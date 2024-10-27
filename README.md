@@ -31,7 +31,7 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
   - DynamoDB (Main Data Store)
   - SQS (Asynchronous Tasks)
   - CloudWatch (Monitoring & Logging)
-  - EventBridge (Scheduling Future Tasks)
+  - EventBridge Scheduler (Scheduling Tasks)
 - **Zoho ZeptoMail**: Transactional Emails
 
 ## Architecture

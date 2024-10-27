@@ -4,6 +4,7 @@ import { config } from '../../../config';
 
 type StatefulStackProps = StackProps & {
   stage: string;
+  removalPolicy: RemovalPolicy;
 };
 
 export class StatefulStack extends Stack {
@@ -12,51 +13,51 @@ export class StatefulStack extends Stack {
   constructor(scope: Construct, id: string, props: StatefulStackProps) {
     super(scope, id, props);
 
-    const mainTableName = `${config.AppName}-${config.dynamoDB.MainTableName}_${props.stage}`;
-    const sessionsTableName = `${config.AppName}-${config.dynamoDB.SessionsTableName}_${props.stage}`;
-    const searchIndexTableName = `${config.AppName}-${config.dynamoDB.SearchIndexTableName}_${props.stage}`;
+    const mainTableName = `${config.AppName}-${config.DynamoDB.MainTableName}_${props.stage}`;
+    const sessionsTableName = `${config.AppName}-${config.DynamoDB.SessionsTableName}_${props.stage}`;
+    const searchIndexTableName = `${config.AppName}-${config.DynamoDB.SearchIndexTableName}_${props.stage}`;
 
     const mainTable = new aws_dynamodb.Table(this, mainTableName, {
       tableName: mainTableName,
       billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: {
-        name: config.dynamoDB.PrimaryKey,
+        name: config.DynamoDB.PrimaryKey,
         type: aws_dynamodb.AttributeType.STRING
       },
       sortKey: {
-        name: config.dynamoDB.SortKey,
+        name: config.DynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING
       },
-      removalPolicy: props.stage === config.Stage.Dev ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+      removalPolicy: props.removalPolicy
     });
 
     const sessionsTable = new aws_dynamodb.Table(this, sessionsTableName, {
       tableName: sessionsTableName,
       billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: {
-        name: config.dynamoDB.PrimaryKey,
+        name: config.DynamoDB.PrimaryKey,
         type: aws_dynamodb.AttributeType.STRING
       },
       sortKey: {
-        name: config.dynamoDB.SortKey,
+        name: config.DynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING
       },
-      timeToLiveAttribute: config.dynamoDB.TTL,
-      removalPolicy: props.stage === config.Stage.Dev ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+      timeToLiveAttribute: config.DynamoDB.TTL,
+      removalPolicy: props.removalPolicy
     });
 
     const searchIndexTable = new aws_dynamodb.Table(this, searchIndexTableName, {
       tableName: searchIndexTableName,
       billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: {
-        name: config.dynamoDB.PrimaryKey,
+        name: config.DynamoDB.PrimaryKey,
         type: aws_dynamodb.AttributeType.STRING
       },
       sortKey: {
-        name: config.dynamoDB.SortKey,
+        name: config.DynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING
       },
-      removalPolicy: props.stage === config.Stage.Dev ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN
+      removalPolicy: props.removalPolicy
     });
 
     new ssm.StringParameter(this, 'MainTableArn', {
