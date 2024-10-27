@@ -1,5 +1,5 @@
 import { Construct } from 'constructs';
-import { CfnOutput, RemovalPolicy, Stack, StackProps, aws_dynamodb, aws_ssm as ssm } from 'aws-cdk-lib';
+import { RemovalPolicy, Stack, StackProps, aws_dynamodb, aws_ssm as ssm } from 'aws-cdk-lib';
 import { config } from '../../../config';
 
 type StatefulStackProps = StackProps & {
@@ -65,6 +65,7 @@ export class StatefulStack extends Stack {
       stringValue: mainTable.tableArn,
       tier: ssm.ParameterTier.STANDARD
     });
+
     new ssm.StringParameter(this, 'SessionsTableArn', {
       parameterName: `/sessions-table-arn`,
       stringValue: sessionsTable.tableArn,

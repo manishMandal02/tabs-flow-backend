@@ -3,7 +3,7 @@
 
 
 # Check if ACM certificate ARN exists in SSM
-EXISTING_CERT_ARN=$(aws ssm get-parameter --name "$AWS_SSM_PARAM_NAME_ACM_ARN" --query "Parameter.Value" --output text 2>/dev/null)
+EXISTING_CERT_ARN=$(aws ssm get-parameter --name "$ACM_CERTIFICATE_ARN_SSM_PARAM_NAME" --query "Parameter.Value" --output text 2>/dev/null)
 
 if [ -z "$EXISTING_CERT_ARN" ]; then
   # If SSM parameter is not found or is empty
@@ -22,7 +22,7 @@ if [ -z "$EXISTING_CERT_ARN" ]; then
     
     # Store the ACM certificate ARN in SSM Parameter Store
     echo "Storing the ACM certificate ARN in SSM Parameter Store..."
-    aws ssm put-parameter --name "$AWS_SSM_PARAM_NAME_ACM_ARN" --value "$EXISTING_CERT_ARN" --type String --overwrite
+    aws ssm put-parameter --name "$ACM_CERTIFICATE_ARN_SSM_PARAM_NAME" --value "$EXISTING_CERT_ARN" --type String --overwrite
   fi
 else
   # If the certificate was found in SSM

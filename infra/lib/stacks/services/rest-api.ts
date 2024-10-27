@@ -1,11 +1,6 @@
 import { Construct } from 'constructs';
 
-import {
-  aws_apigateway as apiGateway,
-  aws_certificatemanager as acm,
-  CfnOutput,
-  aws_route53
-} from 'aws-cdk-lib';
+import { aws_apigateway as apiGateway, aws_certificatemanager as acm } from 'aws-cdk-lib';
 import { config } from '../../../config';
 
 type RestApiProps = {

@@ -33,13 +33,13 @@ const dynamoDB = {
   TTL: 'TTL'
 };
 
-const ssmParamBase = `/${AppName.toLowerCase()}/${getEnv('DEPLOY_STAGE')}`;
+const ssmParamNameBase = `/${AppName.toLowerCase()}/${getEnv('DEPLOY_STAGE')}`;
 
-const ssmParameters = {
-  MainTableArn: `${ssmParamBase}/main-table-arn`,
-  SessionsTableArn: `${ssmParamBase}/sessions-table-arn`,
-  SearchIndexTableArn: `${ssmParamBase}/search-index-table-arn`,
-  APIDomainCertificateArn: `${ssmParamBase}/${getEnv('ACM_CERTIFICATE_ARN_SSM_PARAM_NAME')}`
+const ssmParameterNames = {
+  MainTableArn: `${ssmParamNameBase}/main-table-arn`,
+  SessionsTableArn: `${ssmParamNameBase}/sessions-table-arn`,
+  SearchIndexTableArn: `${ssmParamNameBase}/search-index-table-arn`,
+  APIDomainCertificateArn: `${getEnv('ACM_CERTIFICATE_ARN_SSM_PARAM_NAME')}`
 };
 
 const lambda = {
@@ -67,5 +67,6 @@ export const config = {
   Stage,
   Env,
   Lambda: lambda,
-  DynamoDB: dynamoDB
+  DynamoDB: dynamoDB,
+  SSMParameterName: ssmParameterNames
 };

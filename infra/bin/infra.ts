@@ -4,10 +4,19 @@ import { App, RemovalPolicy } from 'aws-cdk-lib';
 import { ServiceStack } from '../lib/stacks/services/service-stack';
 import { StatefulStack } from '../lib/stacks/stateful';
 import { config } from '../config';
+import { ACMCertificateStack } from '../lib/stacks/acm-certifcate/acm-certificate';
 
 const app = new App();
 
 // TODO: figure the multi region and environments deployment
+
+new ACMCertificateStack(app, 'ACMCertificateStack', {
+  env: {
+    region: process.env.AWS_REGION,
+    account: process.env.AWS_ACCOUNT_ID
+  },
+  stage: config.Env.DEPLOY_STAGE
+});
 
 new StatefulStack(app, 'StatefulStack', {
   terminationProtection: false,
@@ -18,6 +27,7 @@ new StatefulStack(app, 'StatefulStack', {
   stage: config.Env.DEPLOY_STAGE,
   removalPolicy: config.Env.DEPLOY_STAGE === config.Stage.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
 });
+
 new ServiceStack(app, 'ServiceStack', {
   terminationProtection: false,
   env: {
