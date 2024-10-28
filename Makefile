@@ -20,6 +20,7 @@ dev:
 # CDK commands
 cdk-synth: 
 	cd infra/ && cdk synth "*" --profile ${AWS_ACCOUNT_PROFILE}
+	
 cdk-diff:
 	cd infra/ && cdk diff "*" --profile ${AWS_ACCOUNT_PROFILE}
 cdk-bootstrap:

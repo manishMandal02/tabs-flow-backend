@@ -22,7 +22,7 @@ export class RestApi extends Construct {
       }
     });
 
-    // Create an ACM certificate for your domain
+    // Create an ACM certificate for api domain
     const certificate = new acm.Certificate(this, 'Certificate', {
       domainName: config.Env.API_DOMAIN_NAME,
       validation: acm.CertificateValidation.fromEmail(),
@@ -45,13 +45,5 @@ export class RestApi extends Construct {
       domainName: domainName,
       restApi: this.restAPI
     });
-
-    //* Add the API GW domain name as cname record in your dns
-
-    // Output the Regional Domain Name
-    // new CfnOutput(this, 'RegionalDomainName', {
-    //   value: domainName.domainNameAliasDomainName,
-    //   description: 'Regional Domain Name Alias'
-    // });
   }
 }

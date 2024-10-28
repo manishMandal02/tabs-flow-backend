@@ -38,8 +38,7 @@ const ssmParamNameBase = `/${AppName.toLowerCase()}/${getEnv('DEPLOY_STAGE')}`;
 const ssmParameterNames = {
   MainTableArn: `${ssmParamNameBase}/main-table-arn`,
   SessionsTableArn: `${ssmParamNameBase}/sessions-table-arn`,
-  SearchIndexTableArn: `${ssmParamNameBase}/search-index-table-arn`,
-  APIDomainCertificateArn: `${getEnv('ACM_CERTIFICATE_ARN_SSM_PARAM_NAME')}`
+  SearchIndexTableArn: `${ssmParamNameBase}/search-index-table-arn`
 };
 
 const lambda = {
