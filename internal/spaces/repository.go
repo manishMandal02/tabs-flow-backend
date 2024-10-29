@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
@@ -34,10 +34,10 @@ type spaceRepository interface {
 }
 
 type spaceRepo struct {
-	db *database.DDB
+	db *db.DDB
 }
 
-func NewSpaceRepository(db *database.DDB) spaceRepository {
+func NewSpaceRepository(db *db.DDB) spaceRepository {
 	return &spaceRepo{
 		db: db,
 	}
@@ -51,8 +51,8 @@ func (r spaceRepo) createSpace(userId string, s *space) error {
 		return err
 	}
 
-	av[database.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
-	av[database.SK_NAME] = &types.AttributeValueMemberS{Value: database.SORT_KEY.Space(s.Id)}
+	av[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
+	av[db.SK_NAME] = &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(s.Id)}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -70,8 +70,8 @@ func (r spaceRepo) createSpace(userId string, s *space) error {
 func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Space(spaceId)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(spaceId)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -106,7 +106,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 
 func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 
-	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(userId)), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY.Space("")))
+	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(userId)), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY.Space("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -145,7 +145,7 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 func (r spaceRepo) updateSpace(userId string, s *space) error {
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Space(s.Id)},
+		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(s.Id)},
 	}
 
 	var update expression.UpdateBuilder
@@ -198,7 +198,7 @@ func (r spaceRepo) deleteSpace(userId, spaceId string) error {
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Space(spaceId)},
+		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(spaceId)},
 	}
 
 	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
@@ -225,9 +225,9 @@ func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
 	}
 
 	item := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.TabsInSpace(spaceId)},
-		"Tabs":           &types.AttributeValueMemberL{Value: tabs},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
+		"Tabs":     &types.AttributeValueMemberL{Value: tabs},
 	}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -245,8 +245,8 @@ func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
 
 func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.TabsInSpace(spaceId)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -292,9 +292,9 @@ func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
 	}
 
 	item := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.GroupsInSpace(spaceId)},
-		"Groups":         &types.AttributeValueMemberL{Value: groups},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(spaceId)},
+		"Groups":   &types.AttributeValueMemberL{Value: groups},
 	}
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -312,8 +312,8 @@ func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
 
 func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.GroupsInSpace(spaceId)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(spaceId)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -361,10 +361,10 @@ func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *SnoozedTab) error {
 		return err
 	}
 
-	sk := fmt.Sprintf("%s#%v", database.SORT_KEY.SnoozedTabs(spaceId), t.SnoozedAt)
+	sk := fmt.Sprintf("%s#%v", db.SORT_KEY.SnoozedTabs(spaceId), t.SnoozedAt)
 
-	snoozedTabs[database.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
-	snoozedTabs[database.SK_NAME] = &types.AttributeValueMemberS{Value: sk}
+	snoozedTabs[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
+	snoozedTabs[db.SK_NAME] = &types.AttributeValueMemberS{Value: sk}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -383,8 +383,8 @@ func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*Snoo
 	skSuffix := fmt.Sprintf("%s#%v", spaceId, snoozedAt)
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.SnoozedTabs(skSuffix)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTabs(skSuffix)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -415,7 +415,7 @@ func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*Snoo
 
 func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64) (*[]SnoozedTab, error) {
 
-	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(userId)), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY.SnoozedTabs("")))
+	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(userId)), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY.SnoozedTabs("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -428,8 +428,8 @@ func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64
 
 	if lastSnoozedTabId != 0 {
 		startKey = map[string]types.AttributeValue{
-			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.SnoozedTabs(fmt.Sprintf("%v", lastSnoozedTabId))},
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTabs(fmt.Sprintf("%v", lastSnoozedTabId))},
 		}
 	}
 
@@ -465,7 +465,7 @@ func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64
 
 func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]SnoozedTab, error) {
 
-	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(database.SORT_KEY.SnoozedTabs(spaceId)))
+	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(db.SORT_KEY.SnoozedTabs(spaceId)))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -478,8 +478,8 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 
 	if lastSnoozedTabId != 0 {
 		startKey = map[string]types.AttributeValue{
-			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.SnoozedTabs(fmt.Sprintf("%s#%v", spaceId, lastSnoozedTabId))},
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTabs(fmt.Sprintf("%s#%v", spaceId, lastSnoozedTabId))},
 		}
 	}
 
@@ -513,7 +513,7 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 }
 
 func (r spaceRepo) deleteSnoozedTab(userId, spaceId string, snoozedAt int64) error {
-	sk := fmt.Sprintf("%s#%s", database.SORT_KEY.SnoozedTabs(spaceId), strconv.FormatInt(snoozedAt, 10))
+	sk := fmt.Sprintf("%s#%s", db.SORT_KEY.SnoozedTabs(spaceId), strconv.FormatInt(snoozedAt, 10))
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},

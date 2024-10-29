@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
@@ -26,10 +26,10 @@ type authRepository interface {
 }
 
 type authRepo struct {
-	db *database.DDB
+	db *db.DDB
 }
 
-func newAuthRepository(db *database.DDB) authRepository {
+func newAuthRepository(db *db.DDB) authRepository {
 	return &authRepo{
 		db: db,
 	}
@@ -41,9 +41,9 @@ func (r *authRepo) saveOTP(data *emailOTP) error {
 	ttl := strconv.FormatInt(data.TTL, 10)
 
 	saveItem := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: data.Email},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.OTP(data.OTP)},
-		"TTL":            &types.AttributeValueMemberS{Value: ttl},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: data.Email},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.OTP(data.OTP)},
+		"TTL":      &types.AttributeValueMemberS{Value: ttl},
 	}
 
 	_, err := r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -63,8 +63,8 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 
 	// primary key - partition+sort key
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: email},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.OTP(otp)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: email},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.OTP(otp)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -110,8 +110,8 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 func (r *authRepo) attachUserId(data *emailWithUserId) error {
 	// primary key - partition+sort key
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: data.Email},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.UserId(data.UserId)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: data.Email},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.UserId(data.UserId)},
 	}
 
 	_, err := r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -128,7 +128,7 @@ func (r *authRepo) attachUserId(data *emailWithUserId) error {
 
 func (r *authRepo) userIdByEmail(email string) (string, error) {
 	// primary key - partition+sort key
-	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(email)), expression.Key("SK").BeginsWith(database.SORT_KEY_SESSIONS.UserId("")))
+	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(email)), expression.Key("SK").BeginsWith(db.SORT_KEY_SESSIONS.UserId("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
 
@@ -181,9 +181,9 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 func (r *authRepo) createSession(s *session) error {
 
 	item := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: s.Email},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.Session(s.Id)},
-		"TTL":            &types.AttributeValueMemberS{Value: strconv.FormatInt(s.TTL, 10)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: s.Email},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(s.Id)},
+		"TTL":      &types.AttributeValueMemberS{Value: strconv.FormatInt(s.TTL, 10)},
 		"DeviceInfo": &types.AttributeValueMemberM{
 			Value: map[string]types.AttributeValue{
 				"browser":  &types.AttributeValueMemberS{Value: s.DeviceInfo.Browser},
@@ -209,8 +209,8 @@ func (r *authRepo) createSession(s *session) error {
 
 func (r *authRepo) deleteSession(email, id string) error {
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: email},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.Session(id)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: email},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(id)},
 	}
 
 	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
@@ -229,8 +229,8 @@ func (r *authRepo) deleteSession(email, id string) error {
 
 func (r *authRepo) validateSession(email, id string) (bool, error) {
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: email},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SESSIONS.Session(id)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: email},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(id)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{

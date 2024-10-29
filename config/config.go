@@ -24,11 +24,11 @@ var (
 	DDB_SEARCH_INDEX_TABLE_NAME string
 	DDB_SESSIONS_TABLE_NAME     string
 	ZEPTO_MAIL_API_KEY          string
-	AWS_CONFIG                  aws.Config
 	PADDLE_API_KEY              string
 	PADDLE_WEBHOOK_SECRET_KEY   string
 	VAPID_PRIVATE_KEY           string
 	VAPID_PUBLIC_KEY            string
+	AWS_CONFIG                  aws.Config
 	LOCAL_DEV_ENV               = false
 )
 

@@ -1,13 +1,13 @@
 package spaces
 
 import (
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
 func Router() http_api.IRouter {
 
-	db := database.New()
+	db := db.New()
 	sr := NewSpaceRepository(db)
 	sh := newSpaceHandler(sr)
 

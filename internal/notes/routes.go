@@ -1,13 +1,13 @@
 package notes
 
 import (
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
 func Router() http_api.IRouter {
-	mainDB := database.New()
-	searchIndexTable := database.NewSearchIndexTable()
+	mainDB := db.New()
+	searchIndexTable := db.NewSearchIndexTable()
 	nr := NewNoteRepository(mainDB, searchIndexTable)
 	nh := newNoteHandler(nr)
 

@@ -14,7 +14,7 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/notes"
 	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
@@ -184,7 +184,7 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 // send note notification to user
 func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
-	db := database.New()
+	db := db.New()
 	r := newRepository(db)
 	s, err := r.getNotificationSubscription(p.UserId)
 
@@ -240,7 +240,7 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 
 // send snoozed tab notification to user
 func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
-	db := database.New()
+	db := db.New()
 	r := newRepository(db)
 	s, err := r.getNotificationSubscription(p.UserId)
 
@@ -325,7 +325,7 @@ func sendWebPushNotification(userId string, s *PushSubscription, body []byte) er
 
 }
 
-func getNote(db *database.DDB, userId, noteId string) (*notes.Note, error) {
+func getNote(db *db.DDB, userId, noteId string) (*notes.Note, error) {
 
 	r := notes.NewNoteRepository(db, nil)
 
@@ -338,7 +338,7 @@ func getNote(db *database.DDB, userId, noteId string) (*notes.Note, error) {
 	return note, nil
 }
 
-func getSnoozedTab(db *database.DDB, userId, spaceId, snoozedTabId string) (*spaces.SnoozedTab, error) {
+func getSnoozedTab(db *db.DDB, userId, spaceId, snoozedTabId string) (*spaces.SnoozedTab, error) {
 
 	r := spaces.NewSpaceRepository(db)
 

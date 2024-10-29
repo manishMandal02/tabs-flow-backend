@@ -28,7 +28,25 @@ export class StatefulStack extends Stack {
         name: config.DynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING
       },
-      removalPolicy: props.removalPolicy
+      removalPolicy: props.removalPolicy,
+      deletionProtection: props.removalPolicy === RemovalPolicy.RETAIN,
+      pointInTimeRecovery: props.removalPolicy === RemovalPolicy.RETAIN
+    });
+
+    const searchIndexTable = new aws_dynamodb.Table(this, searchIndexTableName, {
+      tableName: searchIndexTableName,
+      billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
+      partitionKey: {
+        name: config.DynamoDB.PrimaryKey,
+        type: aws_dynamodb.AttributeType.STRING
+      },
+      sortKey: {
+        name: config.DynamoDB.SortKey,
+        type: aws_dynamodb.AttributeType.STRING
+      },
+      removalPolicy: props.removalPolicy,
+      deletionProtection: props.removalPolicy === RemovalPolicy.RETAIN,
+      pointInTimeRecovery: props.removalPolicy === RemovalPolicy.RETAIN
     });
 
     const sessionsTable = new aws_dynamodb.Table(this, sessionsTableName, {
@@ -43,37 +61,26 @@ export class StatefulStack extends Stack {
         type: aws_dynamodb.AttributeType.STRING
       },
       timeToLiveAttribute: config.DynamoDB.TTL,
-      removalPolicy: props.removalPolicy
+      removalPolicy: props.removalPolicy,
+      deletionProtection: props.removalPolicy === RemovalPolicy.RETAIN
     });
 
-    const searchIndexTable = new aws_dynamodb.Table(this, searchIndexTableName, {
-      tableName: searchIndexTableName,
-      billingMode: aws_dynamodb.BillingMode.PAY_PER_REQUEST,
-      partitionKey: {
-        name: config.DynamoDB.PrimaryKey,
-        type: aws_dynamodb.AttributeType.STRING
-      },
-      sortKey: {
-        name: config.DynamoDB.SortKey,
-        type: aws_dynamodb.AttributeType.STRING
-      },
-      removalPolicy: props.removalPolicy
-    });
-
+    // save table arns in ssm parameters store
     new ssm.StringParameter(this, 'MainTableArn', {
-      parameterName: `/main-table-arn`,
+      parameterName: config.SSMParameterName.MainTableArn,
       stringValue: mainTable.tableArn,
       tier: ssm.ParameterTier.STANDARD
     });
 
-    new ssm.StringParameter(this, 'SessionsTableArn', {
-      parameterName: `/sessions-table-arn`,
-      stringValue: sessionsTable.tableArn,
+    new ssm.StringParameter(this, 'SearchIndexTableArn', {
+      parameterName: config.SSMParameterName.SearchIndexTableArn,
+      stringValue: searchIndexTable.tableArn,
       tier: ssm.ParameterTier.STANDARD
     });
-    new ssm.StringParameter(this, 'SearchIndexTableArn', {
-      parameterName: `/search-index-table-arn`,
-      stringValue: searchIndexTable.tableArn,
+
+    new ssm.StringParameter(this, 'SessionsTableArn', {
+      parameterName: config.SSMParameterName.SessionsTableArn,
+      stringValue: sessionsTable.tableArn,
       tier: ssm.ParameterTier.STANDARD
     });
   }

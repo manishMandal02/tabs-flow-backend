@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
@@ -32,11 +32,11 @@ type noteRepository interface {
 }
 
 type noteRepo struct {
-	db               *database.DDB
-	searchIndexTable *database.DDB
+	db               *db.DDB
+	searchIndexTable *db.DDB
 }
 
-func NewNoteRepository(db *database.DDB, searchIndexTable *database.DDB) noteRepository {
+func NewNoteRepository(db *db.DDB, searchIndexTable *db.DDB) noteRepository {
 	return &noteRepo{
 		db:               db,
 		searchIndexTable: searchIndexTable,
@@ -51,9 +51,9 @@ func (r noteRepo) createNote(userId string, n *Note) error {
 		return err
 	}
 
-	av[database.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
+	av[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
 
-	av[database.SK_NAME] = &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(n.Id)}
+	av[db.SK_NAME] = &types.AttributeValueMemberS{Value: db.SORT_KEY.Notes(n.Id)}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -72,7 +72,7 @@ func (r noteRepo) updateNote(userId string, n *Note) error {
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(n.Id)},
+		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Notes(n.Id)},
 	}
 
 	var update expression.UpdateBuilder
@@ -122,8 +122,8 @@ func (r noteRepo) updateNote(userId string, n *Note) error {
 
 func (r noteRepo) deleteNote(userId string, noteId string) error {
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(noteId)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Notes(noteId)},
 	}
 
 	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
@@ -143,8 +143,8 @@ func (r noteRepo) deleteNote(userId string, noteId string) error {
 func (r noteRepo) GetNote(userId string, noteId string) (*Note, error) {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(noteId)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Notes(noteId)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -178,8 +178,8 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, erro
 
 	for _, noteId := range *noteIds {
 		keys = append(keys, map[string]types.AttributeValue{
-			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(noteId)},
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Notes(noteId)},
 		})
 	}
 
@@ -188,8 +188,8 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, erro
 			r.db.TableName: {
 				Keys: keys,
 				AttributesToGet: []string{
-					database.PK_NAME,
-					database.SK_NAME,
+					db.PK_NAME,
+					db.SK_NAME,
 					"Title",
 					"Domain",
 					"UpdatedAt",
@@ -225,7 +225,7 @@ func (r noteRepo) getNotesByIds(userId string, noteIds *[]string) (*[]Note, erro
 
 func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, error) {
 
-	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(userId)), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY.Notes("")))
+	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(userId)), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY.Notes("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -238,8 +238,8 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, erro
 
 	if lastNoteId != 0 {
 		startKey = map[string]types.AttributeValue{
-			database.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Notes(fmt.Sprintf("%v", lastNoteId))},
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Notes(fmt.Sprintf("%v", lastNoteId))},
 		}
 	}
 
@@ -277,7 +277,7 @@ func (r noteRepo) getNotesByUser(userId string, lastNoteId int64) (*[]Note, erro
 func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error {
 
 	// channel to collect errors from goroutines
-	errChan := make(chan error, len(terms)/database.DDB_MAX_BATCH_SIZE+1)
+	errChan := make(chan error, len(terms)/db.DDB_MAX_BATCH_SIZE+1)
 
 	var wg sync.WaitGroup
 
@@ -293,11 +293,11 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 			types.WriteRequest{
 				PutRequest: &types.PutRequest{
 					Item: map[string]types.AttributeValue{
-						database.PK_NAME: &types.AttributeValueMemberS{
+						db.PK_NAME: &types.AttributeValueMemberS{
 							Value: createSearchTermPK(userId, term),
 						},
-						database.SK_NAME: &types.AttributeValueMemberS{
-							Value: database.SORT_KEY_SEARCH_INDEX.Note(noteId),
+						db.SK_NAME: &types.AttributeValueMemberS{
+							Value: db.SORT_KEY_SEARCH_INDEX.Note(noteId),
 						},
 					},
 				},
@@ -329,7 +329,7 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 
 func (r noteRepo) noteIdsBySearchTerm(userId string, query string, limit int) ([]string, error) {
 
-	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(createSearchTermPK(userId, query))), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY_SEARCH_INDEX.Note("")))
+	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(createSearchTermPK(userId, query))), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY_SEARCH_INDEX.Note("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
@@ -379,7 +379,7 @@ func (r noteRepo) noteIdsBySearchTerm(userId string, query string, limit int) ([
 func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error {
 
 	// channel to collect errors from goroutines
-	errChan := make(chan error, len(terms)/database.DDB_MAX_BATCH_SIZE+1)
+	errChan := make(chan error, len(terms)/db.DDB_MAX_BATCH_SIZE+1)
 
 	var wg sync.WaitGroup
 
@@ -393,8 +393,8 @@ func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error
 		reqs = append(reqs, types.WriteRequest{
 			DeleteRequest: &types.DeleteRequest{
 				Key: map[string]types.AttributeValue{
-					database.PK_NAME: &types.AttributeValueMemberS{Value: createSearchTermPK(userId, term)},
-					database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY_SEARCH_INDEX.Note(noteId)},
+					db.PK_NAME: &types.AttributeValueMemberS{Value: createSearchTermPK(userId, term)},
+					db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SEARCH_INDEX.Note(noteId)},
 				},
 			},
 		})

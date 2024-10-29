@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
@@ -23,10 +23,10 @@ type notificationRepository interface {
 }
 
 type noteRepo struct {
-	db *database.DDB
+	db *db.DDB
 }
 
-func newRepository(db *database.DDB) notificationRepository {
+func newRepository(db *db.DDB) notificationRepository {
 	return &noteRepo{
 		db: db,
 	}
@@ -41,11 +41,11 @@ func (nr *noteRepo) create(userId string, notification *notification) error {
 		return err
 	}
 
-	item[database.PK_NAME] = &types.AttributeValueMemberS{
+	item[db.PK_NAME] = &types.AttributeValueMemberS{
 		Value: userId,
 	}
-	item[database.SK_NAME] = &types.AttributeValueMemberS{
-		Value: database.SORT_KEY.Notifications(notification.Id),
+	item[db.SK_NAME] = &types.AttributeValueMemberS{
+		Value: db.SORT_KEY.Notifications(notification.Id),
 	}
 
 	_, err = nr.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -64,11 +64,11 @@ func (nr *noteRepo) create(userId string, notification *notification) error {
 func (nr *noteRepo) get(userId, notificationId string) (notification, error) {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{
+		db.PK_NAME: &types.AttributeValueMemberS{
 			Value: userId,
 		},
-		database.SK_NAME: &types.AttributeValueMemberS{
-			Value: database.SORT_KEY.Notifications(notificationId),
+		db.SK_NAME: &types.AttributeValueMemberS{
+			Value: db.SORT_KEY.Notifications(notificationId),
 		},
 	}
 
@@ -99,7 +99,7 @@ func (nr *noteRepo) get(userId, notificationId string) (notification, error) {
 
 func (nr *noteRepo) getUserNotifications(userId string) ([]notification, error) {
 
-	key := expression.KeyAnd(expression.Key(database.PK_NAME).Equal(expression.Value(userId)), expression.Key(database.SK_NAME).BeginsWith(database.SORT_KEY.Notifications("")))
+	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(userId)), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY.Notifications("")))
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
@@ -139,11 +139,11 @@ func (nr *noteRepo) getUserNotifications(userId string) ([]notification, error) 
 func (nr *noteRepo) delete(userId, notificationId string) error {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{
+		db.PK_NAME: &types.AttributeValueMemberS{
 			Value: userId,
 		},
-		database.SK_NAME: &types.AttributeValueMemberS{
-			Value: database.SORT_KEY.Notifications(notificationId),
+		db.SK_NAME: &types.AttributeValueMemberS{
+			Value: db.SORT_KEY.Notifications(notificationId),
 		},
 	}
 
@@ -169,12 +169,12 @@ func (nr *noteRepo) subscribe(userId string, s *PushSubscription) error {
 		return err
 	}
 
-	item[database.PK_NAME] = &types.AttributeValueMemberS{
+	item[db.PK_NAME] = &types.AttributeValueMemberS{
 		Value: userId,
 	}
 
-	item[database.SK_NAME] = &types.AttributeValueMemberS{
-		Value: database.SORT_KEY.NotificationSubscription,
+	item[db.SK_NAME] = &types.AttributeValueMemberS{
+		Value: db.SORT_KEY.NotificationSubscription,
 	}
 
 	_, err = nr.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -193,11 +193,11 @@ func (nr *noteRepo) subscribe(userId string, s *PushSubscription) error {
 func (nr *noteRepo) getNotificationSubscription(userId string) (*PushSubscription, error) {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{
+		db.PK_NAME: &types.AttributeValueMemberS{
 			Value: userId,
 		},
-		database.SK_NAME: &types.AttributeValueMemberS{
-			Value: database.SORT_KEY.NotificationSubscription,
+		db.SK_NAME: &types.AttributeValueMemberS{
+			Value: db.SORT_KEY.NotificationSubscription,
 		},
 	}
 
@@ -231,11 +231,11 @@ func (nr *noteRepo) getNotificationSubscription(userId string) (*PushSubscriptio
 func (nr *noteRepo) deleteNotificationSubscription(userId string) error {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{
+		db.PK_NAME: &types.AttributeValueMemberS{
 			Value: userId,
 		},
-		database.SK_NAME: &types.AttributeValueMemberS{
-			Value: database.SORT_KEY.NotificationSubscription,
+		db.SK_NAME: &types.AttributeValueMemberS{
+			Value: db.SORT_KEY.NotificationSubscription,
 		},
 	}
 

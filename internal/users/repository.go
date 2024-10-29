@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
@@ -30,10 +30,10 @@ type userRepository interface {
 }
 
 type userRepo struct {
-	db *database.DDB
+	db *db.DDB
 }
 
-func newUserRepository(db *database.DDB) userRepository {
+func newUserRepository(db *db.DDB) userRepository {
 	return &userRepo{
 		db: db,
 	}
@@ -43,8 +43,8 @@ func newUserRepository(db *database.DDB) userRepository {
 func (r *userRepo) getUserByID(id string) (*User, error) {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: id},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: id},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Profile},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -80,7 +80,7 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 func (r *userRepo) insertUser(user *User) error {
 	profile := userWithSK{
 		User: user,
-		SK:   database.SORT_KEY.Profile,
+		SK:   db.SORT_KEY.Profile,
 	}
 
 	item, err := attributevalue.MarshalMap(profile)
@@ -106,8 +106,8 @@ func (r *userRepo) insertUser(user *User) error {
 func (r userRepo) updateUser(id, name string) error {
 
 	key := map[string]types.AttributeValue{
-		database.PK_NAME: &types.AttributeValueMemberS{Value: id},
-		database.SK_NAME: &types.AttributeValueMemberS{Value: database.SORT_KEY.Profile},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: id},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Profile},
 	}
 
 	// build update expression
@@ -147,7 +147,7 @@ func (r userRepo) deleteAccount(id string) error {
 	}
 
 	// channel to collect errors from goroutines
-	errChan := make(chan error, len(allSKs)/database.DDB_MAX_BATCH_SIZE+1)
+	errChan := make(chan error, len(allSKs)/db.DDB_MAX_BATCH_SIZE+1)
 
 	var wg sync.WaitGroup
 
@@ -161,8 +161,8 @@ func (r userRepo) deleteAccount(id string) error {
 		reqs = append(reqs, types.WriteRequest{
 			DeleteRequest: &types.DeleteRequest{
 				Key: map[string]types.AttributeValue{
-					database.PK_NAME: &types.AttributeValueMemberS{Value: id},
-					database.SK_NAME: &types.AttributeValueMemberS{Value: sk},
+					db.PK_NAME: &types.AttributeValueMemberS{Value: id},
+					db.SK_NAME: &types.AttributeValueMemberS{Value: sk},
 				},
 			},
 		})
@@ -193,7 +193,7 @@ func (r userRepo) deleteAccount(id string) error {
 // preferences
 func (r userRepo) getAllPreferences(id string) (*preferences, error) {
 	// primary key - partition+sort key
-	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(id)), expression.Key("SK").BeginsWith(database.SORT_KEY.PreferencesBase))
+	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(id)), expression.Key("SK").BeginsWith(db.SORT_KEY.PreferencesBase))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
 
@@ -305,7 +305,7 @@ func (r userRepo) getSubscription(userId string) (*subscription, error) {
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Subscription},
+		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -340,7 +340,7 @@ func (r userRepo) setSubscription(userId string, s *subscription) error {
 		return err
 	}
 	av["PK"] = &types.AttributeValueMemberS{Value: userId}
-	av["SK"] = &types.AttributeValueMemberS{Value: database.SORT_KEY.Subscription}
+	av["SK"] = &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -358,7 +358,7 @@ func (r userRepo) setSubscription(userId string, s *subscription) error {
 func (r userRepo) updateSubscription(userId string, sData *subscription) error {
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: database.SORT_KEY.Subscription},
+		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
 	}
 
 	var update expression.UpdateBuilder

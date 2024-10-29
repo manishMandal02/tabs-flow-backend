@@ -10,13 +10,14 @@ import {
   RemovalPolicy
 } from 'aws-cdk-lib';
 
-import { EmailService } from './email';
+import { RestApi } from './rest-api';
 import { AuthService } from './auth';
 import { UsersService } from './users';
-import { RestApi } from './rest-api';
-import { SpacesService } from './spaces';
+import { EmailService } from './email';
 import { NotesService } from './notes';
+import { SpacesService } from './spaces';
 import { NotificationsService } from './notifications';
+import { config } from '../../../config';
 
 type ServiceStackProps = StackProps & {
   stage: string;
@@ -28,13 +29,15 @@ export class ServiceStack extends Stack {
     super(scope, id, props);
 
     const mainTableArn = Lazy.string({
-      produce: () => ssm.StringParameter.valueForStringParameter(this, '/main-table-arn')
+      produce: () => ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.MainTableArn)
     });
     const sessionsTableArn = Lazy.string({
-      produce: () => ssm.StringParameter.valueForStringParameter(this, '/sessions-table-arn')
+      produce: () =>
+        ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.SessionsTableArn)
     });
     const searchIndexTableArn = Lazy.string({
-      produce: () => ssm.StringParameter.valueForStringParameter(this, '/search-index-table-arn')
+      produce: () =>
+        ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.SearchIndexTableArn)
     });
 
     const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTableAr', mainTableArn);

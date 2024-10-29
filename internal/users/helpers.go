@@ -10,7 +10,7 @@ import (
 
 	paddle "github.com/PaddleHQ/paddle-go-sdk"
 	"github.com/manishMandal02/tabsflow-backend/config"
-	"github.com/manishMandal02/tabsflow-backend/pkg/database"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
@@ -35,11 +35,11 @@ func setDefaultUserPreferences(userId string, r userRepository) error {
 
 	pref := make(map[string]interface{})
 
-	pref[database.SORT_KEY.P_General] = &defaultUserPref.General
-	pref[database.SORT_KEY.P_CmdPalette] = &defaultUserPref.CmdPalette
-	pref[database.SORT_KEY.P_Note] = &defaultUserPref.Notes
-	pref[database.SORT_KEY.P_LinkPreview] = &defaultUserPref.LinkPreview
-	pref[database.SORT_KEY.P_AutoDiscard] = &defaultUserPref.AutoDiscard
+	pref[db.SORT_KEY.P_General] = &defaultUserPref.General
+	pref[db.SORT_KEY.P_CmdPalette] = &defaultUserPref.CmdPalette
+	pref[db.SORT_KEY.P_Note] = &defaultUserPref.Notes
+	pref[db.SORT_KEY.P_LinkPreview] = &defaultUserPref.LinkPreview
+	pref[db.SORT_KEY.P_AutoDiscard] = &defaultUserPref.AutoDiscard
 
 	var wg sync.WaitGroup
 
@@ -157,15 +157,15 @@ func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *i
 
 	sk := fmt.Sprintf("P#%s", perfBody.Type)
 	switch sk {
-	case database.SORT_KEY.P_General:
+	case db.SORT_KEY.P_General:
 		subP, err = unmarshalSubPref[generalP](perfBody.Data)
-	case database.SORT_KEY.P_CmdPalette:
+	case db.SORT_KEY.P_CmdPalette:
 		subP, err = unmarshalSubPref[cmdPaletteP](perfBody.Data)
-	case database.SORT_KEY.P_AutoDiscard:
+	case db.SORT_KEY.P_AutoDiscard:
 		subP, err = unmarshalSubPref[autoDiscardP](perfBody.Data)
-	case database.SORT_KEY.P_Note:
+	case db.SORT_KEY.P_Note:
 		subP, err = unmarshalSubPref[notesP](perfBody.Data)
-	case database.SORT_KEY.P_LinkPreview:
+	case db.SORT_KEY.P_LinkPreview:
 		subP, err = unmarshalSubPref[linkPreviewP](perfBody.Data)
 	default:
 		err = fmt.Errorf("invalid preference sub type: %s", sk)
