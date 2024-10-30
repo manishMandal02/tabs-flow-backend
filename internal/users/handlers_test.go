@@ -65,7 +65,8 @@ func TestUserHandler_UserById(t *testing.T) {
 			handler := newUserHandler(mockRepo)
 
 			// Create request
-			req := httptest.NewRequest(http.MethodGet, "/users/"+tt.userID, nil)
+			req := httptest.NewRequest(http.MethodGet, "/users/", nil)
+			req.SetPathValue("id", tt.userID)
 			rec := httptest.NewRecorder()
 
 			// Call handler

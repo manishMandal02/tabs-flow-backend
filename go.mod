@@ -5,7 +5,8 @@ go 1.22.1
 require (
 	github.com/PaddleHQ/paddle-go-sdk v1.0.0
 	github.com/SherClockHolmes/webpush-go v1.3.0
-	github.com/aws/aws-lambda-go v1.47.0
+	github.com/aws/aws-lambda-go v1.41.0
+	github.com/aws/aws-sdk-go v1.55.5
 	github.com/aws/aws-sdk-go-v2 v1.32.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.33
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.15.3
