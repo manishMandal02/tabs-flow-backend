@@ -1,23 +1,27 @@
 include .env
 
 
-# TypeScript Linting
+# ts Linting
 lint-ts:
 	npm run lint
 
-# Go Linting
+# go Linting
 lint-go:
 	golangci-lint run ./...
 
-# All Linting
-lint: lint-ts lint-go
+# all Linting
+lint-all: lint-ts lint-go
+
+# go test
+test-go:
+	go test -v ./...
 
 
 # local development
 dev:
 	air -- -local_dev=true
 	
-# CDK commands
+# cdk commands
 cdk-synth: 
 	cd infra/ && cdk synth "*" --profile ${AWS_ACCOUNT_PROFILE}
 	
@@ -43,17 +47,5 @@ cdk-destroy-all:
 go-test:
 	echo test ${name}
 
-# Clean up
-clean:
-	rm -rf ./bin
-
-# Install Husky for Pre-commit
-install-hooks:
-	npx husky install
-
-# Run Go application
-run-go:
-	go run ./cmd/app/main.go
-
 # Default command
-default: lint
+default: dev
