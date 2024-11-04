@@ -19,7 +19,7 @@ type userHandler struct {
 	r userRepository
 }
 
-func newUserHandler(r userRepository) *userHandler {
+func newHandler(r userRepository) *userHandler {
 	return &userHandler{
 		r: r,
 	}
@@ -28,7 +28,7 @@ func newUserHandler(r userRepository) *userHandler {
 // profile handlers
 func (h userHandler) userById(w http.ResponseWriter, r *http.Request) {
 
-	id := r.PathValue("id")
+	id := r.Header.Get("UserId")
 
 	if id == "" {
 		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)

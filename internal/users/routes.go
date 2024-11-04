@@ -11,11 +11,18 @@ func Router() http_api.IRouter {
 
 	ur := newUserRepository(db)
 
-	handler := newUserHandler(ur)
+	handler := newHandler(ur)
 
 	usersRouter := http_api.NewRouter("/users")
 
 	checkUserMiddleware := newUserMiddleware(ur)
+
+	// profile
+	usersRouter.GET("/me", handler.userById)
+	usersRouter.POST("/", handler.createUser)
+	usersRouter.PATCH("/", checkUserMiddleware, handler.updateUser)
+	// TODO: test delete handler after adding more data
+	usersRouter.DELETE("/", checkUserMiddleware, handler.deleteUser)
 
 	// preferences
 	usersRouter.GET("/preferences", checkUserMiddleware, handler.getPreferences)
@@ -27,13 +34,6 @@ func Router() http_api.IRouter {
 	// queries - cancelURL:bool
 	usersRouter.GET("/subscription/paddle-url", checkUserMiddleware, handler.getPaddleURL)
 	usersRouter.POST("/subscription/webhook", handler.subscriptionWebhook)
-
-	// profile
-	usersRouter.GET("/:id", handler.userById)
-	usersRouter.POST("/", handler.createUser)
-	usersRouter.PATCH("/", checkUserMiddleware, handler.updateUser)
-	// TODO: test delete handler after adding more data
-	usersRouter.DELETE("/", checkUserMiddleware, handler.deleteUser)
 
 	// serve API routes
 	return usersRouter

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUserHandler_UserById(t *testing.T) {
+func TestHandler_UserById(t *testing.T) {
 
 	tests := []struct {
 		name           string
@@ -62,7 +62,7 @@ func TestUserHandler_UserById(t *testing.T) {
 			mockRepo.On("getUserByID", tt.userID).Return(tt.mockUser, tt.mockErr)
 
 			// Initialize handler
-			handler := newUserHandler(mockRepo)
+			handler := newHandler(mockRepo)
 
 			// Create request
 			req := httptest.NewRequest(http.MethodGet, "/users/", nil)

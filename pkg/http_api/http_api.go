@@ -18,7 +18,7 @@ type ErrorBody struct {
 	ErrorMsg *string `json:"error,omitempty"`
 }
 
-type RespBody struct {
+type APIResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
@@ -27,7 +27,7 @@ type RespBody struct {
 func SuccessResData(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(RespBody{Success: true, Data: data})
+	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Data: data})
 
 	if err != nil {
 		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
@@ -38,7 +38,7 @@ func SuccessResData(w http.ResponseWriter, data interface{}) {
 func SuccessResMsg(w http.ResponseWriter, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg})
+	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg})
 	if err != nil {
 		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
 		return
@@ -48,7 +48,7 @@ func SuccessResMsg(w http.ResponseWriter, msg string) {
 func SuccessResMsgWithBody(w http.ResponseWriter, msg string, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(RespBody{Success: true, Message: msg, Data: data})
+	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg, Data: data})
 	if err != nil {
 		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
 		return

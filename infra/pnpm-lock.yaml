@@ -11,6 +11,9 @@ dependencies:
   aws-cdk-lib:
     specifier: 2.87.0
     version: 2.87.0(constructs@10.3.0)
+  cdk-nag:
+    specifier: ^2.31.1
+    version: 2.31.1(aws-cdk-lib@2.87.0)(constructs@10.3.0)
   constructs:
     specifier: ^10.0.0
     version: 10.3.0
@@ -1062,6 +1065,16 @@ packages:
   /case@1.6.3:
     resolution: {integrity: sha512-mzDSXIPaFwVDvZAHqZ9VlbyF4yyXRuX6IvB06WvPYkqJVO24kX1PPhv9bfpKNFZyxYFmmgo03HUiD8iklmJYRQ==}
     engines: {node: '>= 0.8.0'}
+    dev: false
+
+  /cdk-nag@2.31.1(aws-cdk-lib@2.87.0)(constructs@10.3.0):
+    resolution: {integrity: sha512-SNYLwGUCSjiOZP5hGPuIsJPZ2wTByJO10leyU4KaaHmh5NfQy18D5Bw0PXqb8a9ctmqpKnlc8w6lGRl4DLlfHw==}
+    peerDependencies:
+      aws-cdk-lib: ^2.156.0
+      constructs: ^10.0.5
+    dependencies:
+      aws-cdk-lib: 2.87.0(constructs@10.3.0)
+      constructs: 10.3.0
     dev: false
 
   /chalk@2.4.2:

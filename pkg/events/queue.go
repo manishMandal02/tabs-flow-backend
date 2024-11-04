@@ -40,7 +40,7 @@ func (q Queue) AddMessage(ev IEvent) error {
 		DelaySeconds:      *aws.Int32(1),
 		QueueUrl:          &q.url,
 		MessageBody:       aws.String(ev.ToJSON()),
-		MessageAttributes: ev.ToMsgAttributes(),
+	MessageAttributes: ev.ToMsgAttributes(),
 	})
 
 	if err != nil || res.MessageId == nil {
