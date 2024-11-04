@@ -29,7 +29,7 @@ func getAllStaticSKs() []string {
 }
 
 // query dynamodb with sort key prefixes to get all dynamic sort keys
-func (db DDB) GetAllSKs(pk string) ([]string, error) {
+func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 
 	sortKeys := getAllStaticSKs()
 
@@ -91,7 +91,7 @@ func (db DDB) GetAllSKs(pk string) ([]string, error) {
 	return []string{}, nil
 }
 
-func (db DDB) BatchWriter(ctx context.Context, wg *sync.WaitGroup, errChan chan error, reqs []types.WriteRequest) {
+func (db *DDB) BatchWriter(ctx context.Context, wg *sync.WaitGroup, errChan chan error, reqs []types.WriteRequest) {
 
 	for start := 0; start < len(reqs); start += DDB_MAX_BATCH_SIZE {
 		end := start + DDB_MAX_BATCH_SIZE
