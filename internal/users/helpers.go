@@ -18,7 +18,7 @@ import (
 
 // middleware to get userId from header ( set by authorizer after validating jwt token claims)
 // also check if user exits
-func newUserMiddleware(ur userRepository) http_api.Handler {
+func newUserMiddleware(ur repository) http_api.Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId := r.Header.Get("UserId")
 
@@ -31,7 +31,7 @@ func newUserMiddleware(ur userRepository) http_api.Handler {
 	}
 }
 
-func setDefaultUserPreferences(userId string, r userRepository) error {
+func setDefaultUserPreferences(userId string, r repository) error {
 
 	pref := make(map[string]interface{})
 
@@ -60,7 +60,7 @@ func setDefaultUserPreferences(userId string, r userRepository) error {
 
 }
 
-func setDefaultUserData(user *User, r userRepository) error {
+func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) error {
 	// set default preferences for user
 	err := setDefaultUserPreferences(user.Id, r)
 
@@ -102,9 +102,7 @@ func setDefaultUserData(user *User, r userRepository) error {
 		TrailEndDate: trialEndDate.Format(time.DateOnly),
 	})
 
-	sqs := events.NewEmailQueue()
-
-	err = sqs.AddMessage(event)
+	err = emailQueue.AddMessage(event)
 
 	if err != nil {
 		return err
@@ -114,7 +112,7 @@ func setDefaultUserData(user *User, r userRepository) error {
 
 }
 
-func checkUserExits(id string, r userRepository, w http.ResponseWriter) bool {
+func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
 
 	if id == "" {
 		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
@@ -218,7 +216,7 @@ type subscriptionData struct {
 }
 
 // process paddle subscription (create/update) event in webhook
-func subscriptionEventHandler(r userRepository, data *subscriptionData, isUpdatedEvent bool) error {
+func subscriptionEventHandler(r repository, data *subscriptionData, isUpdatedEvent bool) error {
 	// parse date to convert it to unix timestamp for db
 	startDate, err := time.Parse(time.RFC3339, data.startDate)
 	endDate, err2 := time.Parse(time.RFC3339, data.endDate)
@@ -231,7 +229,7 @@ func subscriptionEventHandler(r userRepository, data *subscriptionData, isUpdate
 
 	if data.userId == "" {
 		errMsg := "error getting userId from event custom data subscriptionWebhook()"
-		logger.Errorf(errMsg)
+		logger.Errorf("%v", errMsg)
 		return errors.New(errMsg)
 	}
 

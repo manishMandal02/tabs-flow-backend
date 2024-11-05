@@ -264,6 +264,12 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 			err = events.NewNotificationQueue().AddMessage(event)
 		}
 
+		if err != nil {
+			logger.Errorf("error scheduling note  noteId: %v. \n[Error]: %v", body.Note.Id, err)
+			http.Error(w, errMsg.noteUpdate, http.StatusBadRequest)
+			return
+		}
+
 	}
 
 	//  if title, note or domain is updated, re-index search terms
@@ -292,12 +298,12 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 		terms := extractSearchTerms(body.Note.Title, noteText, body.Note.Domain)
 		err = h.r.indexSearchTerms(userId, body.Note.Id, terms)
 
-	}
+		if err != nil {
+			logger.Errorf("error indexing search terms for noteId: %v. \n[Error]: %v", body.Note.Id, err)
+			http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
+			return
+		}
 
-	if err != nil {
-		logger.Errorf("error indexing search terms for noteId: %v. \n[Error]: %v", body.Note.Id, err)
-		http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
-		return
 	}
 
 	http_api.SuccessResMsg(w, "Note updated successfully")

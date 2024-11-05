@@ -150,7 +150,7 @@ func (z *ZeptoMail) sendWelcomeMail(to *NameAddr, trailEndDate string) error {
 
 // helper
 func sendMail(url string, headers map[string]string, body []byte) error {
-	res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, url, headers, body)
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, url, headers, body, http.DefaultClient)
 	if err != nil {
 		logger.Errorf("[email_service] Error sending email. Request body: %s, [Error]: %v", string(body), err)
 		return err

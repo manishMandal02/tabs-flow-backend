@@ -22,7 +22,7 @@ import (
 func EventsHandler(_ context.Context, event lambda_events.SQSEvent) (interface{}, error) {
 	if len(event.Records) < 1 {
 		errMsg := "no events to process"
-		logger.Errorf(errMsg)
+		logger.Errorf("%v", errMsg)
 
 		return nil, errors.New(errMsg)
 	}

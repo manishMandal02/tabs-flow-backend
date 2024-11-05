@@ -2,18 +2,19 @@ package users
 
 import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-func Router(db *db.DDB) http_api.IRouter {
+func Router(db *db.DDB, q *events.Queue, c http_api.Client) http_api.IRouter {
 
-	ur := newRepository(db)
+	r := newRepository(db)
 
-	handler := newHandler(ur)
+	handler := newHandler(r, q, c)
 
 	usersRouter := http_api.NewRouter("/users")
 
-	checkUserMiddleware := newUserMiddleware(ur)
+	checkUserMiddleware := newUserMiddleware(r)
 
 	// profile
 	usersRouter.GET("/me", handler.userById)

@@ -10,23 +10,28 @@ import (
 	paddle "github.com/PaddleHQ/paddle-go-sdk"
 	"github.com/PaddleHQ/paddle-go-sdk/pkg/paddlenotification"
 	"github.com/manishMandal02/tabsflow-backend/config"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
 
-type userHandler struct {
-	r userRepository
+type handler struct {
+	r          repository
+	emailQueue *events.Queue
+	httpClient http_api.Client
 }
 
-func newHandler(r userRepository) *userHandler {
-	return &userHandler{
-		r: r,
+func newHandler(r repository, q *events.Queue, c http_api.Client) *handler {
+	return &handler{
+		r:          r,
+		emailQueue: q,
+		httpClient: c,
 	}
 }
 
 // profile handlers
-func (h userHandler) userById(w http.ResponseWriter, r *http.Request) {
+func (h handler) userById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.Header.Get("UserId")
 
@@ -49,7 +54,7 @@ func (h userHandler) userById(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResData(w, user)
 }
 
-func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
+func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := userFromJSON(r.Body)
 
@@ -106,7 +111,7 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	authServiceURL := fmt.Sprintf("%s://%s/auth/user/", p, r.Host)
 
-	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, bodyJson)
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, bodyJson, h.httpClient)
 
 	if err != nil {
 		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", body.Email, err)
@@ -136,6 +141,7 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
 		return
 	}
+
 	if userIdData.Data.UserId != user.Id {
 		logger.Errorf("User Id mismatch for email: %v. \n [Error]: %v", body.Email, err)
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
@@ -149,7 +155,9 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = setDefaultUserData(user, h.r)
+	logger.Dev("User inserted successfully")
+
+	err = setDefaultUserData(user, h.r, h.emailQueue)
 
 	if err != nil {
 		logger.Error("Error setting user default data", err)
@@ -160,7 +168,7 @@ func (h userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResMsg(w, "user created")
 }
 
-func (h userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	var n struct {
@@ -185,7 +193,7 @@ func (h userHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResMsg(w, "user updated")
 }
 
-func (h userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
+func (h handler) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
 
@@ -200,7 +208,7 @@ func (h userHandler) deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // preferences handlers
-func (h userHandler) getPreferences(w http.ResponseWriter, r *http.Request) {
+func (h handler) getPreferences(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
 
@@ -220,7 +228,7 @@ type updatePerfBody struct {
 	Data json.RawMessage `json:"data"`
 }
 
-func (h userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) {
+func (h handler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	var updateB updatePerfBody
@@ -250,7 +258,7 @@ func (h userHandler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 }
 
 // subscription handlers
-func (h userHandler) getSubscription(w http.ResponseWriter, r *http.Request) {
+func (h handler) getSubscription(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	subscription, err := h.r.getSubscription(id)
@@ -263,7 +271,7 @@ func (h userHandler) getSubscription(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResData(w, subscription)
 }
 
-func (h userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
+func (h handler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	s, err := h.r.getSubscription(id)
@@ -302,7 +310,7 @@ func (h userHandler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Requ
 
 }
 
-func (h userHandler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
+func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	//  check if the user with this id
 
@@ -364,7 +372,7 @@ func (h userHandler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 }
 
 // paddle webhook handler
-func (h userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
+func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 
 	v := paddle.NewWebhookVerifier(config.PADDLE_WEBHOOK_SECRET_KEY)
 
@@ -427,7 +435,7 @@ func (h userHandler) subscriptionWebhook(w http.ResponseWriter, r *http.Request)
 			priceId:        c.Items[0].Price.ID,
 			status:         string(c.Status),
 			startDate:      *c.StartedAt,
-			endDate:        *&c.CurrentBillingPeriod.EndsAt,
+			endDate:        c.CurrentBillingPeriod.EndsAt,
 			nextBillDate:   *c.NextBilledAt,
 		}
 

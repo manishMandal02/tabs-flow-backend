@@ -7,14 +7,14 @@ lint-ts:
 
 # go Linting
 lint-go:
-	golangci-lint run ./...
+	golangci-lint run ./... && testifylint --enable-all ./...
 
 # all Linting
-lint-all: lint-ts lint-go
+lint-all: lint-ts lint-go 
 
 # go test
 test-go:
-	go test -v ./...
+	go test -v ./... --failfast -cover
 
 
 # local development

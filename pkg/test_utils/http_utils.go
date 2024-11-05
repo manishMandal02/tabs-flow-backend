@@ -32,6 +32,8 @@ type E2ETestSuite struct {
 
 // WaitForSQSMessage waits for and verifies an SQS message
 func (s *E2ETestSuite) WaitForSQSMessage(ctx context.Context, expectedEmail string) (*events.SendOTPPayload, error) {
+	s.T().Helper()
+
 	for i := 0; i < 3; i++ { // retry 3 times
 		output, err := s.SQSClient.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 			QueueUrl:            &s.Config.SQSQueueURL,
@@ -65,6 +67,8 @@ func (s *E2ETestSuite) WaitForSQSMessage(ctx context.Context, expectedEmail stri
 
 // AssertSuccessResponse checks if the API response indicates success
 func (s *E2ETestSuite) AssertSuccessResponse(resp *http.Response) interface{} {
+	s.T().Helper()
+
 	var apiResp http_api.APIResponse
 	err := json.NewDecoder(resp.Body).Decode(&apiResp)
 	s.Require().NoError(err)
@@ -74,6 +78,8 @@ func (s *E2ETestSuite) AssertSuccessResponse(resp *http.Response) interface{} {
 
 // AssertErrorResponse checks if the API response indicates an error
 func (s *E2ETestSuite) AssertErrorResponse(resp *http.Response, expectedStatus int) string {
+	s.T().Helper()
+
 	s.Require().Equal(expectedStatus, resp.StatusCode)
 	var apiResp http_api.APIResponse
 	err := json.NewDecoder(resp.Body).Decode(&apiResp)
@@ -84,10 +90,12 @@ func (s *E2ETestSuite) AssertErrorResponse(resp *http.Response, expectedStatus i
 
 // AssertHasCookie checks if a specific cookie is present
 func (s *E2ETestSuite) AssertHasCookie(resp *http.Response, name string) *http.Cookie {
+	s.T().Helper()
+
 	for _, cookie := range resp.Cookies() {
 		if cookie.Name == name {
-			s.Assert().True(cookie.Secure)
-			s.Assert().True(cookie.HttpOnly)
+			s.True(cookie.Secure)
+			s.True(cookie.HttpOnly)
 			return cookie
 		}
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
-type userRepository interface {
+type repository interface {
 	getUserByID(id string) (*User, error)
 	insertUser(user *User) error
 	updateUser(id, name string) error
@@ -33,7 +33,7 @@ type userRepo struct {
 	db *db.DDB
 }
 
-func newUserRepository(db *db.DDB) userRepository {
+func newRepository(db *db.DDB) repository {
 	return &userRepo{
 		db: db,
 	}
@@ -57,13 +57,17 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 		return nil, err
 	}
 
+	if response == nil || response.Item == nil {
+		return nil, errors.New(errMsg.userNotFound)
+	}
+
+	if _, ok := response.Item["PK"]; !ok {
+		return nil, errors.New(errMsg.userNotFound)
+	}
+
 	user := &User{}
 
 	err = attributevalue.UnmarshalMap(response.Item, &user)
-
-	if response.Item == nil || response.Item["PK"] == nil {
-		return nil, errors.New(errMsg.userNotFound)
-	}
 
 	if err != nil {
 		logger.Errorf("Couldn't unmarshal query result for user_id: %v. \n[Error]: %v", id, err)

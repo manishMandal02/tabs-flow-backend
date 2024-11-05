@@ -9,17 +9,22 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
+type SQSClientInterface interface {
+	SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
+	DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)
+}
+
 type Queue struct {
-	client *sqs.Client
-	url    string
+	Client SQSClientInterface
+	URL    string
 }
 
 func NewEmailQueue() *Queue {
 	client := sqs.NewFromConfig(config.AWS_CONFIG)
 
 	return &Queue{
-		client: client,
-		url:    config.EMAIL_QUEUE_URL,
+		Client: client,
+		URL:    config.EMAIL_QUEUE_URL,
 	}
 }
 
@@ -27,8 +32,8 @@ func NewNotificationQueue() *Queue {
 	client := sqs.NewFromConfig(config.AWS_CONFIG)
 
 	return &Queue{
-		client: client,
-		url:    config.NOTIFICATIONS_QUEUE_URL,
+		Client: client,
+		URL:    config.NOTIFICATIONS_QUEUE_URL,
 	}
 
 }
@@ -36,11 +41,11 @@ func NewNotificationQueue() *Queue {
 // sqs helper fn to send messages
 func (q Queue) AddMessage(ev IEvent) error {
 
-	res, err := q.client.SendMessage(context.TODO(), &sqs.SendMessageInput{
+	res, err := q.Client.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		DelaySeconds:      *aws.Int32(1),
-		QueueUrl:          &q.url,
+		QueueUrl:          &q.URL,
 		MessageBody:       aws.String(ev.ToJSON()),
-	MessageAttributes: ev.ToMsgAttributes(),
+		MessageAttributes: ev.ToMsgAttributes(),
 	})
 
 	if err != nil || res.MessageId == nil {
@@ -53,8 +58,8 @@ func (q Queue) AddMessage(ev IEvent) error {
 
 func (q Queue) DeleteMessage(r string) error {
 
-	_, err := q.client.DeleteMessage(context.TODO(), &sqs.DeleteMessageInput{
-		QueueUrl:      &q.url,
+	_, err := q.Client.DeleteMessage(context.TODO(), &sqs.DeleteMessageInput{
+		QueueUrl:      &q.URL,
 		ReceiptHandle: aws.String(r),
 	})
 

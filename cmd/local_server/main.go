@@ -11,6 +11,8 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/internal/notifications"
 	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 )
 
 // lambda authorizer simple moc
@@ -68,8 +70,14 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	ddb := db.New()
+	emailQueue := events.NewEmailQueue()
+	// client := &http.Client{}
+
+	client := http.DefaultClient
+
 	mux.Handle("/auth/", auth.Router())
-	mux.Handle("/users/", authorizer(users.Router()))
+	mux.Handle("/users/", authorizer(users.Router(ddb, emailQueue, client)))
 	mux.Handle("/spaces/", authorizer(spaces.Router()))
 	mux.Handle("/notes/", authorizer(notes.Router()))
 	mux.Handle("/notifications/", authorizer(notifications.Router()))
