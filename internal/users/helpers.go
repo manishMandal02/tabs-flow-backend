@@ -115,7 +115,7 @@ func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) erro
 func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
 
 	if id == "" {
-		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
+		http.Error(w, ErrMsg.InvalidUserId, http.StatusBadRequest)
 		return false
 	}
 
@@ -123,16 +123,16 @@ func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
 	userExists, err := r.getUserByID(id)
 
 	if err != nil {
-		if err.Error() == errMsg.userNotFound {
-			http.Error(w, errMsg.userNotFound, http.StatusBadRequest)
+		if err.Error() == ErrMsg.UserNotFound {
+			http.Error(w, ErrMsg.UserNotFound, http.StatusBadRequest)
 		} else {
-			http.Error(w, errMsg.getUser, http.StatusInternalServerError)
+			http.Error(w, ErrMsg.GetUser, http.StatusInternalServerError)
 		}
 		return false
 	}
 
 	if userExists == nil {
-		http.Error(w, errMsg.userNotFound, http.StatusNotFound)
+		http.Error(w, ErrMsg.UserNotFound, http.StatusNotFound)
 		return false
 	}
 	return true
@@ -149,7 +149,7 @@ func unmarshalSubPref[T any](data json.RawMessage) (*T, error) {
 }
 
 // associate req body data to a sub preference struct of a specific type
-func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *interface{}, error) {
+func parseSubPreferencesData(perfBody updatePerfBody) (string, *interface{}, error) {
 	var subP interface{}
 	var err error
 
@@ -170,7 +170,7 @@ func parseSubPreferencesData(userId string, perfBody updatePerfBody) (string, *i
 	}
 
 	if err != nil {
-		logger.Errorf("Error  un_marshaling sub preferences for u \n[Error]: %vserId:. %v", userId, err)
+		logger.Errorf("Error  un_marshaling sub preferences[Error]:  %v", err)
 		return "", nil, err
 	}
 
@@ -228,9 +228,9 @@ func subscriptionEventHandler(r repository, data *subscriptionData, isUpdatedEve
 	}
 
 	if data.userId == "" {
-		errMsg := "error getting userId from event custom data subscriptionWebhook()"
-		logger.Errorf("%v", errMsg)
-		return errors.New(errMsg)
+		ErrMsg := "error getting userId from event custom data subscriptionWebhook()"
+		logger.Errorf("%v", ErrMsg)
+		return errors.New(ErrMsg)
 	}
 
 	plan := *parsePaddlePlan(data.priceId)

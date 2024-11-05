@@ -7,14 +7,26 @@ lint-ts:
 
 # go Linting
 lint-go:
-	golangci-lint run ./... && testifylint --enable-all ./...
+	go vet ./... && golangci-lint run ./... && testifylint --enable-all ./...
 
 # all Linting
 lint-all: lint-ts lint-go 
 
+# cdl/infra test
+test-infra:
+	cd infra/ && cdk test --profile ${AWS_ACCOUNT_PROFILE}
+
 # go test
-test-go:
-	go test -v ./... --failfast -cover
+test-unit:
+	go test -v ./... -short
+
+test-integration:
+	go test -v ./test/integration/... --failfast 
+
+test-e2e: 
+	go test -v ./test/e2e 
+
+test-all: test-unit test-integration test-e2e
 
 
 # local development

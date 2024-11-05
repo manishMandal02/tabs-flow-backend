@@ -1,4 +1,4 @@
-package users
+package integration_test
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/test_utils"
@@ -45,13 +46,13 @@ func newTestSetup() *testSetup {
 	httpClient := new(mockClient)
 	return &testSetup{
 		mockDB:     db,
-		router:     Router(db, q, httpClient),
+		router:     users.Router(db, q, httpClient),
 		mockQueue:  q,
 		mockClient: httpClient,
 	}
 }
 
-var testUser = &User{
+var testUser = &users.User{
 	Id:         "123",
 	FullName:   "Test Name",
 	Email:      "test@test.com",
@@ -81,7 +82,7 @@ var tests = []TestCase{
 			"name": "Test Name",
 		},
 		expectedStatus: http.StatusBadRequest,
-		expectedBody:   errMsg.createUser,
+		expectedBody:   users.ErrMsg.CreateUser,
 	},
 	{
 		name:   "create_user: success",
@@ -138,7 +139,11 @@ var tests = []TestCase{
 		expectedBody:   map[string]interface{}{"success": true, "message": "user created"},
 	}}
 
+// * run test cases
 func TestUsersService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create new test setup for each test case

@@ -36,17 +36,17 @@ func (h handler) userById(w http.ResponseWriter, r *http.Request) {
 	id := r.Header.Get("UserId")
 
 	if id == "" {
-		http.Error(w, errMsg.invalidUserId, http.StatusBadRequest)
+		http.Error(w, ErrMsg.InvalidUserId, http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.r.getUserByID(id)
 
 	if err != nil {
-		if err.Error() == errMsg.userNotFound {
-			http.Error(w, errMsg.userNotFound, http.StatusBadRequest)
+		if err.Error() == ErrMsg.UserNotFound {
+			http.Error(w, ErrMsg.UserNotFound, http.StatusBadRequest)
 		} else {
-			http.Error(w, errMsg.getUser, http.StatusInternalServerError)
+			http.Error(w, ErrMsg.GetUser, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -60,7 +60,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("decoding user from body at createUser()", err)
-		http.Error(w, errMsg.createUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
 		return
 	}
 
@@ -68,20 +68,20 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error validating user at createUser()", err)
-		http.Error(w, errMsg.createUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
 		return
 	}
 
 	//  check if the user with this id
 	userExists, err := h.r.getUserByID(user.Id)
 
-	if err != nil && err.Error() != errMsg.userNotFound {
-		http.Error(w, errMsg.getUser, http.StatusInternalServerError)
+	if err != nil && err.Error() != ErrMsg.UserNotFound {
+		http.Error(w, ErrMsg.GetUser, http.StatusInternalServerError)
 		return
 	}
 
 	if userExists != nil {
-		http.Error(w, errMsg.userExists, http.StatusBadRequest)
+		http.Error(w, ErrMsg.UserExists, http.StatusBadRequest)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("Error marshaling json body", err)
-		http.Error(w, errMsg.createUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
 	}
 
 	headers := map[string]string{
@@ -115,7 +115,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", body.Email, err)
-		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 		logger.Errorf("User does not have a valid session profile for email: %v. \n [Error]: %v", body.Email, err)
 		//  Logout
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
-		// http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+		// http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("Error un_marshaling user id data for email: %v. \n [Error]: %v", body.Email, err)
-		http.Error(w, errMsg.createUser, http.StatusInternalServerError)
+		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	err = h.r.insertUser(user)
 
 	if err != nil {
-		http.Error(w, errMsg.createUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
 		return
 	}
 
@@ -161,7 +161,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("Error setting user default data", err)
-		http.Error(w, errMsg.createUser, http.StatusBadGateway)
+		http.Error(w, ErrMsg.CreateUser, http.StatusBadGateway)
 		return
 	}
 
@@ -179,14 +179,14 @@ func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error un_marshaling name from JSON at updateUser()", err)
-		http.Error(w, errMsg.updateUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.UpdateUser, http.StatusBadRequest)
 		return
 	}
 
 	err = h.r.updateUser(id, n.Name)
 
 	if err != nil {
-		http.Error(w, errMsg.updateUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.UpdateUser, http.StatusBadRequest)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (h handler) deleteUser(w http.ResponseWriter, r *http.Request) {
 	err := h.r.deleteAccount(id)
 
 	if err != nil {
-		http.Error(w, errMsg.deleteUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.DeleteUser, http.StatusBadRequest)
 		return
 	}
 
@@ -215,7 +215,7 @@ func (h handler) getPreferences(w http.ResponseWriter, r *http.Request) {
 	preferences, err := h.r.getAllPreferences(id)
 
 	if err != nil {
-		http.Error(w, errMsg.preferencesGet, http.StatusBadRequest)
+		http.Error(w, ErrMsg.PreferencesGet, http.StatusBadRequest)
 		return
 	}
 
@@ -237,21 +237,21 @@ func (h handler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error un_marshaling preferences from req body at updatePreferences()", err)
-		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
+		http.Error(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
 
-	sk, subPref, err := parseSubPreferencesData(id, updateB)
+	sk, subPref, err := parseSubPreferencesData(updateB)
 
 	if err != nil {
-		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
+		http.Error(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
 
 	err = h.r.updatePreferences(id, sk, *subPref)
 
 	if err != nil {
-		http.Error(w, errMsg.preferencesUpdate, http.StatusBadRequest)
+		http.Error(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
 	http_api.SuccessResMsg(w, "preferences updated")
@@ -264,7 +264,7 @@ func (h handler) getSubscription(w http.ResponseWriter, r *http.Request) {
 	subscription, err := h.r.getSubscription(id)
 
 	if err != nil {
-		http.Error(w, errMsg.subscriptionGet, http.StatusBadRequest)
+		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
 		return
 	}
 
@@ -277,7 +277,7 @@ func (h handler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request)
 	s, err := h.r.getSubscription(id)
 
 	if err != nil {
-		http.Error(w, errMsg.subscriptionGet, http.StatusBadRequest)
+		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
 		return
 	}
 
@@ -291,7 +291,7 @@ func (h handler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request)
 		// if subscription is active, check the end date
 		if err != nil {
 			logger.Error("error parsing subscription end date", err)
-			http.Error(w, errMsg.subscriptionGet, http.StatusBadRequest)
+			http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
 			return
 		}
 
@@ -322,14 +322,14 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 	p, err := newPaddleClient()
 
 	if err != nil {
-		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusInternalServerError)
+		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusInternalServerError)
 		return
 	}
 
 	s, err := h.r.getSubscription(id)
 
 	if err != nil {
-		http.Error(w, errMsg.subscriptionGet, http.StatusBadGateway)
+		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadGateway)
 		return
 	}
 
@@ -340,7 +340,7 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error getting paddle subscription", err)
-		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusBadRequest)
+		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
 		return
 	}
 
@@ -358,12 +358,12 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if shouldSendCancelURL && resBody.CancelURL == "" {
-		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusBadRequest)
+		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
 		return
 	}
 
 	if !shouldSendCancelURL && resBody.UpdateURL == "" {
-		http.Error(w, errMsg.subscriptionPaddleURL, http.StatusBadRequest)
+		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
 		return
 	}
 

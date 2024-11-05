@@ -58,11 +58,11 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	}
 
 	if response == nil || response.Item == nil {
-		return nil, errors.New(errMsg.userNotFound)
+		return nil, errors.New(ErrMsg.UserNotFound)
 	}
 
 	if _, ok := response.Item["PK"]; !ok {
-		return nil, errors.New(errMsg.userNotFound)
+		return nil, errors.New(ErrMsg.UserNotFound)
 	}
 
 	user := &User{}
@@ -75,7 +75,7 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	}
 
 	if user.Id == "" {
-		return nil, errors.New(errMsg.userNotFound)
+		return nil, errors.New(ErrMsg.UserNotFound)
 	}
 
 	return user, nil
@@ -219,7 +219,7 @@ func (r userRepo) getAllPreferences(id string) (*preferences, error) {
 	}
 
 	if len(response.Items) < 1 {
-		return nil, errors.New(errMsg.preferencesGet)
+		return nil, errors.New(ErrMsg.PreferencesGet)
 	}
 	p, err := unMarshalPreferences(response)
 
@@ -322,7 +322,7 @@ func (r userRepo) getSubscription(userId string) (*subscription, error) {
 		return nil, err
 	}
 	if len(response.Item) == 0 {
-		return nil, errors.New(errMsg.subscriptionGet)
+		return nil, errors.New(ErrMsg.SubscriptionGet)
 	}
 	s := &subscription{}
 

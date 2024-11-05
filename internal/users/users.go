@@ -150,32 +150,32 @@ var defaultUserPref = preferences{
 	},
 }
 
-var errMsg = struct {
-	getUser               string
-	userNotFound          string
-	userExists            string
-	createUser            string
-	updateUser            string
-	deleteUser            string
-	invalidUserId         string
-	preferencesGet        string
-	preferencesUpdate     string
-	subscriptionGet       string
-	subscriptionUpdate    string
-	subscriptionCheck     string
-	subscriptionPaddleURL string
+var ErrMsg = struct {
+	GetUser               string
+	UserNotFound          string
+	UserExists            string
+	CreateUser            string
+	UpdateUser            string
+	DeleteUser            string
+	InvalidUserId         string
+	PreferencesGet        string
+	PreferencesUpdate     string
+	SubscriptionGet       string
+	SubscriptionUpdate    string
+	SubscriptionCheck     string
+	SubscriptionPaddleURL string
 }{
-	getUser:               "Error getting user",
-	userNotFound:          "User not found",
-	userExists:            "User already exits",
-	createUser:            "Error creating user",
-	updateUser:            "Error updating user",
-	deleteUser:            "Error deleting user",
-	invalidUserId:         "Invalid user id",
-	preferencesGet:        "Error getting preferences",
-	preferencesUpdate:     "Error updating preferences",
-	subscriptionGet:       "Error getting subscription",
-	subscriptionUpdate:    "Error updating subscription",
-	subscriptionCheck:     "Error checking subscription status",
-	subscriptionPaddleURL: "Error getting paddle url",
+	GetUser:               "Error getting user",
+	UserNotFound:          "User not found",
+	UserExists:            "User already exits",
+	CreateUser:            "Error creating user",
+	UpdateUser:            "Error updating user",
+	DeleteUser:            "Error deleting user",
+	InvalidUserId:         "Invalid user id",
+	PreferencesGet:        "Error getting preferences",
+	PreferencesUpdate:     "Error updating preferences",
+	SubscriptionGet:       "Error getting subscription",
+	SubscriptionUpdate:    "Error updating subscription",
+	SubscriptionCheck:     "Error checking subscription status",
+	SubscriptionPaddleURL: "Error getting paddle url",
 }
