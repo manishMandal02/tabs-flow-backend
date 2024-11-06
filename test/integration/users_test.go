@@ -17,23 +17,10 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
-	"github.com/manishMandal02/tabsflow-backend/pkg/test_utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-type mockClient struct {
-	mock.Mock
-}
-
-func (r *mockClient) Do(req *http.Request) (*http.Response, error) {
-	args := r.Called(req)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*http.Response), args.Error(1)
-}
 
 type testSetup struct {
 	router     http.Handler
@@ -43,8 +30,8 @@ type testSetup struct {
 }
 
 func newTestSetup() *testSetup {
-	db := test_utils.NewDDBMock()
-	q := test_utils.NewQueueMock()
+	db := NewDDBMock()
+	q := NewQueueMock()
 
 	httpClient := new(mockClient)
 	return &testSetup{
@@ -69,8 +56,8 @@ type TestCase struct {
 	body            interface{}
 	setupAuth       func(r *http.Request)
 	setupMockClient func(*mockClient)
-	setupMockQueue  func(*testing.T, *test_utils.SQSClientMock)
-	setupMockDB     func(*testing.T, *test_utils.DynamoDBClientMock)
+	setupMockQueue  func(*testing.T, *SQSClientMock)
+	setupMockDB     func(*testing.T, *DynamoDBClientMock)
 	expectedStatus  int
 	expectedBody    interface{}
 }
@@ -102,7 +89,7 @@ var tests = []TestCase{
 		body:           testUser,
 		expectedStatus: http.StatusBadGateway,
 		expectedBody:   users.ErrMsg.GetUser,
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 			// Mock DynamoDB PutItem response
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(nil, errors.New("error checking if user exists"))
 		},
@@ -114,7 +101,7 @@ var tests = []TestCase{
 		body:           testUser,
 		expectedStatus: http.StatusBadRequest,
 		expectedBody:   users.ErrMsg.UserExists,
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 			// Mock DynamoDB PutItem response
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{
 				Item: map[string]types.AttributeValue{
@@ -133,7 +120,7 @@ var tests = []TestCase{
 		body:           testUser,
 		expectedStatus: http.StatusInternalServerError,
 		expectedBody:   users.ErrMsg.CreateUser,
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 			// Mock DynamoDB PutItem response
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 		},
@@ -148,7 +135,7 @@ var tests = []TestCase{
 		path:           "/",
 		body:           testUser,
 		expectedStatus: http.StatusTemporaryRedirect,
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 			// Mock DynamoDB PutItem response
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 		},
@@ -166,7 +153,7 @@ var tests = []TestCase{
 		path:           "/",
 		body:           testUser,
 		expectedStatus: http.StatusTemporaryRedirect,
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 			// Mock DynamoDB PutItem response
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 		},
@@ -191,7 +178,7 @@ var tests = []TestCase{
 		body:           testUser,
 		expectedStatus: http.StatusBadGateway,
 		expectedBody:   users.ErrMsg.CreateUser,
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 			// Mock DynamoDB PutItem response
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 
@@ -218,14 +205,14 @@ var tests = []TestCase{
 		body:           testUser,
 		expectedStatus: http.StatusInternalServerError,
 		expectedBody:   users.ErrMsg.CreateUser,
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 			// Mock DynamoDB PutItem response
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 
 			mockDB.On("PutItem", mock.Anything, mock.AnythingOfType("*dynamodb.PutItemInput"), mock.Anything).Return(&dynamodb.PutItemOutput{}, nil)
 
 		},
-		setupMockQueue: func(t *testing.T, mockQueue *test_utils.SQSClientMock) {
+		setupMockQueue: func(t *testing.T, mockQueue *SQSClientMock) {
 			mockQueue.On("SendMessage", mock.AnythingOfType("*sqs.SendMessageInput"), mock.Anything).Return(nil, errors.New("sqs error"))
 		},
 		setupMockClient: func(mockClient *mockClient) {
@@ -250,7 +237,7 @@ var tests = []TestCase{
 		body:           testUser,
 		expectedStatus: http.StatusOK,
 		expectedBody:   map[string]interface{}{"success": true, "message": "user created"},
-		setupMockDB: func(t *testing.T, mockDB *test_utils.DynamoDBClientMock) {
+		setupMockDB: func(t *testing.T, mockDB *DynamoDBClientMock) {
 
 			mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Run(
 				(func(args mock.Arguments) {
@@ -272,7 +259,7 @@ var tests = []TestCase{
 			).Return(&dynamodb.PutItemOutput{}, nil)
 
 		},
-		setupMockQueue: func(t *testing.T, mockQueue *test_utils.SQSClientMock) {
+		setupMockQueue: func(t *testing.T, mockQueue *SQSClientMock) {
 			mockQueue.On("SendMessage", mock.AnythingOfType("*sqs.SendMessageInput"), mock.Anything).Run(
 				(func(args mock.Arguments) {
 					// verify message body and type
@@ -314,9 +301,9 @@ func TestUsersService(t *testing.T) {
 			// Create new test setup for each test case
 			setup := newTestSetup()
 
-			var mockedQueue *test_utils.SQSClientMock
+			var mockedQueue *SQSClientMock
 
-			mockedDB, ok := setup.mockDB.Client.(*test_utils.DynamoDBClientMock)
+			mockedDB, ok := setup.mockDB.Client.(*DynamoDBClientMock)
 
 			if !ok {
 				t.Fatal("failed to get mock db client")
@@ -334,7 +321,7 @@ func TestUsersService(t *testing.T) {
 
 			// setup mock queue
 			if tc.setupMockQueue != nil {
-				mockedQueue = setup.mockQueue.Client.(*test_utils.SQSClientMock)
+				mockedQueue = setup.mockQueue.Client.(*SQSClientMock)
 				tc.setupMockQueue(t, mockedQueue)
 			}
 
