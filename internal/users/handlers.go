@@ -75,8 +75,10 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	//  check if the user with this id
 	userExists, err := h.r.getUserByID(user.Id)
 
+	logger.Dev("userExists: %v", userExists)
+
 	if err != nil && err.Error() != ErrMsg.UserNotFound {
-		http.Error(w, ErrMsg.GetUser, http.StatusInternalServerError)
+		http.Error(w, ErrMsg.GetUser, http.StatusBadGateway)
 		return
 	}
 
@@ -123,7 +125,6 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 		logger.Errorf("User does not have a valid session profile for email: %v. \n [Error]: %v", body.Email, err)
 		//  Logout
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
-		// http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
@@ -151,17 +152,17 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	err = h.r.insertUser(user)
 
 	if err != nil {
-		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.CreateUser, http.StatusBadGateway)
 		return
 	}
 
-	logger.Dev("User inserted successfully")
+	logger.Info("user saved to db, with userId: %v", user.Id)
 
 	err = setDefaultUserData(user, h.r, h.emailQueue)
 
 	if err != nil {
 		logger.Error("Error setting user default data", err)
-		http.Error(w, ErrMsg.CreateUser, http.StatusBadGateway)
+		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 

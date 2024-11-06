@@ -26,6 +26,10 @@ test-integration:
 test-e2e: 
 	go test -v ./test/e2e 
 
+# show html report for go test coverage in browser
+test-coverage:
+	go test -coverpkg=./... ./... -coverprofile=coverage.out && go tool cover -html=coverage.out -o coverage.html && open -a "Google Chrome" coverage.html
+
 test-all: test-unit test-integration test-e2e
 
 
