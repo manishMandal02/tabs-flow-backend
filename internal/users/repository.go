@@ -321,7 +321,7 @@ func (r userRepo) getSubscription(userId string) (*subscription, error) {
 		logger.Errorf("Couldn't get subscription for userId: %v. \n[Error]: %v", userId, err)
 		return nil, err
 	}
-	if len(response.Item) == 0 {
+	if _, ok := response.Item["PK"]; !ok {
 		return nil, errors.New(ErrMsg.SubscriptionGet)
 	}
 	s := &subscription{}

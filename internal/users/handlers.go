@@ -75,8 +75,6 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	//  check if the user with this id
 	userExists, err := h.r.getUserByID(user.Id)
 
-	logger.Dev("userExists: %v", userExists)
-
 	if err != nil && err.Error() != ErrMsg.UserNotFound {
 		http.Error(w, ErrMsg.GetUser, http.StatusBadGateway)
 		return
@@ -187,7 +185,7 @@ func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
 	err = h.r.updateUser(id, n.Name)
 
 	if err != nil {
-		http.Error(w, ErrMsg.UpdateUser, http.StatusBadRequest)
+		http.Error(w, ErrMsg.UpdateUser, http.StatusBadGateway)
 		return
 	}
 
@@ -255,7 +253,7 @@ func (h handler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
-	http_api.SuccessResMsg(w, "preferences updated")
+	http_api.SuccessResMsg(w, "user preferences updated")
 }
 
 // subscription handlers

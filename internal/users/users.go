@@ -125,8 +125,8 @@ type preferences struct {
 
 var defaultUserPref = preferences{
 	General: generalP{
-		OpenSpace:           "newWindow",
 		DeleteUnsavedSpaces: "week",
+		OpenSpace:           "newWindow",
 	},
 	CmdPalette: cmdPaletteP{
 		IsDisabled:       false,

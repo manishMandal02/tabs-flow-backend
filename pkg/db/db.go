@@ -94,7 +94,7 @@ var SORT_KEY = struct {
 	SnoozedTabs              keySuffix
 	Notes                    keySuffix
 }{
-	Profile:                  "P#Profile",
+	Profile:                  "U#Profile",
 	Subscription:             "U#Subscription",
 	UsageAnalytics:           "U#UsageAnalytics",
 	PreferencesBase:          "P#",

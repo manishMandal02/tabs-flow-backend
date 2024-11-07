@@ -52,7 +52,7 @@ func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 		expr, err := expression.NewBuilder().WithKeyCondition(keyEx).Build()
 
 		if err != nil {
-			return nil, fmt.Errorf("error building key expression for sort_key: %v", prefix)
+			return sortKeys, fmt.Errorf("error building key expression for sort_key: %v", prefix)
 		}
 
 		input := &dynamodb.QueryInput{
@@ -68,7 +68,7 @@ func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 			page, err := paginator.NextPage(context.TODO())
 
 			if err != nil {
-				return nil, fmt.Errorf("error querying for dynamic sort keys. err: %v", err)
+				return sortKeys, fmt.Errorf("error querying for dynamic sort keys. err: %v", err)
 			}
 
 			for _, item := range page.Items {
@@ -80,7 +80,7 @@ func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 				err := attributevalue.UnmarshalMap(item, &sk)
 
 				if err != nil {
-					return nil, fmt.Errorf("error un_marshalling item for sort_key: %v", prefix)
+					return sortKeys, fmt.Errorf("error un_marshalling item for sort_key: %v", prefix)
 				}
 
 				sortKeys = append(sortKeys, sk.SK)
@@ -88,7 +88,7 @@ func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 		}
 	}
 
-	return []string{}, nil
+	return sortKeys, nil
 }
 
 func (db *DDB) BatchWriter(ctx context.Context, wg *sync.WaitGroup, errChan chan error, reqs []types.WriteRequest) {
