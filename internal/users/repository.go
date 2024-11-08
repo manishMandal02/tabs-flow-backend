@@ -411,7 +411,7 @@ func (r userRepo) updateSubscription(userId string, sData *subscription) error {
 	return nil
 }
 
-// * helpers
+// * helper
 func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
 
 	w := func(item map[string]types.AttributeValue, v interface{}) error {
@@ -425,9 +425,13 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
 
 	var err error
 
-	p := &preferences{}
+	p := preferences{}
 
 	for _, item := range res.Items {
+		if item["PK"] == nil || item["SK"] == nil {
+			err = errors.New("invalid item")
+			continue
+		}
 		sk := item["SK"].(*types.AttributeValueMemberS).Value
 		switch sk {
 		case "P#General":
@@ -443,7 +447,8 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
 
 		case "P#LinkPreview":
 			err = w(item, &p.LinkPreview)
-
+		default:
+			err = errors.New("invalid preferences SK")
 		}
 	}
 
@@ -452,5 +457,5 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
 		return nil, err
 	}
 
-	return p, nil
+	return &p, nil
 }

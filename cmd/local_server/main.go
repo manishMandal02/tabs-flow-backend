@@ -74,10 +74,16 @@ func main() {
 	emailQueue := events.NewEmailQueue()
 	// client := &http.Client{}
 
-	client := http.DefaultClient
+	httpClient := http.DefaultClient
+
+	paddle, err := users.NewPaddleSubscriptionClient()
+
+	if err != nil {
+		panic(err)
+	}
 
 	mux.Handle("/auth/", auth.Router())
-	mux.Handle("/users/", authorizer(users.Router(ddb, emailQueue, client)))
+	mux.Handle("/users/", authorizer(users.Router(ddb, emailQueue, httpClient, paddle)))
 	mux.Handle("/spaces/", authorizer(spaces.Router()))
 	mux.Handle("/notes/", authorizer(notes.Router()))
 	mux.Handle("/notifications/", authorizer(notifications.Router()))
@@ -89,7 +95,7 @@ func main() {
 
 	fmt.Println("Running auth service on port 8080")
 
-	err := http.ListenAndServe(":8080", mux)
+	err = http.ListenAndServe(":8080", mux)
 
 	if err != nil {
 		fmt.Println("Error starting server:", err)

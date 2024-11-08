@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/PaddleHQ/paddle-go-sdk"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -23,37 +28,40 @@ import (
 )
 
 type testSetup struct {
-	router     http.Handler
-	mockDB     *db.DDB
-	mockClient *mockClient
-	mockQueue  *events.Queue
+	router           http.Handler
+	mockDB           *db.DDB
+	mockClient       *mockClient
+	mockQueue        *events.Queue
+	mockPaddleClient *PaddleClientMock
 }
 
 func newTestSetup() *testSetup {
 	db := NewDDBMock()
 	q := NewQueueMock()
+	p := NewPaddleClientMock()
 
 	httpClient := new(mockClient)
 	return &testSetup{
-		mockDB:     db,
-		router:     users.Router(db, q, httpClient),
-		mockQueue:  q,
-		mockClient: httpClient,
+		mockDB:           db,
+		router:           users.Router(db, q, httpClient, p),
+		mockQueue:        q,
+		mockClient:       httpClient,
+		mockPaddleClient: p,
 	}
 }
 
 // helper
-func mockClientSuccessRes() func(*mockClient) {
+func mockClientSuccessRes(userId string) func(*mockClient) {
 	return func(mockClient *mockClient) {
 		mockClient.On("Do", mock.Anything).Return(&http.Response{
 			StatusCode: http.StatusOK,
-			Body: io.NopCloser(bytes.NewBufferString(`{
+			Body: io.NopCloser(bytes.NewBufferString(fmt.Sprintf(`{
 				"data":{
-					"userId": "1222-Wrong user id",
+					"userId": "%v",
 					"name": "New User",
 					"email": "test@test.com"
 				}
-				}`)),
+				}`, userId))),
 		}, nil)
 	}
 }
@@ -79,6 +87,28 @@ func mockDBGetUser(mockDB *DynamoDBClientMock) {
 
 }
 
+func mockDBGetUserSubscription(mockDB *DynamoDBClientMock) {
+	key := map[string]types.AttributeValue{
+		"PK": &types.AttributeValueMemberS{Value: testUser.Id},
+		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
+	}
+	mockDB.On("GetItem", mock.Anything, &dynamodb.GetItemInput{
+		TableName: aws.String("MainTable_test"),
+		Key:       key,
+	}, mock.Anything).Return(&dynamodb.GetItemOutput{
+		Item: map[string]types.AttributeValue{
+			"PK":     &types.AttributeValueMemberS{Value: testUser.Id},
+			"SK":     &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
+			"Id":     &types.AttributeValueMemberS{Value: "1"},
+			"Plan":   &types.AttributeValueMemberS{Value: "TRAIL"},
+			"Status": &types.AttributeValueMemberS{Value: "active"},
+			"Start":  &types.AttributeValueMemberN{Value: strconv.FormatInt((time.Now().Unix()), 10)},
+			"End":    &types.AttributeValueMemberN{Value: strconv.FormatInt(time.Now().Add(time.Duration(time.Now().Day())+4).Unix(), 10)},
+		},
+	}, nil).Once()
+
+}
+
 var testUser = &users.User{
 	Id:         "123",
 	FullName:   "Test Name",
@@ -95,6 +125,7 @@ type TestCase struct {
 	setupMockClient           func(*mockClient)
 	setupMockQueue            func(*testing.T, *SQSClientMock)
 	setupMockDB               func(*DynamoDBClientMock)
+	setupMockPaddleClient     func(*PaddleClientMock)
 	setupMockDBWithAssertions func(*testing.T, *DynamoDBClientMock)
 	expectedStatus            int
 	expectedBody              interface{}
@@ -248,7 +279,7 @@ func createUserTestCases() []TestCase {
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 			},
-			setupMockClient: mockClientSuccessRes(),
+			setupMockClient: mockClientSuccessRes("123-wrong-user-id"),
 		},
 		{
 			name:            "POST-/users/ > error inserting data into dynamodb",
@@ -257,7 +288,7 @@ func createUserTestCases() []TestCase {
 			body:            testUser,
 			expectedStatus:  http.StatusBadGateway,
 			expectedBody:    users.ErrMsg.CreateUser,
-			setupMockClient: mockClientSuccessRes(),
+			setupMockClient: mockClientSuccessRes(testUser.Id),
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 				mockDB.On("PutItem", mock.Anything, mock.AnythingOfType("*dynamodb.PutItemInput"), mock.Anything).Return(nil, errors.New("error inserting data into dynamodb"))
@@ -270,7 +301,7 @@ func createUserTestCases() []TestCase {
 			body:            testUser,
 			expectedStatus:  http.StatusInternalServerError,
 			expectedBody:    users.ErrMsg.CreateUser,
-			setupMockClient: mockClientSuccessRes(),
+			setupMockClient: mockClientSuccessRes(testUser.Id),
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 				mockDB.On("PutItem", mock.Anything, mock.AnythingOfType("*dynamodb.PutItemInput"), mock.Anything).Return(&dynamodb.PutItemOutput{}, nil)
@@ -288,7 +319,7 @@ func createUserTestCases() []TestCase {
 			body:            testUser,
 			expectedStatus:  http.StatusOK,
 			expectedBody:    map[string]interface{}{"success": true, "message": "user created"},
-			setupMockClient: mockClientSuccessRes(),
+			setupMockClient: mockClientSuccessRes(testUser.Id),
 			setupMockDBWithAssertions: func(t *testing.T, mockDB *DynamoDBClientMock) {
 
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Run(
@@ -497,6 +528,24 @@ func updateUserPreferencesTestCases() []TestCase {
 func getUserSubscriptionsTestCases() []TestCase {
 	return []TestCase{
 		{
+			name:           "GET-/users/subscription > ddb error",
+			method:         "GET",
+			path:           "/subscription",
+			expectedStatus: http.StatusBadGateway,
+			expectedBody:   users.ErrMsg.SubscriptionGet,
+			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
+			setupMockDB: func(mockDB *DynamoDBClientMock) {
+				mockDBGetUser(mockDB)
+				mockDB.On("GetItem", mock.Anything, &dynamodb.GetItemInput{
+					TableName: aws.String("MainTable_test"),
+					Key: map[string]types.AttributeValue{
+						"PK": &types.AttributeValueMemberS{Value: testUser.Id},
+						"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
+					},
+				}, mock.Anything).Return(&dynamodb.GetItemOutput{}, errors.New("error getting user subscription")).Once()
+			},
+		},
+		{
 			name:           "GET-/users/subscription > success",
 			method:         "GET",
 			path:           "/subscription",
@@ -504,24 +553,7 @@ func getUserSubscriptionsTestCases() []TestCase {
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
-				key := map[string]types.AttributeValue{
-					"PK": &types.AttributeValueMemberS{Value: testUser.Id},
-					"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
-				}
-				mockDB.On("GetItem", mock.Anything, &dynamodb.GetItemInput{
-					TableName: aws.String("MainTable_test"),
-					Key:       key,
-				}, mock.Anything).Return(&dynamodb.GetItemOutput{
-					Item: map[string]types.AttributeValue{
-						"PK":     &types.AttributeValueMemberS{Value: testUser.Id},
-						"SK":     &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
-						"Id":     &types.AttributeValueMemberS{Value: "1"},
-						"Plan":   &types.AttributeValueMemberS{Value: "TRAIL"},
-						"Status": &types.AttributeValueMemberS{Value: "active"},
-						"Start":  &types.AttributeValueMemberN{Value: "12127736123123"},
-						"End":    &types.AttributeValueMemberN{Value: "12127736123123"},
-					},
-				}, nil).Once()
+				mockDBGetUserSubscription(mockDB)
 			},
 		},
 	}
@@ -543,27 +575,184 @@ func checkSubscriptionStatusTestCases() []TestCase {
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
-				key := map[string]types.AttributeValue{
-					"PK": &types.AttributeValueMemberS{Value: testUser.Id},
-					"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
-				}
-				mockDB.On("GetItem", mock.Anything, &dynamodb.GetItemInput{
-					TableName: aws.String("MainTable_test"),
-					Key:       key,
-				}, mock.Anything).Return(&dynamodb.GetItemOutput{
-					Item: map[string]types.AttributeValue{
-						"PK":     &types.AttributeValueMemberS{Value: testUser.Id},
-						"SK":     &types.AttributeValueMemberS{Value: db.SORT_KEY.Subscription},
-						"Id":     &types.AttributeValueMemberS{Value: "1"},
-						"Plan":   &types.AttributeValueMemberS{Value: "TRAIL"},
-						"Status": &types.AttributeValueMemberS{Value: "active"},
-						"Start":  &types.AttributeValueMemberN{Value: "12127736123123"},
-						"End":    &types.AttributeValueMemberN{Value: "12127736123123"},
+				mockDBGetUserSubscription(mockDB)
+			},
+		},
+	}
+}
+
+func getPaddleURLTestCases() []TestCase {
+
+	paddleURL := map[string]string{
+		"cancelURL": "https://paddle.com/subscription/cancel/123456789",
+		"updateURL": "https://paddle.com/subscription/update/123456789",
+	}
+
+	return []TestCase{
+		{
+			name:           "GET-/users/subscription/paddle-url > paddle client error",
+			method:         "GET",
+			path:           "/subscription/paddle-url",
+			expectedStatus: http.StatusBadGateway,
+			expectedBody:   users.ErrMsg.SubscriptionPaddleURL,
+			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
+			setupMockDB: func(mockDB *DynamoDBClientMock) {
+				mockDBGetUser(mockDB)
+				mockDBGetUserSubscription(mockDB)
+			},
+			setupMockPaddleClient: func(mockPaddleClient *PaddleClientMock) {
+				mockPaddleClient.On("GetSubscription", mock.Anything, mock.AnythingOfType("*paddle.GetSubscriptionRequest")).Return(nil, errors.New("paddle error")).Once()
+			},
+		},
+		{
+			name:           "GET-/users/subscription/paddle-url > success",
+			method:         "GET",
+			path:           "/subscription/paddle-url",
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"success": true,
+				"data": map[string]interface{}{
+					"updateURL": paddleURL["updateURL"],
+				},
+			},
+			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
+			setupMockDB: func(mockDB *DynamoDBClientMock) {
+				mockDBGetUser(mockDB)
+				mockDBGetUserSubscription(mockDB)
+			},
+			setupMockPaddleClient: func(mockPaddleClient *PaddleClientMock) {
+				mockPaddleClient.On("GetSubscription", mock.Anything, mock.AnythingOfType("*paddle.GetSubscriptionRequest")).Return(&paddle.Subscription{
+
+					ManagementURLs: paddle.SubscriptionManagementUrLs{
+						Cancel:              paddleURL["cancelURL"],
+						UpdatePaymentMethod: aws.String(paddleURL["updateURL"]),
+					},
+				}, nil).Once()
+			},
+		},
+		{
+			name:           "GET-/users/subscription/paddle-url?cancelURL=true > success",
+			method:         "GET",
+			path:           "/subscription/paddle-url?cancelURL=true",
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"success": true,
+				"data": map[string]interface{}{
+					"cancelURL": paddleURL["cancelURL"],
+				},
+			},
+			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
+			setupMockDB: func(mockDB *DynamoDBClientMock) {
+				mockDBGetUser(mockDB)
+				mockDBGetUserSubscription(mockDB)
+			},
+			setupMockPaddleClient: func(mockPaddleClient *PaddleClientMock) {
+				mockPaddleClient.On("GetSubscription", mock.Anything, mock.AnythingOfType("*paddle.GetSubscriptionRequest")).Return(&paddle.Subscription{
+
+					ManagementURLs: paddle.SubscriptionManagementUrLs{
+						Cancel:              paddleURL["cancelURL"],
+						UpdatePaymentMethod: aws.String(paddleURL["updateURL"]),
 					},
 				}, nil).Once()
 			},
 		},
 	}
+}
+
+func subscriptionWebhookTestCases() []TestCase {
+
+	generateWebhookBody := func(createdEvent bool) map[string]interface{} {
+
+		type Item struct {
+			Price struct {
+				ID string `json:"id"`
+			} `json:"price"`
+		}
+
+		eventBody := map[string]interface{}{
+			"id":              "ntfsimevt_01jaqmyj1kg8gt3e02j25nfw25",
+			"event_type":      "subscription.updated",
+			"occurred_at":     "2024-10-21T13:41:01.619284Z",
+			"notification_id": "ntfsimntf_01jaqmyj4n7d9e9hqkrkzmf9qt",
+			"data": map[string]interface{}{
+				"id": "sub_01hv8x29kz0t586xy6zn1a62ny",
+				"items": []map[string]interface{}{
+					{
+						"price": map[string]interface{}{
+							"id": "pri_01gsz8x8sawmvhz1pv30nge1ke",
+						},
+					},
+				},
+				"status":     "active",
+				"started_at": "2024-04-12T10:37:59.556997Z",
+				"custom_data": map[string]interface{}{
+					"userId": "123",
+				},
+				"customer_id":     "ctm_01hv6y1jedq4p1n0yqn5ba3ky4",
+				"currency_code":   "USD",
+				"next_billed_at":  "2024-05-12T10:37:59.556997Z",
+				"first_billed_at": "2024-04-12T10:37:59.556997Z",
+				"current_billing_period": map[string]interface{}{
+					"ends_at":   "2024-05-12T10:37:59.556997Z",
+					"starts_at": "2024-04-12T10:37:59.556997Z",
+				},
+			},
+		}
+
+		if createdEvent {
+			eventBody["event_type"] = "subscription.created"
+		}
+
+		return eventBody
+
+	}
+
+	return []TestCase{
+		{
+			name:           "POST-/users/subscription/webhook > subscription update event success",
+			method:         "POST",
+			path:           "/subscription/webhook",
+			body:           generateWebhookBody(false),
+			expectedStatus: http.StatusOK,
+			mockAuthHeader: func(r *http.Request) {
+				r.Header.Set("Paddle-Webhook-Test", "true")
+			},
+			expectedBody: map[string]interface{}{
+				"success": true,
+				"message": "event acknowledged",
+			},
+			setupMockDB: func(mockDB *DynamoDBClientMock) {
+				mockDB.On("UpdateItem", mock.Anything, mock.AnythingOfType("*dynamodb.UpdateItemInput"), mock.Anything).Return(&dynamodb.UpdateItemOutput{}, nil).Once()
+			},
+		},
+		{
+			name:           "POST-/users/subscription/webhook > subscription create event success",
+			method:         "POST",
+			path:           "/subscription/webhook",
+			body:           generateWebhookBody(true),
+			expectedStatus: http.StatusOK,
+			expectedBody: map[string]interface{}{
+				"success": true,
+				"message": "event acknowledged",
+			},
+			mockAuthHeader: func(r *http.Request) {
+				r.Header.Set("Paddle-Webhook-Test", "true")
+			},
+			setupMockDB: func(mockDB *DynamoDBClientMock) {
+				mockDB.On("PutItem", mock.Anything, mock.AnythingOfType("*dynamodb.PutItemInput"), mock.Anything).Return(&dynamodb.PutItemOutput{}, nil).Once()
+			},
+		},
+	}
+}
+
+// merge all test cases
+func allTestCases() []TestCase {
+	tests := slices.Concat(getUserByIDTestCases(), createUserTestCases(), updateUserTestCases(), deleteUserTestCases(),
+		getUserPreferencesTestCases(), updateUserPreferencesTestCases(), getUserSubscriptionsTestCases(),
+		checkSubscriptionStatusTestCases(), getPaddleURLTestCases(), subscriptionWebhookTestCases())
+
+	return tests
+
 }
 
 // * run test cases
@@ -572,8 +761,7 @@ func TestUsersService(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	tests := []TestCase{}
-	tests = append(tests, checkSubscriptionStatusTestCases()...)
+	tests := allTestCases()
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -591,6 +779,11 @@ func TestUsersService(t *testing.T) {
 			// setup mock interceptor
 			if tc.setupMockClient != nil {
 				tc.setupMockClient(setup.mockClient)
+			}
+
+			// setup mock paddle client
+			if tc.setupMockPaddleClient != nil {
+				tc.setupMockPaddleClient(setup.mockPaddleClient)
 			}
 
 			// setup mock db
@@ -621,18 +814,17 @@ func TestUsersService(t *testing.T) {
 				tc.mockAuthHeader(req)
 			}
 
-			//  headers
 			req.Header.Set("Content-Type", "application/json")
-
 			// recorder
 			w := httptest.NewRecorder()
 
 			// serve request through the router
 			setup.router.ServeHTTP(w, req)
 
-			// assertions
+			// assert status code
 			assert.Equal(t, tc.expectedStatus, w.Code)
 
+			// assert body
 			if tc.expectedBody != nil {
 				// check if expected body is a string
 				if s, ok := tc.expectedBody.(string); ok {

@@ -178,7 +178,7 @@ func parseSubPreferencesData(perfBody updatePerfBody) (string, *interface{}, err
 }
 
 // create a new instance of paddle sdk with configs
-func newPaddleClient() (*paddle.SDK, error) {
+func NewPaddleSubscriptionClient() (*paddle.SubscriptionsClient, error) {
 	client, err := paddle.New(config.PADDLE_API_KEY)
 
 	if err != nil {
@@ -186,7 +186,7 @@ func newPaddleClient() (*paddle.SDK, error) {
 		return nil, err
 	}
 
-	return client, nil
+	return client.SubscriptionsClient, nil
 }
 
 // get subscription plan type from paddle pice id

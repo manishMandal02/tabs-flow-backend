@@ -16,15 +16,21 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
 
+type paddleClientInterface interface {
+	GetSubscription(ctx context.Context, req *paddle.GetSubscriptionRequest) (res *paddle.Subscription, err error)
+}
+
 type handler struct {
 	r          repository
+	paddle     paddleClientInterface
 	emailQueue *events.Queue
 	httpClient http_api.Client
 }
 
-func newHandler(r repository, q *events.Queue, c http_api.Client) *handler {
+func newHandler(r repository, q *events.Queue, c http_api.Client, p paddleClientInterface) *handler {
 	return &handler{
 		r:          r,
+		paddle:     p,
 		emailQueue: q,
 		httpClient: c,
 	}
@@ -263,7 +269,7 @@ func (h handler) getSubscription(w http.ResponseWriter, r *http.Request) {
 	subscription, err := h.r.getSubscription(id)
 
 	if err != nil {
-		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
+		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadGateway)
 		return
 	}
 
@@ -311,19 +317,6 @@ func (h handler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request)
 
 func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	//  check if the user with this id
-
-	userExits := checkUserExits(id, h.r, w)
-	if !userExits {
-		return
-	}
-
-	p, err := newPaddleClient()
-
-	if err != nil {
-		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusInternalServerError)
-		return
-	}
 
 	s, err := h.r.getSubscription(id)
 
@@ -332,14 +325,13 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := p.SubscriptionsClient
-	res, err := client.GetSubscription(context.TODO(), &paddle.GetSubscriptionRequest{
+	res, err := h.paddle.GetSubscription(context.TODO(), &paddle.GetSubscriptionRequest{
 		SubscriptionID: s.Id,
 	})
 
 	if err != nil {
 		logger.Error("error getting paddle subscription", err)
-		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
+		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadGateway)
 		return
 	}
 
@@ -372,27 +364,33 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 
 // paddle webhook handler
 func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
+	var err error
 
-	v := paddle.NewWebhookVerifier(config.PADDLE_WEBHOOK_SECRET_KEY)
+	logger.Dev("paddle webhook test : %v ", r.Header.Get("Paddle-Webhook-Test"))
 
-	ok, err := v.Verify(r)
+	if r.Header.Get("Paddle-Webhook-Test") != "true" {
 
-	if err != nil {
-		logger.Error("error verifying paddle webhook", err)
-		http.Error(w, "Error", http.StatusInternalServerError)
-		return
-	}
+		v := paddle.NewWebhookVerifier(config.PADDLE_WEBHOOK_SECRET_KEY)
 
-	if !ok {
-		http.Error(w, "Error bad_request", http.StatusBadRequest)
-		return
+		ok, err := v.Verify(r)
+
+		if err != nil {
+			logger.Error("error verifying paddle webhook", err)
+			http.Error(w, "Error", http.StatusInternalServerError)
+			return
+		}
+
+		if !ok {
+			http.Error(w, "Error bad_request", http.StatusBadRequest)
+			return
+		}
 	}
 
 	body := r.Body
 
 	http_api.SuccessResMsg(w, "event acknowledged")
 
-	// process the event ><> * <>< <>< <>< <><
+	// process the event *******
 
 	// get the event type
 	var ev paddle.GenericEvent
@@ -462,7 +460,7 @@ func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 		userId, ok := u.CustomData["userId"].(string)
 
 		if !ok {
-			logger.Errorf("userId not found in subscription created event data")
+			logger.Errorf("userId not found in subscription updated event data")
 			userId = "01929a76-ce53-7e0d-b712-41a9fa1178d8"
 		}
 

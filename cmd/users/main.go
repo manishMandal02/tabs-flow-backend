@@ -19,9 +19,15 @@ func main() {
 
 	queue := events.NewEmailQueue()
 
-	client := &http.Client{}
+	httpClient := &http.Client{}
 
-	handler := http_api.NewAPIGatewayHandler("/users/", users.Router(ddb, queue, client))
+	paddle, err := users.NewPaddleSubscriptionClient()
+
+	if err != nil {
+		panic(err)
+	}
+
+	handler := http_api.NewAPIGatewayHandler("/users/", users.Router(ddb, queue, httpClient, paddle))
 
 	lambda.Start(handler.Handle)
 

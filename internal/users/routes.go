@@ -6,11 +6,11 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-func Router(db *db.DDB, q *events.Queue, c http_api.Client) http_api.IRouter {
+func Router(db *db.DDB, q *events.Queue, c http_api.Client, p paddleClientInterface) http_api.IRouter {
 
 	r := newRepository(db)
 
-	handler := newHandler(r, q, c)
+	handler := newHandler(r, q, c, p)
 
 	usersRouter := http_api.NewRouter("/users")
 

@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+// handler helper
 func TestParseSubPreferencesData(t *testing.T) {
 
 	tests := []struct {
@@ -71,19 +75,81 @@ func TestParseSubPreferencesData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := parseSubPreferencesData(tt.perfBody)
+			actual1, actual2, err := parseSubPreferencesData(tt.perfBody)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("err \n[actual] = %v, \n[want]= %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.wantSK {
-				t.Errorf("wantSK  \n[actual] = %v, \n[want]= %v", got, tt.wantSK)
+			if actual1 != tt.wantSK {
+				t.Errorf("wantSK  \n[actual] = %v, \n[want]= %v", actual1, tt.wantSK)
 			}
 
-			if reflect.TypeOf(got1) == reflect.TypeOf(tt.wantSubPerf) {
-				t.Errorf("wantSubPerf \n[actual]  = %v, \n[want]= %v", got1, tt.wantSubPerf)
+			if reflect.TypeOf(actual2) == reflect.TypeOf(tt.wantSubPerf) {
+				t.Errorf("wantSubPerf \n[actual]  = %v, \n[want]= %v", actual2, tt.wantSubPerf)
 			}
 
+		})
+	}
+}
+
+// repository helper @ repository.go:415
+func TestUnMarshalPreferences(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   *dynamodb.QueryOutput
+		want    *preferences
+		wantErr bool
+	}{
+		{
+			name: "invalid query item, no SK",
+			input: &dynamodb.QueryOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"PK": &types.AttributeValueMemberS{Value: "123"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid SK, not a sub preference type",
+			input: &dynamodb.QueryOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"PK": &types.AttributeValueMemberS{Value: "123"},
+						"SK": &types.AttributeValueMemberS{Value: "P#Theme"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "success",
+			input: &dynamodb.QueryOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"PK":                  &types.AttributeValueMemberS{Value: "123"},
+						"SK":                  &types.AttributeValueMemberS{Value: "P#General"},
+						"OpenSpace":           &types.AttributeValueMemberS{Value: "sameWindow"},
+						"DeleteUnsavedSpaces": &types.AttributeValueMemberS{Value: "week"},
+					},
+				},
+			},
+			want:    &preferences{},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := unMarshalPreferences(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("err \n[actual] = %v, \n[want]= %v", err, tt.wantErr)
+				return
+			}
+			if reflect.TypeOf(actual) != reflect.TypeOf(tt.want) {
+				t.Errorf("want \n[actual] = %v \n[want]= %v", actual, tt.want)
+			}
 		})
 	}
 }
