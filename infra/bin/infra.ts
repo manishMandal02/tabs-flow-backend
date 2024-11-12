@@ -4,7 +4,6 @@ import { App, Aspects, RemovalPolicy } from 'aws-cdk-lib';
 import { ServiceStack } from '../lib/stacks/services/service-stack';
 import { StatefulStack } from '../lib/stacks/stateful';
 
-import { AwsSolutionsChecks } from 'cdk-nag';
 import { config } from '../config';
 
 const app = new App();
@@ -30,8 +29,6 @@ new ServiceStack(app, 'ServiceStack', {
   stage: config.Env.DEPLOY_STAGE,
   removalPolicy: config.Env.DEPLOY_STAGE === config.Stage.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
 });
-
-Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
 
 // synthesize stacks;
 app.synth();

@@ -24,7 +24,7 @@ test-integration:
 	go test -v ./test/integration/... --failfast 
 
 test-e2e: 
-	go test -v ./test/e2e 
+	go test -v ./test/e2e --failfast 
 
 # show html report for go test coverage in browser
 test-coverage:
