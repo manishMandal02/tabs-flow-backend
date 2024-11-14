@@ -117,6 +117,8 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	authServiceURL := fmt.Sprintf("%s://%s/auth/user/", p, r.Host)
 
+	logger.Dev("Auth Service URL: %v", authServiceURL)
+
 	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, bodyJson, h.httpClient)
 
 	if err != nil {

@@ -185,7 +185,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 	logoutResponse := func() {
 		cookie := &http.Cookie{
-			Name:     "access_token",
+			Name:     "session",
 			Value:    "",
 			HttpOnly: true,
 			Secure:   true,
@@ -198,7 +198,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 		http_api.SuccessResMsg(w, "logged out successfully")
 	}
 
-	c, err := r.Cookie("access_token")
+	c, err := r.Cookie("session")
 
 	if err != nil {
 		logoutResponse()
@@ -243,7 +243,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 
 	cookies := parseCookiesStr(ev.Headers["Cookie"])
 
-	claims, err := ValidateToken(cookies["access_token"])
+	claims, err := ValidateToken(cookies["session"])
 
 	if err != nil {
 		logger.Error("Error validating JWT token", errors.New(errMsg.invalidToken))
@@ -287,7 +287,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 	}
 
 	newCookies := map[string]string{
-		"access_token": res.token,
+		"session": res.token,
 	}
 
 	return generatePolicy(userId, "Allow", ev.MethodArn, userId, newCookies), nil

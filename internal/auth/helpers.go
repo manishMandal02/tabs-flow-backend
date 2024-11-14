@@ -124,7 +124,6 @@ func createNewSession(email, userAgent string, aR authRepository) (*createSessio
 			UserId:  userId,
 			NewUser: false,
 		}
-
 	}
 
 	ua := useragent.New(userAgent)
@@ -158,7 +157,7 @@ func createNewSession(email, userAgent string, aR authRepository) (*createSessio
 	}
 
 	cookie := &http.Cookie{
-		Name:     "access_token",
+		Name:     "session",
 		Value:    newToken,
 		HttpOnly: true,
 		Secure:   true,

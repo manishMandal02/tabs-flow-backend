@@ -25,7 +25,7 @@ func authorizer(next http.Handler) http.Handler {
 			return
 		}
 
-		token, err := r.Cookie("access_token")
+		token, err := r.Cookie("session")
 
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)

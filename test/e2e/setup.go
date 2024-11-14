@@ -6,16 +6,19 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/joho/godotenv"
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/stretchr/testify/suite"
@@ -36,22 +39,14 @@ type ENV struct {
 	EmailQueueURL         string
 	NotificationsQueueURL string
 }
-
-type SQSEventSourceMappingUUID struct {
-	EmailService        string
-	NotificationService string
-}
-
 type UserFlowTestSuite struct {
 	suite.Suite
-	ENV              ENV
-	AppURL           *url.URL
-	SessionCookie    *http.Cookie
-	AWSConfig        *aws.Config
-	SQSClient        *sqs.Client
-	DDBClient        *dynamodb.Client
-	LambdaClient     *lambda.Client
-	SQSLambdaMapping SQSEventSourceMappingUUID
+	ENV           ENV
+	AppURL        *url.URL
+	SessionCookie *http.Cookie
+	AWSConfig     *aws.Config
+	SQSClient     *sqs.Client
+	DDBClient     *dynamodb.Client
 }
 
 func (s *UserFlowTestSuite) SetupSuite() {
@@ -73,24 +68,6 @@ func (s *UserFlowTestSuite) SetupSuite() {
 
 	s.SQSClient = sqs.NewFromConfig(*awsConfig)
 	s.DDBClient = dynamodb.NewFromConfig(*awsConfig)
-	s.LambdaClient = lambda.NewFromConfig(*s.AWSConfig)
-
-	e, err1 := s.LambdaClient.ListEventSourceMappings(context.TODO(), &lambda.ListEventSourceMappingsInput{
-		FunctionName: aws.String("EmailService_test"),
-	})
-
-	n, err2 := s.LambdaClient.ListEventSourceMappings(context.TODO(), &lambda.ListEventSourceMappingsInput{
-		FunctionName: aws.String("NotificationsService_test"),
-	})
-
-	if err1 != nil || err2 != nil {
-		panic("Failed to list event source mappings")
-	}
-
-	s.SQSLambdaMapping = SQSEventSourceMappingUUID{
-		EmailService:        *e.EventSourceMappings[0].UUID,
-		NotificationService: *n.EventSourceMappings[0].UUID,
-	}
 
 }
 
@@ -187,17 +164,49 @@ func getSQSQueueMessage[T any](client *sqs.Client, queueURL string) (*events.Eve
 
 }
 
-func updateLambdaEventSourceMappingState(lambdaClient *lambda.Client, uuid string, disable bool) error {
+func (s *UserFlowTestSuite) getOTPs() ([]string, error) {
+	s.T().Helper()
 
-	_, err := lambdaClient.UpdateEventSourceMapping(context.TODO(), &lambda.UpdateEventSourceMappingInput{
-		UUID:    aws.String(uuid),
-		Enabled: aws.Bool(!disable),
+	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(TestUser.Email)), expression.Key("SK").BeginsWith(db.SORT_KEY_SESSIONS.OTP("")))
+
+	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
+
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := s.DDBClient.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 aws.String(s.ENV.SessionTable),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		Limit:                     aws.Int32(5),
+		ScanIndexForward:          aws.Bool(false),
 	})
 
 	if err != nil {
-		return err
-
+		return nil, err
 	}
 
-	return nil
+	if len(response.Items) < 1 {
+		return nil, errors.New("no otp found")
+	}
+
+	OTPs := []string{}
+
+	otpMap := []struct {
+		OTP string `dynamodbav:"SK"`
+	}{}
+
+	err = attributevalue.UnmarshalListOfMaps(response.Items, &otpMap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, o := range otpMap {
+		OTPs = append(OTPs, strings.Trim(o.OTP, "OTP#"))
+	}
+
+	return OTPs, nil
 }
