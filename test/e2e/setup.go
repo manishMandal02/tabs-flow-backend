@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/publicsuffix"
 )
 
 var TestUser = users.User{
@@ -41,12 +43,13 @@ type ENV struct {
 }
 type UserFlowTestSuite struct {
 	suite.Suite
-	ENV           ENV
-	AppURL        *url.URL
-	SessionCookie *http.Cookie
-	AWSConfig     *aws.Config
-	SQSClient     *sqs.Client
-	DDBClient     *dynamodb.Client
+	ENV        ENV
+	AppURL     *url.URL
+	CookieJar  *cookiejar.Jar
+	HttpClient *http.Client
+	AWSConfig  *aws.Config
+	SQSClient  *sqs.Client
+	DDBClient  *dynamodb.Client
 }
 
 func (s *UserFlowTestSuite) SetupSuite() {
@@ -54,13 +57,25 @@ func (s *UserFlowTestSuite) SetupSuite() {
 
 	s.ENV = env
 
+	s.ENV.ApiDomainName = "https://" + s.ENV.ApiDomainName
+
 	appURL, err := url.Parse("https://tabsflow.com")
 
-	if err != nil {
-		panic(err)
-	}
+	s.Require().NoError(err)
 
 	s.AppURL = appURL
+
+	jar, err := cookiejar.New(&cookiejar.Options{
+		PublicSuffixList: publicsuffix.List,
+	})
+
+	s.Require().NoError(err)
+
+	s.CookieJar = jar
+
+	s.HttpClient = &http.Client{
+		Jar: jar,
+	}
 
 	awsConfig := configureAWS(env.AWS_ACCOUNT_PROFILE)
 

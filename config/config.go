@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 	"os"
-	
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -23,13 +23,15 @@ var (
 	DDB_MAIN_TABLE_NAME         string
 	DDB_SEARCH_INDEX_TABLE_NAME string
 	DDB_SESSIONS_TABLE_NAME     string
-	ZEPTO_MAIL_API_KEY          string
-	PADDLE_API_KEY              string
-	PADDLE_WEBHOOK_SECRET_KEY   string
-	VAPID_PRIVATE_KEY           string
-	VAPID_PUBLIC_KEY            string
-	AWS_CONFIG                  aws.Config
-	LOCAL_DEV_ENV               = false
+
+	ZEPTO_MAIL_API_KEY        string
+	PADDLE_API_KEY            string
+	PADDLE_WEBHOOK_SECRET_KEY string
+	VAPID_PRIVATE_KEY         string
+	VAPID_PUBLIC_KEY          string
+
+	AWS_CONFIG    aws.Config
+	LOCAL_DEV_ENV = false
 )
 
 const (
@@ -92,7 +94,6 @@ func Init() {
 		}
 
 		AWS_CONFIG = config
-
 		DDB_MAIN_TABLE_NAME = os.Getenv("DDB_MAIN_TABLE_NAME")
 		DDB_SESSIONS_TABLE_NAME = os.Getenv("DDB_SESSIONS_TABLE_NAME")
 		DDB_SEARCH_INDEX_TABLE_NAME = os.Getenv("DDB_SEARCH_INDEX_TABLE_NAME")

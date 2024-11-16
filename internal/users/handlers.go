@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	paddle "github.com/PaddleHQ/paddle-go-sdk"
@@ -91,44 +92,30 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check user id from auth service (api call)
-	body := struct {
-		Email string `json:"email"`
-	}{
-		Email: user.Email,
-	}
-
-	bodyJson, err := json.Marshal(body)
-
-	if err != nil {
-		logger.Error("Error marshaling json body", err)
-		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
-	}
-
-	headers := map[string]string{
-		"Content-Type": "application/json",
-	}
-
 	p := "https"
 
 	if config.LOCAL_DEV_ENV {
 		p = "http"
 	}
 
-	authServiceURL := fmt.Sprintf("%s://%s/auth/user/", p, r.Host)
+	host := r.Host
 
-	logger.Dev("Auth Service URL: %v", authServiceURL)
+	if strings.Contains(host, "amazonaws.com") {
+		host += "/test"
+	}
 
-	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, bodyJson, h.httpClient)
+	authServiceURL := fmt.Sprintf("%s://%s/auth/user/%s", p, host, user.Email)
+
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, map[string]string{}, nil, h.httpClient)
 
 	if err != nil {
-		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", body.Email, err)
+		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", user.Email, err)
 		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		logger.Errorf("User does not have a valid session profile for email: %v. \n [Error]: %v", body.Email, err)
+		logger.Errorf("User does not have a valid session profile for email: %v. \n [Error]: %v", user.Email, err)
 		//  Logout
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
 		return
@@ -144,13 +131,13 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal([]byte(respBody), &userIdData)
 
 	if err != nil {
-		logger.Errorf("Error un_marshaling user id data for email: %v. \n [Error]: %v", body.Email, err)
+		logger.Errorf("Error un_marshaling user id data for email: %v. \n [Error]: %v", user.Email, err)
 		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
 	if userIdData.Data.UserId != user.Id {
-		logger.Errorf("User Id mismatch for email: %v. \n [Error]: %v", body.Email, err)
+		logger.Errorf("User Id mismatch for email: %v. \n [Error]: %v", user.Email, err)
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
 		return
 	}

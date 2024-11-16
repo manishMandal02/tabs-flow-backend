@@ -149,18 +149,10 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
-	var b struct {
-		Email string `json:"email"`
-	}
 
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&b)
+	email := r.PathValue("email")
 
-	if err != nil {
-		logger.Error("Error decoding request body for getUserId", err)
-		http.Error(w, errMsg.getUserId, http.StatusBadRequest)
-	}
-	userId, err := h.r.userIdByEmail(b.Email)
+	userId, err := h.r.userIdByEmail(email)
 
 	if err != nil {
 		http.Error(w, errMsg.getUserId, http.StatusBadRequest)
@@ -241,13 +233,23 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		return generatePolicy("paddle-webhook", "Allow", ev.MethodArn, "", nil), nil
 	}
 
-	cookies := parseCookiesStr(ev.Headers["Cookie"])
+	cookieHeader := ev.Headers["Cookie"]
+
+	if ev.Headers["Cookie"] == "" {
+		cookieHeader = ev.Headers["cookie"]
+	}
+
+	cookies := parseCookiesStr(cookieHeader)
+
+	if len(cookies) == 0 {
+		logger.Error("No cookies found in header", errors.New(errMsg.invalidToken))
+		return nil, errors.New("Unauthorized")
+	}
 
 	claims, err := ValidateToken(cookies["session"])
 
 	if err != nil {
 		logger.Error("Error validating JWT token", errors.New(errMsg.invalidToken))
-
 		return nil, errors.New("Unauthorized")
 	}
 
@@ -277,7 +279,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 	// if session, valid then refresh token and allow access
 	if !isValid {
 		logger.Error("Error validating session", errors.New(errMsg.validateSession))
-		return nil, errors.New("Unauthorized")
+		return nil, errors.New("Usnauthorized")
 	}
 
 	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r)

@@ -31,6 +31,10 @@ func (s *UserFlowTestSuite) TestUserRegisterFlow() {
 
 	logger.Info("OTP sent to email")
 
+	defaultReqHeaders := map[string]string{
+		"Content-Type": "application/json",
+	}
+
 	// get otp from dynamodb
 	OTPs, err := s.getOTPs()
 
@@ -40,9 +44,6 @@ func (s *UserFlowTestSuite) TestUserRegisterFlow() {
 
 	s.NotEmpty(OTPs, "OTPs should not be empty")
 
-	logger.Dev("OTPs: %v", OTPs)
-
-	otpVerifiedRes := &http.Response{}
 	otpVerifiedResBody := ""
 
 	for _, otp := range OTPs {
@@ -52,20 +53,18 @@ func (s *UserFlowTestSuite) TestUserRegisterFlow() {
 			"otp": "%s"
 			}`, TestUser.Email, otp)
 
-		logger.Dev("req body: %v", reqBody)
-
-		res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/auth/verify-otp", nil, []byte(reqBody), http.DefaultClient)
+		res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/auth/verify-otp", defaultReqHeaders, []byte(reqBody), s.HttpClient)
 
 		if err == nil && res.StatusCode == 200 {
+			cookies := s.CookieJar.Cookies(res.Request.URL)
+			s.Require().NotEmpty(cookies, "cookies should not be empty")
+
 			otpVerifiedResBody = respBody
-			otpVerifiedRes = res
 			break
 		}
 	}
 
-	if otpVerifiedResBody == "" {
-		s.FailNow("failed to verify otp")
-	}
+	s.Require().NotEmpty(otpVerifiedResBody, "otp verified res body should not be empty")
 
 	logger.Info("OTP verified successfully")
 
@@ -85,16 +84,7 @@ func (s *UserFlowTestSuite) TestUserRegisterFlow() {
 
 	s.NotEmpty(resData.Data.UserId, "user id should not be empty")
 
-	for _, c := range otpVerifiedRes.Cookies() {
-		logger.Dev("cookie name: %v", c.Name)
-		if c.Name != "session" {
-			continue
-		}
-		s.SessionCookie = c
-	}
-
 	// create user
-
 	reqBody = fmt.Sprintf(`{
 		"id": "%s",
 		"fullName": "%s",
@@ -103,16 +93,10 @@ func (s *UserFlowTestSuite) TestUserRegisterFlow() {
 		}`,
 		resData.Data.UserId, TestUser.FullName, TestUser.Email, TestUser.ProfilePic)
 
-	reqHeader := map[string]string{
-		"Cookie": s.SessionCookie.String(),
-	}
-
-	res, respData, err := utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/users", reqHeader, []byte(reqBody), http.DefaultClient)
+	res, _, err = utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/users/", defaultReqHeaders, []byte(reqBody), s.HttpClient)
 
 	s.NoError(err)
 	s.Equal(200, res.StatusCode, "POST /users")
-
-	logger.Dev("POST /users > resp data: %v", respData)
 
 	logger.Info("User created")
 

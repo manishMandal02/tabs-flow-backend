@@ -64,17 +64,21 @@ func ValidateToken(tokenStr string) (jwt.MapClaims, error) {
 
 // parse cookie
 func parseCookiesStr(cookieHeader string) map[string]string {
+
 	cookies := make(map[string]string)
 	if cookieHeader == "" {
 		return cookies
 	}
+
 	pairs := strings.Split(cookieHeader, ";")
+
 	for _, pair := range pairs {
 		parts := strings.SplitN(strings.TrimSpace(pair), "=", 2)
 		if len(parts) == 2 {
 			cookies[parts[0]] = parts[1]
 		}
 	}
+
 	return cookies
 }
 
@@ -226,7 +230,7 @@ func generatePolicy(principalId, effect, methodArn, userId string, cookies map[s
 		authResponse.Context["message"] = "Unauthorized"
 	}
 
-	logger.Dev("authorizer response: %v", authResponse)
+	logger.Info("authorizer response: %v", authResponse)
 
 	return &authResponse
 }

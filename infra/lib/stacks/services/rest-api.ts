@@ -11,8 +11,11 @@ export class RestApi extends Construct {
   restAPI: apiGateway.RestApi;
   constructor(scope: Construct, props: RestApiProps, id = 'RestApi') {
     super(scope, id);
-
     this.restAPI = new apiGateway.RestApi(this, `${config.AppName}-${props.stage}`, {
+      endpointTypes:
+        props.stage === config.Stage.Test
+          ? [apiGateway.EndpointType.REGIONAL]
+          : [apiGateway.EndpointType.EDGE],
       defaultCorsPreflightOptions: {
         allowOrigins: apiGateway.Cors.ALL_ORIGINS,
         allowMethods: apiGateway.Cors.ALL_METHODS
@@ -22,30 +25,28 @@ export class RestApi extends Construct {
       }
     });
 
-    if (props.stage !== config.Stage.Test) {
-      // Create an ACM certificate for api domain
-      const certificate = new acm.Certificate(this, 'Certificate', {
-        domainName: config.Env.API_DOMAIN_NAME,
-        validation: acm.CertificateValidation.fromEmail(),
-        certificateName: config.AppName + 'api-cert'
-      });
+    // Create an ACM certificate for api domain
+    const certificate = new acm.Certificate(this, 'Certificate', {
+      domainName: config.Env.API_DOMAIN_NAME,
+      validation: acm.CertificateValidation.fromEmail(),
+      certificateName: config.AppName + 'api-cert'
+    });
 
-      //* Info: Alternative way to verify domain name for aws certificate manager,
-      // create a certificate stack
-      // create a dns for subdomain with Route53 and then use the hosted zone to verify the domain
+    //* Info: Alternative way to verify domain name for aws certificate manager,
+    // create a certificate stack
+    // create a dns for subdomain with Route53 and then use the hosted zone to verify the domain
 
-      // Create a custom domain name for your API
-      const domainName = new apiGateway.DomainName(this, 'CustomDomainName', {
-        domainName: config.Env.API_DOMAIN_NAME,
-        certificate: certificate,
-        endpointType: apiGateway.EndpointType.REGIONAL
-      });
+    // Create a custom domain name for your API
+    const domainName = new apiGateway.DomainName(this, 'CustomDomainName', {
+      domainName: config.Env.API_DOMAIN_NAME,
+      certificate: certificate,
+      endpointType: apiGateway.EndpointType.REGIONAL
+    });
 
-      // Map the custom domain to your API
-      new apiGateway.BasePathMapping(this, 'ApiMapping', {
-        domainName: domainName,
-        restApi: this.restAPI
-      });
-    }
+    // Map the custom domain to your API
+    new apiGateway.BasePathMapping(this, 'ApiMapping', {
+      domainName: domainName,
+      restApi: this.restAPI
+    });
   }
 }

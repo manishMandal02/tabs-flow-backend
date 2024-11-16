@@ -5,9 +5,11 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/big"
 	"net/http"
+	"net/http/httputil"
 
 	"github.com/google/uuid"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
@@ -67,6 +69,22 @@ func MakeHTTPRequest(method, url string, headers map[string]string, body []byte,
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
+
+	// Get cookies from jar and add them to request
+	if jarClient, ok := client.(*http.Client); ok && jarClient.Jar != nil {
+		cookies := jarClient.Jar.Cookies(req.URL)
+		for _, cookie := range cookies {
+			req.AddCookie(cookie)
+		}
+	}
+
+	dump, err := httputil.DumpRequestOut(req, true)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("req dump %q", dump)
 
 	resp, err := client.Do(req)
 

@@ -37,7 +37,7 @@ func Router() http_api.IRouter {
 
 	authRouter.GET("/logout", handler.logout)
 
-	authRouter.GET("/user", handler.getUserId)
+	authRouter.GET("/user/:email", handler.getUserId)
 
 	// serve API routes
 	return authRouter
