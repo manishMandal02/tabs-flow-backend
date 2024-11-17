@@ -100,6 +100,15 @@ func (s *UserFlowTestSuite) TestUserRegisterFlow() {
 
 	logger.Info("User created")
 
+	// get user preferences
+
+	res, _, err = utils.MakeHTTPRequest(http.MethodGet, s.ENV.ApiDomainName+"/users/preferences/", defaultReqHeaders, nil, s.HttpClient)
+
+	s.NoError(err)
+	s.Equal(200, res.StatusCode, "GET /users/preferences")
+
+	logger.Info("User preferences fetched")
+
 }
 
 // run e2e tests
