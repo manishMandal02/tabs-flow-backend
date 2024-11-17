@@ -5,11 +5,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"math/big"
 	"net/http"
-	"net/http/httputil"
 
 	"github.com/google/uuid"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
@@ -77,14 +75,6 @@ func MakeHTTPRequest(method, url string, headers map[string]string, body []byte,
 			req.AddCookie(cookie)
 		}
 	}
-
-	dump, err := httputil.DumpRequestOut(req, true)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("req dump %q", dump)
 
 	resp, err := client.Do(req)
 

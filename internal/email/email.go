@@ -6,16 +6,19 @@ import (
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
 
+	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 func SendEmail(_ context.Context, event lambda_events.SQSEvent) (interface{}, error) {
+
 	if len(event.Records) == 0 {
 		err := fmt.Errorf("no records found in event")
 		logger.Error(err.Error(), err)
 		return nil, err
 	}
+
 	//  process batch of events
 	for _, record := range event.Records {
 		event := events.Event[any]{}
@@ -59,6 +62,11 @@ func processEvent(eventType string, body string) error {
 			return err
 		}
 
+		// zepto mail key and url not set for test account, so skip sending email
+		if config.ZEPTO_MAIL_API_KEY == "" {
+			return nil
+		}
+
 		return handleSendOTPMail(*ev.Payload)
 
 	case events.EventTypeUserRegistered:
@@ -67,6 +75,11 @@ func processEvent(eventType string, body string) error {
 		if err != nil {
 			logger.Errorf("error un_marshalling event: %v", err)
 			return err
+		}
+
+		// zepto mail key and url not set for test account, so skip sending email
+		if config.ZEPTO_MAIL_API_KEY == "" && config.ZEPTO_MAIL_API_URL == "" {
+			return nil
 		}
 
 		return handleUserRegistered(*ev.Payload)
@@ -90,7 +103,7 @@ func handleSendOTPMail(payload events.SendOTPPayload) error {
 
 	otp := payload.OTP
 
-	err := z.SendOTPMail(otp, to)
+	err := z.sendOTPMail(otp, to)
 
 	if err != nil {
 		return err

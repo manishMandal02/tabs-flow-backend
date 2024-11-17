@@ -65,7 +65,7 @@ func NewZeptoMail() *ZeptoMail {
 	}
 }
 
-func (z *ZeptoMail) SendOTPMail(otp string, to *NameAddr) error {
+func (z *ZeptoMail) sendOTPMail(otp string, to *NameAddr) error {
 
 	body := &otpEmailBody{
 		ZeptoMailBody: &ZeptoMailBody{
@@ -106,6 +106,7 @@ type welcomeMergeInfo struct {
 	TrailEndDate string `json:"trail_end_date"`
 	TrailEndLink string `json:"trail_end_link"`
 }
+
 type welcomeEmailBody struct {
 	*ZeptoMailBody
 	MergeInfo *welcomeMergeInfo `json:"merge_info"`

@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
 
-import { Duration, RemovalPolicy, aws_iam } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, aws_iam, Stack } from 'aws-cdk-lib';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
 import * as eventSources from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -51,7 +51,7 @@ export class EmailService extends Construct {
       architecture: config.Lambda.Architecture,
       bundling: config.Lambda.GoBundling,
       environment: {
-        ZEPTO_MAIL_API_KEY,
+        ZEPTO_MAIL_API_KEY: props.stage !== config.Stage.Test ? ZEPTO_MAIL_API_KEY : '',
         EMAIL_QUEUE_URL: emailQueue.queueUrl
       }
     });
