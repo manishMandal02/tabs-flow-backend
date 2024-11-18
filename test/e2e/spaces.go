@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
 
@@ -19,8 +18,7 @@ func (s *SpaceSuite) SetupSuite() {
 
 var spaceId = "E34Y321"
 
-func (s *SpaceSuite) TestSpaces1_Space() {
-	// create space
+func (s *SpaceSuite) TestSpaces1_CreateSpace() {
 	reqBody := fmt.Sprintf(`{
 		"id": "%s",
 		"title": "Work",
@@ -35,11 +33,9 @@ func (s *SpaceSuite) TestSpaces1_Space() {
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "POST /spaces")
+}
 
-	logger.Info("POST /spaces > success")
-
-	// get spaces
-
+func (s *SpaceSuite) TestSpaces2_GetUserSpaces() {
 	res, spacesBody, err := utils.MakeHTTPRequest(http.MethodGet, s.ENV.ApiDomainName+"/spaces/my", s.Headers, nil, s.HttpClient)
 
 	s.Require().NoError(err)
@@ -53,27 +49,22 @@ func (s *SpaceSuite) TestSpaces1_Space() {
 	s.Require().NoError(err)
 	s.Require().NotEmpty(spacesJson.Data, "spaces should not be empty")
 
-	validSpace := spacesJson.Data[0]["id"] == "E34Y321" && spacesJson.Data[0]["title"] == "Work"
+	s.Require().Equal("Work", spacesJson.Data[0]["title"], "space title not correct")
+}
 
-	s.Require().True(validSpace, "space data should be valid")
+func (s *SpaceSuite) TestSpaces3_UpdateSpace() {
 
-	logger.Info("GET /spaces/my > success")
-
-	// update space
-
-	reqBody = `{
+	reqBody := `{
 		"id": "E34Y321",
 		"title": "WorkSpace"
 		}`
 
-	res, _, err = utils.MakeHTTPRequest(http.MethodPatch, s.ENV.ApiDomainName+"/spaces/", s.Headers, []byte(reqBody), s.HttpClient)
+	res, _, err := utils.MakeHTTPRequest(http.MethodPatch, s.ENV.ApiDomainName+"/spaces/", s.Headers, []byte(reqBody), s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "PATCH /spaces")
 
-	// verify updated space
-
-	res, spacesBody, err = utils.MakeHTTPRequest(http.MethodGet, s.ENV.ApiDomainName+"/spaces/E34Y321", s.Headers, nil, s.HttpClient)
+	res, spacesBody, err := utils.MakeHTTPRequest(http.MethodGet, s.ENV.ApiDomainName+"/spaces/E34Y321", s.Headers, nil, s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "GET /spaces/:spaceId")
@@ -85,18 +76,11 @@ func (s *SpaceSuite) TestSpaces1_Space() {
 	s.Require().NoError(err)
 	s.Require().NotEmpty(spaceJson.Data, "spaces should not be empty")
 
-	validSpace = spaceJson.Data["id"] == "E34Y321" && spaceJson.Data["title"] == "WorkSpace"
-
-	s.Require().True(validSpace, "updated space data should be valid")
-
-	logger.Info("PATCH /spaces > success")
+	s.Require().Equal("WorkSpace", spaceJson.Data["title"], "incorrect space title ")
 }
 
-func (s *SpaceSuite) TestSpaces2_Tabs() {
-
-	apiURLTabs := fmt.Sprintf("%s/spaces/%s/tabs/", s.ENV.ApiDomainName, spaceId)
-
-	// add tabs to spaces
+func (s *SpaceSuite) TestSpaces4_AddTabs() {
+	apiURL := fmt.Sprintf("%s/spaces/%s/tabs/", s.ENV.ApiDomainName, spaceId)
 	reqBody := `{
 		"tabs": [
 			{
@@ -118,16 +102,16 @@ func (s *SpaceSuite) TestSpaces2_Tabs() {
     	]
 	}`
 
-	res, _, err := utils.MakeHTTPRequest(http.MethodPost, apiURLTabs, s.Headers, []byte(reqBody), s.HttpClient)
+	res, _, err := utils.MakeHTTPRequest(http.MethodPost, apiURL, s.Headers, []byte(reqBody), s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "POST /spaces/tabs")
+}
 
-	logger.Info("POST /spaces/tabs > success")
+func (s *SpaceSuite) TestSpaces5_GetTabs() {
+	apiURL := fmt.Sprintf("%s/spaces/%s/tabs/", s.ENV.ApiDomainName, spaceId)
 
-	// get tabs
-
-	res, tabsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURLTabs, s.Headers, nil, s.HttpClient)
+	res, tabsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "GET /spaces/tabs")
@@ -140,18 +124,12 @@ func (s *SpaceSuite) TestSpaces2_Tabs() {
 	s.Require().NoError(err)
 	s.Require().NotEmpty(tabsJson.Data, "tabs should not be empty")
 
-	validTab1 := tabsJson.Data[0]["title"] == "FreshInbox | Gmail Inbox Cleaner"
-
-	validTab2 := tabsJson.Data[1]["title"] == "Manish Mandal | Fullstack Web Developer"
-
-	s.Require().True(validTab1 && validTab2, "tabs data should be valid")
-
+	s.Require().Equal("FreshInbox | Gmail Inbox Cleaner", tabsJson.Data[0]["title"], "incorrect 1st tab's title")
+	s.Require().Equal("Manish Mandal | Fullstack Web Developer", tabsJson.Data[1]["title"], "incorrect 2nd tab's title")
 }
 
-func (s *SpaceSuite) TestSpaces3_Groups() {
-	apiURLGroups := fmt.Sprintf("%s/spaces/%s/groups/", s.ENV.ApiDomainName, spaceId)
-
-	// add groups to spaces
+func (s *SpaceSuite) TestSpaces6_AddGroups() {
+	apiURL := fmt.Sprintf("%s/spaces/%s/groups/", s.ENV.ApiDomainName, spaceId)
 
 	reqBody := `{
     "groups": [
@@ -172,15 +150,16 @@ func (s *SpaceSuite) TestSpaces3_Groups() {
    		]
 	}`
 
-	res, _, err := utils.MakeHTTPRequest(http.MethodPost, apiURLGroups, s.Headers, []byte(reqBody), s.HttpClient)
+	res, _, err := utils.MakeHTTPRequest(http.MethodPost, apiURL, s.Headers, []byte(reqBody), s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "POST /spaces/groups")
+}
 
-	logger.Info("POST /spaces/groups > success")
+func (s *SpaceSuite) TestSpaces7_GetGroups() {
+	apiURL := fmt.Sprintf("%s/spaces/%s/groups/", s.ENV.ApiDomainName, spaceId)
 
-	// get groups
-	res, groupsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURLGroups, s.Headers, nil, s.HttpClient)
+	res, groupsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "GET /spaces/groups")
@@ -192,20 +171,15 @@ func (s *SpaceSuite) TestSpaces3_Groups() {
 
 	s.Require().NotEmpty(groupsJson.Data, "groups should not be empty")
 
-	validGroup1 := groupsJson.Data[0]["name"] == "Backend"
-	validGroup2 := groupsJson.Data[1]["name"] == "Extension"
-
-	s.Require().True(validGroup1 && validGroup2, "groups data should be valid")
-
-	logger.Info("GET /spaces/groups > success")
-
+	s.Require().Equal("Backend", groupsJson.Data[0]["name"], "incorrect 1st group's name")
+	s.Require().Equal("Extension", groupsJson.Data[1]["name"], "incorrect 2nd group's name")
 }
 
-func (s *SpaceSuite) TestSpaces4_SnoozedTabs() {
+var snoozedTabId = "1731945819"
 
-	apiURLTabs := fmt.Sprintf("%s/spaces/%s/snoozed-tabs/", s.ENV.ApiDomainName, spaceId)
-	snoozedTabId := "1731945819"
-	// snooze tab
+func (s *SpaceSuite) TestSpaces8_CreateSnoozedTabs() {
+
+	apiURLSnoozedTabs := fmt.Sprintf("%s/spaces/%s/snoozed-tabs/", s.ENV.ApiDomainName, spaceId)
 	reqBody := fmt.Sprintf(`{
 		"snoozedAt": %v,
 		"url": "https://freshinbox.xyz",
@@ -215,34 +189,38 @@ func (s *SpaceSuite) TestSpaces4_SnoozedTabs() {
 		"snoozedUntil": 1731946819
 	}`, snoozedTabId)
 
-	res, _, err := utils.MakeHTTPRequest(http.MethodPost, apiURLTabs, s.Headers, []byte(reqBody), s.HttpClient)
+	res, _, err := utils.MakeHTTPRequest(http.MethodPost, apiURLSnoozedTabs, s.Headers, []byte(reqBody), s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "POST /spaces/snoozed-tabs")
-	logger.Info("POST /spaces/snoozed-tabs > success")
+}
 
-	// get snoozed tab by id
-	res, snoozedTabsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURLTabs+snoozedTabId, s.Headers, nil, s.HttpClient)
+func (s *SpaceSuite) TestSpaces9_GetSnoozedTabById() {
+	apiURL := fmt.Sprintf("%s/spaces/%s/snoozed-tabs/%s", s.ENV.ApiDomainName, spaceId, snoozedTabId)
+
+	res, snoozedTabsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
 
 	s.Require().NoError(err)
-	s.Require().Equal(200, res.StatusCode, "GET /spaces/snoozed-tabs:id")
+	s.Require().Equal(200, res.StatusCode, "GET /spaces/snoozed-tabs/:id")
 
 	snoozedTabJson := struct {
 		Data map[string]interface{} `json:"data"`
 	}{}
+
 	err = json.Unmarshal([]byte(snoozedTabsBody), &snoozedTabJson)
 
 	s.Require().NoError(err)
+
 	s.Require().NotEmpty(snoozedTabJson.Data, "snoozed tabs should not be empty")
 
-	validSnoozedTab := snoozedTabJson.Data["url"] == "https://freshinbox.xyz"
+	s.Require().Equal("https://freshinbox.xyz", snoozedTabJson.Data["url"])
+}
 
-	s.Require().True(validSnoozedTab, "snoozed tab data should be valid")
-
-	logger.Info("GET /spaces/snoozed-tabs/:id > success")
+func (s *SpaceSuite) TestSpaces9_GetUserSnoozedTabs() {
+	apiURL := fmt.Sprintf("%s/spaces/%s/snoozed-tabs/my", s.ENV.ApiDomainName, spaceId)
 
 	// get users snoozed tabs
-	res, snoozedTabsBody, err = utils.MakeHTTPRequest(http.MethodGet, s.ENV.ApiDomainName+"/spaces/snoozed-tabs/my", s.Headers, nil, s.HttpClient)
+	res, snoozedTabsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "GET /spaces/snoozed-tabs/my")
 	snoozedTabsJson := struct {
@@ -251,37 +229,32 @@ func (s *SpaceSuite) TestSpaces4_SnoozedTabs() {
 	err = json.Unmarshal([]byte(snoozedTabsBody), &snoozedTabsJson)
 	s.Require().NoError(err)
 	s.Require().NotEmpty(snoozedTabsJson.Data, "snoozed tabs should not be empty")
-	validSnoozedTab = snoozedTabsJson.Data[0]["url"] == "https://freshinbox.xyz"
 
-	s.Require().True(validSnoozedTab, "snoozed tab data should be valid")
+	s.Require().Equal("https://freshinbox.xyz", snoozedTabsJson.Data[0]["url"])
+}
 
-	logger.Info("GET /spaces/snoozed-tabs/my > success")
+func (s *SpaceSuite) TestSpaces11_GetSpaceSnoozedTabs() {
 
-	// get snoozed tabs in space
+	apiURL := fmt.Sprintf("%s/spaces/%s/snoozed-tabs/", s.ENV.ApiDomainName, spaceId)
 
-	res, snoozedTabsBody, err = utils.MakeHTTPRequest(http.MethodGet, apiURLTabs, s.Headers, nil, s.HttpClient)
+	res, snoozedTabsBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "GET /spaces/snoozed-tabs")
-	snoozedTabsJson = struct {
+	snoozedTabsJson := struct {
 		Data []map[string]interface{} `json:"data"`
 	}{}
 	err = json.Unmarshal([]byte(snoozedTabsBody), &snoozedTabsJson)
 
 	s.Require().NoError(err)
 	s.Require().NotEmpty(snoozedTabsJson.Data, "snoozed tabs should not be empty")
-	validSnoozedTab = snoozedTabsJson.Data[0]["url"] == "https://freshinbox.xyz"
-	s.Require().True(validSnoozedTab, "snoozed tab data should be valid")
+	s.Require().Equal("https://freshinbox.xyz", snoozedTabsJson.Data[0]["url"])
+}
 
-	logger.Info("GET /spaces/snoozed-tabs > success")
-
-	// delete snoozed tab
-
-	res, _, err = utils.MakeHTTPRequest(http.MethodDelete, apiURLTabs+snoozedTabId, s.Headers, nil, s.HttpClient)
+func (s *SpaceSuite) TestSpaces12_DeleteSnoozedTab() {
+	apiURL := fmt.Sprintf("%s/spaces/%s/snoozed-tabs/%s", s.ENV.ApiDomainName, spaceId, snoozedTabId)
+	res, _, err := utils.MakeHTTPRequest(http.MethodDelete, apiURL, s.Headers, nil, s.HttpClient)
 
 	s.Require().NoError(err)
 	s.Require().Equal(200, res.StatusCode, "DELETE /spaces/snoozed-tabs/:id")
-
-	logger.Info("DELETE /spaces/snoozed-tabs/:id > success")
-
 }

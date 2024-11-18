@@ -305,7 +305,7 @@ func (r noteRepo) indexSearchTerms(userId, noteId string, terms []string) error 
 		)
 	}
 
-	r.db.BatchWriter(ctx, &wg, errChan, reqs)
+	r.db.BatchWriter(ctx, r.searchIndexTable.TableName, &wg, errChan, reqs)
 
 	// Wait for all goroutines to complete
 	go func() {
@@ -400,7 +400,7 @@ func (r noteRepo) deleteSearchTerms(userId, noteId string, terms []string) error
 		})
 	}
 
-	r.db.BatchWriter(ctx, &wg, errChan, reqs)
+	r.db.BatchWriter(ctx, r.searchIndexTable.TableName, &wg, errChan, reqs)
 
 	// Wait for all goroutines to complete
 	go func() {

@@ -2,9 +2,7 @@ package e2e_tests
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -24,7 +22,6 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
-	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -74,98 +71,6 @@ func (s *E2ETestSuite) initSuite() {
 	s.AWSConfig = awsConfig
 
 	s.DDBClient = dynamodb.NewFromConfig(*awsConfig)
-}
-
-func (s *E2ETestSuite) RegisterOrLoginUser() {
-	// otp email register
-
-	// send otp to email
-	reqBody := fmt.Sprintf(`{
-		"email": "%s"
-		}`, TestUser.Email)
-
-	res, _, err := utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/auth/send-otp", nil, []byte(reqBody), http.DefaultClient)
-
-	s.Require().NoError(err)
-
-	if err != nil {
-		s.FailNow(err.Error())
-	}
-
-	s.Require().Equal(http.StatusOK, res.StatusCode)
-
-	logger.Info("OTP sent to email")
-
-	// get otp from dynamodb
-	OTPs, err := getOTPs(s.DDBClient, s.ENV.SessionTable)
-
-	if err != nil {
-		s.FailNow(err.Error())
-	}
-
-	s.Require().NotEmpty(OTPs, "OTPs should not be empty")
-
-	otpVerifiedResBody := ""
-
-	// verify otp and start new session
-	for _, otp := range OTPs {
-		reqBody = fmt.Sprintf(`{
-			"email": "%s",
-			"otp": "%s"
-			}`, TestUser.Email, otp)
-
-		res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/auth/verify-otp", s.Headers, []byte(reqBody), s.HttpClient)
-
-		s.Require().NoError(err, "failed to make verify otp [POST /auth/verify-otp]")
-
-		if res.StatusCode == 200 {
-			cookies := s.HttpClient.Jar.Cookies(res.Request.URL)
-			s.Require().NotEmpty(cookies, "cookies should not be empty")
-
-			otpVerifiedResBody = respBody
-			break
-		}
-	}
-
-	s.Require().NotEmpty(otpVerifiedResBody, "otp verified res body should not be empty")
-
-	logger.Info("OTP verified successfully")
-
-	// res body
-	var resData struct {
-		Data struct {
-			UserId  string `json:"userId"`
-			NewUser bool   `json:"isNewUser"`
-		} `json:"data"`
-	}
-
-	err = json.Unmarshal([]byte(otpVerifiedResBody), &resData)
-
-	s.Require().NoError(err, "failed to unmarshal response body")
-
-	s.Require().NotEmpty(resData.Data.UserId, "user id should not be empty")
-
-	if !resData.Data.NewUser {
-		logger.Info("User LoggedIn")
-		return
-	}
-
-	// create new  user in db, if NewUser flag is true
-	reqBody = fmt.Sprintf(`{
-		"id": "%s",
-		"fullName": "%s",
-		"email": "%s",
-		"profilePic": "%s"
-		}`,
-		resData.Data.UserId, TestUser.FullName, TestUser.Email, TestUser.ProfilePic)
-
-	res, _, err = utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/users/", s.Headers, []byte(reqBody), s.HttpClient)
-
-	s.Require().NoError(err)
-	s.Require().Equal(200, res.StatusCode, "POST /users")
-
-	logger.Info("User Registered")
-
 }
 
 type ENV struct {
