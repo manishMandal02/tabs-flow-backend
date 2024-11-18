@@ -37,7 +37,7 @@ func setDefaultUserPreferences(userId string, r repository) error {
 
 	pref[db.SORT_KEY.P_General] = &defaultUserPref.General
 	pref[db.SORT_KEY.P_CmdPalette] = &defaultUserPref.CmdPalette
-	pref[db.SORT_KEY.P_Note] = &defaultUserPref.Notes
+	pref[db.SORT_KEY.P_Notes] = &defaultUserPref.Notes
 	pref[db.SORT_KEY.P_LinkPreview] = &defaultUserPref.LinkPreview
 	pref[db.SORT_KEY.P_AutoDiscard] = &defaultUserPref.AutoDiscard
 
@@ -161,7 +161,7 @@ func parseSubPreferencesData(perfBody updatePerfBody) (string, *interface{}, err
 		subP, err = unmarshalSubPref[cmdPaletteP](perfBody.Data)
 	case db.SORT_KEY.P_AutoDiscard:
 		subP, err = unmarshalSubPref[autoDiscardP](perfBody.Data)
-	case db.SORT_KEY.P_Note:
+	case db.SORT_KEY.P_Notes:
 		subP, err = unmarshalSubPref[notesP](perfBody.Data)
 	case db.SORT_KEY.P_LinkPreview:
 		subP, err = unmarshalSubPref[linkPreviewP](perfBody.Data)

@@ -29,6 +29,7 @@ var errMsg = struct {
 	sendOTP         string
 	validateOTP     string
 	inValidOTP      string
+	expiredOTP      string
 	createToken     string
 	createSession   string
 	deleteSession   string
@@ -43,6 +44,7 @@ var errMsg = struct {
 	sendOTP:         "Error sending OTP",
 	validateOTP:     "Error validating OTP",
 	inValidOTP:      "Invalid OTP",
+	expiredOTP:      "OTP expired",
 	googleAuth:      "Error authenticating with google",
 	createSession:   "Error creating session",
 	deleteSession:   "Error deleting session",

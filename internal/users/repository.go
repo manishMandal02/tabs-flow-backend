@@ -21,7 +21,7 @@ type repository interface {
 	insertUser(user *User) error
 	updateUser(id, name string) error
 	deleteAccount(id string) error
-	getAllPreferences(id string) (*preferences, error)
+	getAllPreferences(id string) (*Preferences, error)
 	setPreferences(userId, sk string, pData interface{}) error
 	updatePreferences(userId, sk string, pData interface{}) error
 	getSubscription(userId string) (*subscription, error)
@@ -172,7 +172,7 @@ func (r userRepo) deleteAccount(id string) error {
 		})
 	}
 
-	r.db.BatchWriter(ctx, &wg, errChan, reqs)
+	r.db.BatchWriter(ctx, r.db.TableName, &wg, errChan, reqs)
 
 	// Wait for all goroutines to complete
 	go func() {
@@ -195,7 +195,7 @@ func (r userRepo) deleteAccount(id string) error {
 }
 
 // preferences
-func (r userRepo) getAllPreferences(id string) (*preferences, error) {
+func (r userRepo) getAllPreferences(id string) (*Preferences, error) {
 	// primary key - partition+sort key
 	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(id)), expression.Key("SK").BeginsWith(db.SORT_KEY.PreferencesBase))
 
@@ -412,7 +412,7 @@ func (r userRepo) updateSubscription(userId string, sData *subscription) error {
 }
 
 // * helper
-func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
+func unMarshalPreferences(res *dynamodb.QueryOutput) (*Preferences, error) {
 
 	w := func(item map[string]types.AttributeValue, v interface{}) error {
 
@@ -425,7 +425,7 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
 
 	var err error
 
-	p := preferences{}
+	p := Preferences{}
 
 	for _, item := range res.Items {
 		if item["PK"] == nil || item["SK"] == nil {
@@ -433,6 +433,9 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*preferences, error) {
 			continue
 		}
 		sk := item["SK"].(*types.AttributeValueMemberS).Value
+
+		logger.Dev("pref SK: %v", sk)
+
 		switch sk {
 		case "P#General":
 			err = w(item, &p.General)

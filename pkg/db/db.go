@@ -82,7 +82,7 @@ var SORT_KEY = struct {
 	UsageAnalytics           string
 	PreferencesBase          string
 	P_General                string
-	P_Note                   string
+	P_Notes                  string
 	P_CmdPalette             string
 	P_LinkPreview            string
 	P_AutoDiscard            string
@@ -99,7 +99,7 @@ var SORT_KEY = struct {
 	UsageAnalytics:           "U#UsageAnalytics",
 	PreferencesBase:          "P#",
 	P_General:                "P#General",
-	P_Note:                   "P#Note",
+	P_Notes:                  "P#Notes",
 	P_CmdPalette:             "P#CmdPalette",
 	P_LinkPreview:            "P#LinkPreview",
 	P_AutoDiscard:            "P#AutoDiscard",

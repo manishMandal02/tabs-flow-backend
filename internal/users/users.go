@@ -115,7 +115,7 @@ type linkPreviewP struct {
 	Size        string `json:"size,omitempty" dynamodbav:"Size"`
 }
 
-type preferences struct {
+type Preferences struct {
 	General     generalP     `json:"general,omitempty" dynamodbav:"P#General"`
 	CmdPalette  cmdPaletteP  `json:"cmdPalette,omitempty" dynamodbav:"P#CmdPalette"`
 	Notes       notesP       `json:"notes,omitempty" dynamodbav:"P#Notes"`
@@ -123,7 +123,7 @@ type preferences struct {
 	LinkPreview linkPreviewP `json:"linkPreview,omitempty" dynamodbav:"P#LinkPreview"`
 }
 
-var defaultUserPref = preferences{
+var defaultUserPref = Preferences{
 	General: generalP{
 		DeleteUnsavedSpaces: "week",
 		OpenSpace:           "newWindow",

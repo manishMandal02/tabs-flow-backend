@@ -101,7 +101,7 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 	}
 
 	if ttlInt < int64(time.Now().Unix()) {
-		return false, nil
+		return false, errors.New(errMsg.expiredOTP)
 	}
 
 	return true, nil

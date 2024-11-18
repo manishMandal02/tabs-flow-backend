@@ -92,7 +92,7 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 | UserId             | U#Profile                              | Email, FullName, ProfilePic                              |
 |                    | U#Subscription                         | Id, PlanId, Plan, Status, Start, End, NextBillingDate    |
 |                    | P#General                              | IsDisabled, DiscardAfter, WhitelistedDomains             |
-|                    | P#Note                                 | IsDisabled, BubblePos, ShowOnAllSites                    |
+|                    | P#Notes                                | IsDisabled, BubblePos, ShowOnAllSites                    |
 |                    | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                     |
 |                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
 |                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |

@@ -98,6 +98,10 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	valid, err := h.r.validateOTP(b.Email, b.OTP)
 
 	if err != nil {
+		if err.Error() == errMsg.expiredOTP {
+			http.Error(w, errMsg.expiredOTP, http.StatusBadRequest)
+			return
+		}
 		http.Error(w, errMsg.validateOTP, http.StatusBadGateway)
 		return
 	}

@@ -1,8 +1,10 @@
-package e2e_test
+package e2e_tests
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -22,14 +24,148 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
+	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/publicsuffix"
 )
 
 var TestUser = users.User{
 	Email:      "mmjdd67@gmail.com",
 	FullName:   "Manish Mandal",
 	ProfilePic: "https://avatars.githubusercontent.com/u/123456789?v=4",
+}
+
+var CookieJar, _ = cookiejar.New(nil)
+
+type E2ETestSuite struct {
+	suite.Suite
+	ENV        ENV
+	AppURL     *url.URL
+	HttpClient *http.Client
+	AWSConfig  *aws.Config
+	DDBClient  *dynamodb.Client
+	Headers    map[string]string
+}
+
+func (s *E2ETestSuite) initSuite() {
+	env := getENVs()
+
+	s.ENV = env
+
+	s.Headers = map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	s.ENV.ApiDomainName = "https://" + s.ENV.ApiDomainName
+
+	appURL, err := url.Parse("https://tabsflow.com")
+
+	s.Require().NoError(err)
+
+	s.AppURL = appURL
+
+	s.Require().NoError(err)
+
+	s.HttpClient = &http.Client{
+		Jar: CookieJar,
+	}
+
+	awsConfig := configureAWS(env.AWS_ACCOUNT_PROFILE)
+
+	s.AWSConfig = awsConfig
+
+	s.DDBClient = dynamodb.NewFromConfig(*awsConfig)
+}
+
+func (s *E2ETestSuite) RegisterOrLoginUser() {
+	// otp email register
+
+	// send otp to email
+	reqBody := fmt.Sprintf(`{
+		"email": "%s"
+		}`, TestUser.Email)
+
+	res, _, err := utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/auth/send-otp", nil, []byte(reqBody), http.DefaultClient)
+
+	s.Require().NoError(err)
+
+	if err != nil {
+		s.FailNow(err.Error())
+	}
+
+	s.Require().Equal(http.StatusOK, res.StatusCode)
+
+	logger.Info("OTP sent to email")
+
+	// get otp from dynamodb
+	OTPs, err := getOTPs(s.DDBClient, s.ENV.SessionTable)
+
+	if err != nil {
+		s.FailNow(err.Error())
+	}
+
+	s.Require().NotEmpty(OTPs, "OTPs should not be empty")
+
+	otpVerifiedResBody := ""
+
+	// verify otp and start new session
+	for _, otp := range OTPs {
+		reqBody = fmt.Sprintf(`{
+			"email": "%s",
+			"otp": "%s"
+			}`, TestUser.Email, otp)
+
+		res, respBody, err := utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/auth/verify-otp", s.Headers, []byte(reqBody), s.HttpClient)
+
+		s.Require().NoError(err, "failed to make verify otp [POST /auth/verify-otp]")
+
+		if res.StatusCode == 200 {
+			cookies := s.HttpClient.Jar.Cookies(res.Request.URL)
+			s.Require().NotEmpty(cookies, "cookies should not be empty")
+
+			otpVerifiedResBody = respBody
+			break
+		}
+	}
+
+	s.Require().NotEmpty(otpVerifiedResBody, "otp verified res body should not be empty")
+
+	logger.Info("OTP verified successfully")
+
+	// res body
+	var resData struct {
+		Data struct {
+			UserId  string `json:"userId"`
+			NewUser bool   `json:"isNewUser"`
+		} `json:"data"`
+	}
+
+	err = json.Unmarshal([]byte(otpVerifiedResBody), &resData)
+
+	s.Require().NoError(err, "failed to unmarshal response body")
+
+	s.Require().NotEmpty(resData.Data.UserId, "user id should not be empty")
+
+	if !resData.Data.NewUser {
+		logger.Info("User LoggedIn")
+		return
+	}
+
+	// create new  user in db, if NewUser flag is true
+	reqBody = fmt.Sprintf(`{
+		"id": "%s",
+		"fullName": "%s",
+		"email": "%s",
+		"profilePic": "%s"
+		}`,
+		resData.Data.UserId, TestUser.FullName, TestUser.Email, TestUser.ProfilePic)
+
+	res, _, err = utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/users/", s.Headers, []byte(reqBody), s.HttpClient)
+
+	s.Require().NoError(err)
+	s.Require().Equal(200, res.StatusCode, "POST /users")
+
+	logger.Info("User Registered")
+
 }
 
 type ENV struct {
@@ -40,50 +176,6 @@ type ENV struct {
 	SearchIndexTable      string
 	EmailQueueURL         string
 	NotificationsQueueURL string
-}
-type UserFlowTestSuite struct {
-	suite.Suite
-	ENV        ENV
-	AppURL     *url.URL
-	CookieJar  *cookiejar.Jar
-	HttpClient *http.Client
-	AWSConfig  *aws.Config
-	SQSClient  *sqs.Client
-	DDBClient  *dynamodb.Client
-}
-
-func (s *UserFlowTestSuite) SetupSuite() {
-	env := getENVs()
-
-	s.ENV = env
-
-	s.ENV.ApiDomainName = "https://" + s.ENV.ApiDomainName
-
-	appURL, err := url.Parse("https://tabsflow.com")
-
-	s.Require().NoError(err)
-
-	s.AppURL = appURL
-
-	jar, err := cookiejar.New(&cookiejar.Options{
-		PublicSuffixList: publicsuffix.List,
-	})
-
-	s.Require().NoError(err)
-
-	s.CookieJar = jar
-
-	s.HttpClient = &http.Client{
-		Jar: jar,
-	}
-
-	awsConfig := configureAWS(env.AWS_ACCOUNT_PROFILE)
-
-	s.AWSConfig = awsConfig
-
-	s.SQSClient = sqs.NewFromConfig(*awsConfig)
-	s.DDBClient = dynamodb.NewFromConfig(*awsConfig)
-
 }
 
 func getENVs() ENV {
@@ -179,9 +271,7 @@ func getSQSQueueMessage[T any](client *sqs.Client, queueURL string) (*events.Eve
 
 }
 
-func (s *UserFlowTestSuite) getOTPs() ([]string, error) {
-	s.T().Helper()
-
+func getOTPs(client *dynamodb.Client, tableName string) ([]string, error) {
 	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(TestUser.Email)), expression.Key("SK").BeginsWith(db.SORT_KEY_SESSIONS.OTP("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(keyCondition).Build()
@@ -190,8 +280,8 @@ func (s *UserFlowTestSuite) getOTPs() ([]string, error) {
 		return nil, err
 	}
 
-	response, err := s.DDBClient.Query(context.TODO(), &dynamodb.QueryInput{
-		TableName:                 aws.String(s.ENV.SessionTable),
+	response, err := client.Query(context.TODO(), &dynamodb.QueryInput{
+		TableName:                 aws.String(tableName),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),

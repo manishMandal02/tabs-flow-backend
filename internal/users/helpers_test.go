@@ -97,7 +97,7 @@ func TestUnMarshalPreferences(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   *dynamodb.QueryOutput
-		want    *preferences
+		want    *Preferences
 		wantErr bool
 	}{
 		{
@@ -135,7 +135,7 @@ func TestUnMarshalPreferences(t *testing.T) {
 					},
 				},
 			},
-			want:    &preferences{},
+			want:    &Preferences{},
 			wantErr: false,
 		},
 	}

@@ -21,7 +21,7 @@ func getAllStaticSKs() []string {
 		SORT_KEY.Subscription,
 		SORT_KEY.UsageAnalytics,
 		SORT_KEY.P_General,
-		SORT_KEY.P_Note,
+		SORT_KEY.P_Notes,
 		SORT_KEY.P_CmdPalette,
 		SORT_KEY.P_LinkPreview,
 		SORT_KEY.P_AutoDiscard,
@@ -91,7 +91,7 @@ func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 	return sortKeys, nil
 }
 
-func (db *DDB) BatchWriter(ctx context.Context, wg *sync.WaitGroup, errChan chan error, reqs []types.WriteRequest) {
+func (db *DDB) BatchWriter(ctx context.Context, tableName string, wg *sync.WaitGroup, errChan chan error, reqs []types.WriteRequest) {
 
 	for start := 0; start < len(reqs); start += DDB_MAX_BATCH_SIZE {
 		end := start + DDB_MAX_BATCH_SIZE
@@ -104,7 +104,7 @@ func (db *DDB) BatchWriter(ctx context.Context, wg *sync.WaitGroup, errChan chan
 
 		wReqs := map[string][]types.WriteRequest{}
 
-		wReqs[db.TableName] = batchReqs
+		wReqs[tableName] = batchReqs
 
 		wg.Add(1)
 
