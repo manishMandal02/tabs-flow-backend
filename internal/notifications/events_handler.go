@@ -188,7 +188,8 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	r := newRepository(db)
 	s, err := r.getNotificationSubscription(p.UserId)
 
-	if err != nil {
+	if err != nil && err.Error() != errMsg.notificationsSubscribeEmpty {
+
 		return err
 	}
 
@@ -215,6 +216,11 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 
 	if err != nil {
 		return err
+	}
+
+	// user has not subscribed for notifications
+	if s == nil {
+		return nil
 	}
 
 	n, err := json.Marshal(note)
@@ -244,7 +250,7 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	r := newRepository(db)
 	s, err := r.getNotificationSubscription(p.UserId)
 
-	if err != nil {
+	if err != nil && err.Error() != errMsg.notificationsSubscribeEmpty {
 		return err
 	}
 
@@ -271,6 +277,11 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 	if err != nil {
 		return err
+	}
+
+	// user has not subscribed for notifications
+	if s == nil {
+		return nil
 	}
 
 	t, err := json.Marshal(snoozedTab)
