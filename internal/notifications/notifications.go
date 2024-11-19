@@ -27,7 +27,6 @@ type notification struct {
 	Type       NotificationType           `json:"type"`
 	IsRead     bool                       `json:"isRead"`
 	Timestamp  int64                      `json:"timestamp"`
-	Title      string                     `json:"title,omitempty"`
 	Message    string                     `json:"message,omitempty"`
 	Note       *noteRemainderNotification `json:"note,omitempty"`
 	SnoozedTab *snoozedTabNotification    `json:"snoozedTab,omitempty"`
