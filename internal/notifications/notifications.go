@@ -5,9 +5,9 @@ import "github.com/go-playground/validator/v10"
 type NotificationType string
 
 const (
-	notificationTypeAccount       NotificationType = "account"
-	notificationTypeNoteRemainder NotificationType = "note_remainder"
-	notificationTypeUnSnoozedType NotificationType = "un_snoozed_tab"
+	NotificationTypeAccount       NotificationType = "account"
+	NotificationTypeNoteRemainder NotificationType = "note_remainder"
+	NotificationTypeUnSnoozedType NotificationType = "un_snoozed_tab"
 )
 
 type snoozedTabNotification struct {

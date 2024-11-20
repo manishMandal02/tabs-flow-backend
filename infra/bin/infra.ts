@@ -4,11 +4,11 @@ import { App, Aspects, RemovalPolicy } from 'aws-cdk-lib';
 import { ServiceStack } from '../lib/stacks/services/service-stack';
 import { StatefulStack } from '../lib/stacks/stateful';
 
+import { AwsSolutionsChecks } from 'cdk-nag';
+
 import { config } from '../config';
 
 const app = new App();
-
-// TODO: figure the multi region and environments deployment
 
 new StatefulStack(app, 'StatefulStack', {
   terminationProtection: false,

@@ -29,7 +29,7 @@ type spaceRepository interface {
 	addSnoozedTab(userId, spaceId string, t *SnoozedTab) error
 	getAllSnoozedTabsByUser(userId string, lastSnoozedTabID int64) (*[]SnoozedTab, error)
 	geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]SnoozedTab, error)
-	deleteSnoozedTab(userId, spaceId string, snoozedAt int64) error
+	DeleteSnoozedTab(userId, spaceId string, snoozedAt int64) error
 	GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*SnoozedTab, error)
 }
 
@@ -512,7 +512,7 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 	return &snoozedTabs, nil
 }
 
-func (r spaceRepo) deleteSnoozedTab(userId, spaceId string, snoozedAt int64) error {
+func (r spaceRepo) DeleteSnoozedTab(userId, spaceId string, snoozedAt int64) error {
 	sk := fmt.Sprintf("%s#%s", db.SORT_KEY.SnoozedTabs(spaceId), strconv.FormatInt(snoozedAt, 10))
 
 	key := map[string]types.AttributeValue{

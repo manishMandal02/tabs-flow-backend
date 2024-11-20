@@ -25,6 +25,7 @@ type noteRepository interface {
 	getNotesByUser(userId string, lastNoteId int64) (*[]Note, error)
 	updateNote(userId string, n *Note) error
 	deleteNote(userId, noteId string) error
+	RemoveNoteRemainder(userId, noteId string) error
 	// search
 	indexSearchTerms(userId, noteId string, terms []string) error
 	noteIdsBySearchTerm(userId string, query string, limit int) ([]string, error)
@@ -134,6 +135,38 @@ func (r noteRepo) deleteNote(userId string, noteId string) error {
 
 	if err != nil {
 		logger.Errorf("Couldn't delete note for userId: %v. \n[Error]: %v", userId, err)
+		return err
+	}
+
+	return nil
+}
+
+func (r noteRepo) RemoveNoteRemainder(userId, noteId string) error {
+	key := map[string]types.AttributeValue{
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Notes(noteId)},
+	}
+
+	// update note remainder at to 0
+	updateExpr := expression.UpdateBuilder{}.Set(expression.Name("RemainderAt"), expression.Value(0))
+
+	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
+
+	if err != nil {
+		logger.Errorf("error while building expression for note remainder update for userId: %v. \n[Error]: %v", userId, err)
+		return err
+	}
+
+	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName:                 &r.db.TableName,
+		Key:                       key,
+		UpdateExpression:          expr.Condition(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+	})
+
+	if err != nil {
+		logger.Errorf("Couldn't update note remainder for userId: %v. \n[Error]: %v", userId, err)
 		return err
 	}
 

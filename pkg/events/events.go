@@ -32,7 +32,6 @@ type IEvent interface {
 	GetEventType() EventType
 	ToMsgAttributes() map[string]types.MessageAttributeValue
 	ToJSON() string
-	FromJSON(jsonStr string) error
 }
 
 type Event[T any] struct {
@@ -40,6 +39,7 @@ type Event[T any] struct {
 	Payload   *T        `json:"payload"`
 }
 
+// New creates a new event
 func New[e any](eventType EventType, payload *e) IEvent {
 	return &Event[e]{
 		EventType: eventType,
@@ -47,6 +47,7 @@ func New[e any](eventType EventType, payload *e) IEvent {
 	}
 }
 
+// creates a new event from json string
 func NewFromJSON[T any](jsonStr string) (*Event[T], error) {
 	var ev Event[T]
 
@@ -59,7 +60,7 @@ func NewFromJSON[T any](jsonStr string) (*Event[T], error) {
 	return &ev, nil
 }
 
-// event_type info as map for sqs message
+// convert event_type info as map for sqs message
 func (e Event[any]) ToMsgAttributes() map[string]types.MessageAttributeValue {
 
 	return map[string]types.MessageAttributeValue{
@@ -70,6 +71,7 @@ func (e Event[any]) ToMsgAttributes() map[string]types.MessageAttributeValue {
 	}
 }
 
+// convert event to json
 func (e Event[any]) ToJSON() string {
 	jsonBytes, err := json.Marshal(e)
 
@@ -78,12 +80,6 @@ func (e Event[any]) ToJSON() string {
 	}
 
 	return string(jsonBytes)
-}
-
-func (e *Event[T]) FromJSON(jsonStr string) error {
-
-	return json.Unmarshal([]byte(jsonStr), &e)
-
 }
 
 func (e Event[any]) GetEventType() EventType {

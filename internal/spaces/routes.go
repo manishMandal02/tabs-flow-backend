@@ -40,7 +40,7 @@ func Router() http_api.IRouter {
 	spacesRouter.GET("/snoozed-tabs/my", sh.getSnoozedTabByUser)
 	// query param: snoozedAt={timestamp}
 	spacesRouter.GET("/:spaceId/snoozed-tabs", sh.getSnoozedTabsBySpace)
-	spacesRouter.DELETE("/:spaceId/snoozed-tabs/:id", sh.deleteSnoozedTab)
+	spacesRouter.DELETE("/:spaceId/snoozed-tabs/:id", sh.DeleteSnoozedTab)
 
 	// serve API routes
 	return spacesRouter

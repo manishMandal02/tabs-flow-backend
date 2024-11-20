@@ -418,7 +418,7 @@ func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request
 	http_api.SuccessResData(w, sT)
 }
 
-func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) {
+func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("spaceId")
 	snoozedAt := r.PathValue("id")
@@ -436,7 +436,7 @@ func (h *spaceHandler) deleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.sr.deleteSnoozedTab(userId, spaceId, snoozedAtInt)
+	err = h.sr.DeleteSnoozedTab(userId, spaceId, snoozedAtInt)
 
 	if err != nil {
 		logger.Error("error deleting snoozed tab", err)

@@ -38,15 +38,13 @@ func EventsHandler(_ context.Context, event lambda_events.SQSEvent) (interface{}
 			eventType = *record.MessageAttributes["event_type"].StringValue
 		} else {
 
-			var e events.Event[any]
-
-			err := e.FromJSON(record.Body)
-
-			eventType = string(e.EventType)
+			e, err := events.NewFromJSON[any](record.Body)
 
 			if err != nil {
 				logger.Errorf("error un_marshalling event from json: %v", err)
 			}
+
+			eventType = string(e.EventType)
 
 		}
 
@@ -202,7 +200,7 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	// create notification
 	notification := notification{
 		Id:        strconv.FormatInt(time.Now().UTC().Unix(), 10),
-		Type:      notificationTypeNoteRemainder,
+		Type:      NotificationTypeNoteRemainder,
 		IsRead:    false,
 		Timestamp: time.Now().UTC().Unix(),
 		Note: &noteRemainderNotification{
@@ -238,7 +236,8 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 
 	}
 
-	//TODO: remove remainder at
+	// remove remainder at
+	err = removeNoteRemainder(db, p.UserId, p.NoteId)
 
 	return nil
 
@@ -263,7 +262,7 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	// create notification
 	notification := notification{
 		Id:        strconv.FormatInt(time.Now().UTC().Unix(), 10),
-		Type:      notificationTypeUnSnoozedType,
+		Type:      NotificationTypeUnSnoozedType,
 		IsRead:    false,
 		Timestamp: time.Now().UTC().Unix(),
 		SnoozedTab: &snoozedTabNotification{
@@ -299,7 +298,8 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 	}
 
-	// TODO: delete snoozed tab
+	// delete snoozed tab
+	err = deleteSnoozedTab(db, p.UserId, p.SpaceId, p.SnoozedTabId)
 
 	return nil
 
@@ -368,4 +368,36 @@ func getSnoozedTab(db *db.DDB, userId, spaceId, snoozedTabId string) (*spaces.Sn
 	}
 
 	return snoozedTab, nil
+}
+
+func removeNoteRemainder(db *db.DDB, userId, noteId string) error {
+	r := notes.NewNoteRepository(db, nil)
+
+	err := r.RemoveNoteRemainder(userId, noteId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteSnoozedTab(db *db.DDB, userId, spaceId, snoozedTabId string) error {
+	r := spaces.NewSpaceRepository(db)
+
+	snoozedTabIdInt, err := strconv.ParseInt(snoozedTabId, 10, 64)
+
+	if err != nil {
+		logger.Error("error parsing snoozed tab id to int", err)
+		return err
+
+	}
+
+	err = r.DeleteSnoozedTab(userId, spaceId, snoozedTabIdInt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

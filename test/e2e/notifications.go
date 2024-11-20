@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/manishMandal02/tabsflow-backend/internal/notifications"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
@@ -72,7 +73,7 @@ func (s *NotificationSuite) TestNotifications3_UserNotifications() {
 
 	apiURL := fmt.Sprintf("%s/notifications/my/", s.ENV.ApiDomainName)
 
-	notifications := struct {
+	notificationRes := struct {
 		Data []map[string]interface{} `json:"data"`
 	}{}
 
@@ -82,13 +83,13 @@ func (s *NotificationSuite) TestNotifications3_UserNotifications() {
 		res, resBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
 
 		s.Require().NoError(err)
-		s.Require().Equal(200, res.StatusCode, "GET /notifications/my")
+		s.Require().Equal(200, res.StatusCode, "GET /notificationRes/my")
 
-		err = json.Unmarshal([]byte(resBody), &notifications)
+		err = json.Unmarshal([]byte(resBody), &notificationRes)
 
 		s.Require().NoError(err)
 
-		if len(notifications.Data) >= 2 {
+		if len(notificationRes.Data) >= 2 {
 			// stop if more 2 notification found
 			break
 		}
@@ -96,23 +97,23 @@ func (s *NotificationSuite) TestNotifications3_UserNotifications() {
 		time.Sleep(2 * time.Second)
 	}
 
-	for _, notification := range notifications.Data {
-		validType := notification["type"] == "note_remainder" || notification["type"] == "un_snoozed_tab"
+	for _, notification := range notificationRes.Data {
+		validType := notification["type"] == notifications.NotificationTypeNoteRemainder || notification["type"] == notifications.NotificationTypeUnSnoozedType
 		s.Require().True(validType, "notification should have a valid type")
 
 		notificationIds = append(notificationIds, notification["id"].(string))
 
-		if notification["type"] == "note_remainder" {
+		if notification["type"] == notifications.NotificationTypeNoteRemainder {
 			note := notification["note"].(map[string]interface{})
 			s.Require().Equal(note["domain"], "tabsflow.com", "note remainder notification should have a domain = 'tabsflow.com'")
 			s.Require().Equal(note["title"], "TabsFlow Launch", "note remainder notification should have a title = 'FreshTabs Launch'")
 		}
 
-		if notification["type"] == "un_snoozed_tab" {
+		if notification["type"] == notifications.NotificationTypeUnSnoozedType {
 			snoozedTab := notification["snoozedTab"].(map[string]interface{})
 
-			s.Require().Equal(snoozedTab["title"], "Manish Mandal | Fullstack Web Developer", "un_snoozed tab notification should have a title = 'Manish Mandal | Fullstack Web Developer'")
-			s.Require().Equal(snoozedTab["url"], "https://manishmandal.com", "un_snoozed tab notification should have a url = 'https://manishmandal.com'")
+			s.Require().Equal(snoozedTab["title"], snoozedTabs[1]["title"], "un_snoozed tab notification should have a title = 'Manish Mandal | Fullstack Web Developer'")
+			s.Require().Equal(snoozedTab["url"], snoozedTabs[1]["url"], "un_snoozed tab notification should have a url = 'https://manishmandal.com'")
 		}
 	}
 

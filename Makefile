@@ -12,11 +12,15 @@ lint-go:
 # all Linting
 lint-all: lint-ts lint-go 
 
+# test
+# aws s3 bucket cleanup after tests
+s3-bucket-empty:
+	chmod +x scripts/empty-cdk-bucket.sh && scripts/empty-cdk-bucket.sh -p ${AWS_ACCOUNT_PROFILE} -r ${AWS_REGION}
+
 # cdl/infra test
 test-infra:
 	cd infra/ && cdk test --profile ${AWS_ACCOUNT_PROFILE}
 
-# go test
 test-unit:
 	go test -v ./... -short
 
@@ -26,11 +30,19 @@ test-integration:
 test-e2e: 
 	go test -v ./test/e2e --failfast 
 
+
+test-all: test-unit test-integration test-e2e
+	echo "All tests passed"
+
+test-cleanup: cdk-destroy-all s3-bucket-empty
+	echo "Cleanup Complete"
+
 # show html report for go test coverage in browser
 test-coverage:
 	go test -coverpkg=./... ./... -coverprofile=coverage.out && go tool cover -html=coverage.out -o coverage.html && open -a "Google Chrome" coverage.html
 
-test-all: test-unit test-integration test-e2e
+
+
 
 
 # local development
@@ -60,8 +72,6 @@ cdk-destroy-stack-service:
 
 cdk-destroy-all:
 	cd infra/ && cdk destroy --all --profile ${AWS_ACCOUNT_PROFILE}
-go-test:
-	echo test ${name}
 
 # Default command
 default: dev

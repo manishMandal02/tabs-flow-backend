@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
@@ -16,23 +15,23 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/joho/godotenv"
-	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
-	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/stretchr/testify/suite"
 )
 
-var TestUser = users.User{
-	Email:      "mmjdd67@gmail.com",
-	FullName:   "Manish Mandal",
-	ProfilePic: "https://avatars.githubusercontent.com/u/123456789?v=4",
-}
-
 var CookieJar, _ = cookiejar.New(nil)
 
+type ENV struct {
+	ApiDomainName         string
+	AWS_ACCOUNT_PROFILE   string
+	MainTable             string
+	SessionTable          string
+	SearchIndexTable      string
+	EmailQueueURL         string
+	NotificationsQueueURL string
+}
 type E2ETestSuite struct {
 	suite.Suite
 	ENV        ENV
@@ -71,16 +70,6 @@ func (s *E2ETestSuite) initSuite() {
 	s.AWSConfig = awsConfig
 
 	s.DDBClient = dynamodb.NewFromConfig(*awsConfig)
-}
-
-type ENV struct {
-	ApiDomainName         string
-	AWS_ACCOUNT_PROFILE   string
-	MainTable             string
-	SessionTable          string
-	SearchIndexTable      string
-	EmailQueueURL         string
-	NotificationsQueueURL string
 }
 
 func getENVs() ENV {
@@ -131,49 +120,6 @@ func configureAWS(profile string) *aws.Config {
 	}
 
 	return &config
-}
-
-func getSQSQueueMessage[T any](client *sqs.Client, queueURL string) (*events.Event[T], error) {
-	// retry 3 times
-	for i := 0; i < 3; i++ {
-		output, err := client.ReceiveMessage(context.TODO(), &sqs.ReceiveMessageInput{
-			QueueUrl:            aws.String(queueURL),
-			MaxNumberOfMessages: 2,
-			WaitTimeSeconds:     2,
-		})
-
-		if err != nil {
-			return nil, err
-		}
-
-		logger.Dev("Received %v messages.", len(output.Messages))
-
-		if len(output.Messages) == 0 {
-			continue
-		}
-
-		if len(output.Messages) > 1 {
-			return nil, errors.New("more than one message found")
-		}
-
-		for _, msg := range output.Messages {
-			ev, err := events.NewFromJSON[T](*msg.Body)
-
-			logger.Dev("Received event: %v", ev)
-
-			if err != nil {
-				logger.Dev("Invalid event body: %v", ev)
-				continue
-			}
-
-			return ev, nil
-		}
-
-		time.Sleep(time.Second * 500)
-	}
-
-	return nil, errors.New("no message found")
-
 }
 
 func getOTPs(client *dynamodb.Client, tableName string) ([]string, error) {

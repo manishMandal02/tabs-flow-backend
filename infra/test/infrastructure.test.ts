@@ -1,17 +1,26 @@
-// import * as cdk from 'aws-cdk-lib';
-// import { Template } from 'aws-cdk-lib/assertions';
-// import * as Infrastructure from '../lib/infrastructure-stack';
+import { StatefulStack } from './../lib/stacks/stateful/stateful';
+import * as cdk from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import { config } from '../config';
 
 // example test. To run these tests, uncomment this file along with the
 // example resource in lib/infrastructure-stack.ts
-test('SQS Queue Created', () => {
-//   const app = new cdk.App();
-//     // WHEN
-//   const stack = new Infrastructure.InfrastructureStack(app, 'MyTestStack');
-//     // THEN
-//   const template = Template.fromStack(stack);
+test('StatefulStack ', () => {
+  const app = new cdk.App();
 
-//   template.hasResourceProperties('AWS::SQS::Queue', {
-//     VisibilityTimeout: 300
-//   });
+  const statefulStack = new StatefulStack(app, 'StatefulStack', {
+    terminationProtection: false,
+    env: {
+      region: process.env.AWS_REGION,
+      account: process.env.AWS_ACCOUNT_ID
+    },
+    stage: config.Env.DEPLOY_STAGE,
+    removalPolicy: cdk.RemovalPolicy.DESTROY
+  });
+
+  const template = Template.fromStack(statefulStack);
+
+  template.hasResourceProperties('AWS::SQS::Queue', {
+    VisibilityTimeout: 300
+  });
 });

@@ -8,6 +8,9 @@ import (
 
 // run e2e tests
 func TestE2E(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping e2e test")
+	}
 	suite.Run(t, new(UserAuthSuite))
 	suite.Run(t, new(SpaceSuite))
 	suite.Run(t, new(NotesSuite))
