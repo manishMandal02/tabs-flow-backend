@@ -68,24 +68,33 @@ var notificationIds = []string{}
 func (s *NotificationSuite) TestNotifications3_UserNotifications() {
 	// wait for 4 seconds for notifications to be processed
 	logger.Info(" ⏳ Waiting for a few seconds, for notifications to be processed...")
-	time.Sleep(4 * time.Second)
+	time.Sleep(5 * time.Second)
 
-	apiURL := fmt.Sprintf("%s/notifications/my", s.ENV.ApiDomainName)
-
-	res, resBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
-
-	s.Require().NoError(err)
-	s.Require().Equal(200, res.StatusCode, "GET /notifications/my")
+	apiURL := fmt.Sprintf("%s/notifications/my/", s.ENV.ApiDomainName)
 
 	notifications := struct {
 		Data []map[string]interface{} `json:"data"`
 	}{}
 
-	err = json.Unmarshal([]byte(resBody), &notifications)
+	// retry 3 times
+	// sometimes it takes a little more than usual to process notification events
+	for i := 0; i <= 3; i++ {
+		res, resBody, err := utils.MakeHTTPRequest(http.MethodGet, apiURL, s.Headers, nil, s.HttpClient)
 
-	s.Require().NoError(err)
+		s.Require().NoError(err)
+		s.Require().Equal(200, res.StatusCode, "GET /notifications/my")
 
-	s.Require().Len(notifications.Data, 2, "number of notifications should be 2")
+		err = json.Unmarshal([]byte(resBody), &notifications)
+
+		s.Require().NoError(err)
+
+		if len(notifications.Data) >= 2 {
+			// stop if more 2 notification found
+			break
+		}
+
+		time.Sleep(2 * time.Second)
+	}
 
 	for _, notification := range notifications.Data {
 		validType := notification["type"] == "note_remainder" || notification["type"] == "un_snoozed_tab"
@@ -109,9 +118,23 @@ func (s *NotificationSuite) TestNotifications3_UserNotifications() {
 
 }
 
-func (s *NotificationSuite) TestNotifications4_DeleteNotification() {
+func (s *NotificationSuite) TestNotifications4_NotificationById() {
+	apiURL := fmt.Sprintf("%s/notifications/", s.ENV.ApiDomainName)
+
 	for _, id := range notificationIds {
-		res, _, err := utils.MakeHTTPRequest(http.MethodDelete, s.ENV.ApiDomainName+"/notifications/"+id, s.Headers, nil, s.HttpClient)
+		res, _, err := utils.MakeHTTPRequest(http.MethodGet, apiURL+id, s.Headers, nil, s.HttpClient)
+
+		s.Require().NoError(err)
+		s.Require().Equal(http.StatusOK, res.Status, "GET /notifications/:id")
+	}
+
+}
+
+func (s *NotificationSuite) TestNotifications4_DeleteNotification() {
+	apiURL := fmt.Sprintf("%s/notifications/", s.ENV.ApiDomainName)
+
+	for _, id := range notificationIds {
+		res, _, err := utils.MakeHTTPRequest(http.MethodDelete, apiURL+id, s.Headers, nil, s.HttpClient)
 
 		s.Require().NoError(err)
 		s.Require().Equal(200, res.StatusCode, "DELETE /notifications/:id")

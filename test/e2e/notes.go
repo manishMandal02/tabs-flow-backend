@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
@@ -41,7 +42,7 @@ func (s *NotesSuite) TestNotes1_Create() {
 			"domain": "tabsflw.com",
 			"updatedAt": 1729256811,
 			"text": "%s",
-			"remindAt": %v
+			"remainderAt": %v
 		}`, note2Id, spaceId, note2Text, note2RemindAt)
 
 	for _, reqBody := range []string{note1, note2} {
@@ -100,7 +101,7 @@ func (s *NotesSuite) TestNotes3_GetNote() {
 
 	s.Require().Equal("freshinbox.xyz", noteBody.Data["domain"], "note domain not correct")
 
-	s.Require().Equal(note1Id, noteBody.Data["id"], "note id should be valid")
+	s.Require().Equal(strconv.FormatInt(note1Id, 10), noteBody.Data["id"], "note id should be valid")
 }
 
 func (s *NotesSuite) TestNotes4_Search() {
