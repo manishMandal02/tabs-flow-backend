@@ -23,7 +23,7 @@ export class StatefulStack extends Stack {
       partitionKey: {
         name: config.DynamoDB.PrimaryKey,
         type: aws_dynamodb.AttributeType.STRING
-    },
+      },
       sortKey: {
         name: config.DynamoDB.SortKey,
         type: aws_dynamodb.AttributeType.STRING

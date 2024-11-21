@@ -19,7 +19,7 @@ s3-bucket-empty:
 
 # cdl/infra test
 test-infra:
-	cd infra/ && cdk test --profile ${AWS_ACCOUNT_PROFILE}
+	cd infra/ && pnpm test
 
 test-unit:
 	go test -v ./... -short
