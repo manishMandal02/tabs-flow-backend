@@ -12,7 +12,7 @@ const Stage = {
   Dev: 'dev',
   Prod: 'prod',
   Test: 'test'
-};
+} as const;
 
 // helper to get env variables
 const getEnv = (key: string) => {
@@ -31,7 +31,7 @@ const dynamoDB = {
   PrimaryKey: 'PK',
   SortKey: 'SK',
   TTL: 'TTL'
-};
+} as const;
 
 const ssmParamNameBase = `/${AppName.toLowerCase()}/${getEnv('DEPLOY_STAGE')}`;
 
@@ -39,7 +39,7 @@ const ssmParameterNames = {
   MainTableArn: `${ssmParamNameBase}/main-table-arn`,
   SessionsTableArn: `${ssmParamNameBase}/sessions-table-arn`,
   SearchIndexTableArn: `${ssmParamNameBase}/search-index-table-arn`
-};
+} as const;
 
 const lambda = {
   MemorySize: 128,
@@ -50,7 +50,7 @@ const lambda = {
   GoBundling: {
     // goBuildFlags: ['-ldflags="-s -w"']
   }
-};
+} as const;
 
 const Env = {
   DEPLOY_STAGE: getEnv('DEPLOY_STAGE'),
@@ -59,7 +59,7 @@ const Env = {
   ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY'),
   VAPID_PRIVATE_KEY: getEnv('VAPID_PRIVATE_KEY'),
   VAPID_PUBLIC_KEY: getEnv('VAPID_PUBLIC_KEY')
-};
+} as const;
 
 export const config = {
   AppName,
@@ -68,4 +68,4 @@ export const config = {
   Lambda: lambda,
   DynamoDB: dynamoDB,
   SSMParameterName: ssmParameterNames
-};
+} as const;

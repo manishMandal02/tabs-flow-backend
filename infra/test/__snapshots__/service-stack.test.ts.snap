@@ -1,0 +1,2804 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `
+{
+  "Outputs": {
+    "RestApiTabsFlowprodEndpointE90C7245": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "RestApiTabsFlowprodDA3673AF",
+            },
+            ".execute-api.ap-south-1.",
+            {
+              "Ref": "AWS::URLSuffix",
+            },
+            "/",
+            {
+              "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+            },
+            "/",
+          ],
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "SsmParameterValuetabsflowtestmaintablearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/tabsflow/test/main-table-arn",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "SsmParameterValuetabsflowtestsearchindextablearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/tabsflow/test/search-index-table-arn",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "SsmParameterValuetabsflowtestsessionstablearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/tabsflow/test/sessions-table-arn",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "AuthServiceAuthServiceprodE6D5C4EE": {
+      "DependsOn": [
+        "LambdaRoleDefaultPolicy75625A82",
+        "LambdaRole3A44B857",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "99cdcebf793c30f5c79dcc8ac5cd32ab82a6437ac05880b28ba2af843fdd3376.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DDB_SESSIONS_TABLE_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "SsmParameterValuetabsflowtestsessionstablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            "EMAIL_QUEUE_URL": {
+              "Ref": "EmailServiceTabsFlowEmailsprod08721A21",
+            },
+            "JWT_SECRET_KEY": "TabsFlow_My_First_SaaS_Project_2024_Manish_Mandal_J_30041999",
+          },
+        },
+        "FunctionName": "AuthService_prod",
+        "Handler": "bootstrap",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole3A44B857",
+            "Arn",
+          ],
+        },
+        "Runtime": "provided.al2",
+        "Timeout": 20,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "AuthServiceAuthServiceprodLogRetention65D1E3A1": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "AuthServiceAuthServiceprodE6D5C4EE",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 1,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "AuthServiceAuthorizerprodBCBA7B55": {
+      "DependsOn": [
+        "LambdaRoleDefaultPolicy75625A82",
+        "LambdaRole3A44B857",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "43f54aed351042dd0dafa1969dc1e7c714b04f6362c68152f36ca2065b78221d.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DDB_SESSIONS_TABLE_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "SsmParameterValuetabsflowtestsessionstablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            "JWT_SECRET_KEY": "TabsFlow_My_First_SaaS_Project_2024_Manish_Mandal_J_30041999",
+          },
+        },
+        "FunctionName": "Authorizer_prod",
+        "Handler": "bootstrap",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole3A44B857",
+            "Arn",
+          ],
+        },
+        "Runtime": "provided.al2",
+        "Timeout": 20,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "AuthServiceAuthorizerprodLogRetention87F18F3D": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "AuthServiceAuthorizerprodBCBA7B55",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 1,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "AuthServiceAuthorizerprodServiceStackAuthServiceTabsFlowAuthorizerprod981773D3PermissionsCD3B91AD": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AuthServiceAuthorizerprodBCBA7B55",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/authorizers/",
+              {
+                "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+              },
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "AuthServiceTabsFlowAuthorizerprod329A4D69": {
+      "Properties": {
+        "AuthorizerResultTtlInSeconds": 300,
+        "AuthorizerUri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Fn::Select": [
+                  1,
+                  {
+                    "Fn::Split": [
+                      ":",
+                      {
+                        "Fn::GetAtt": [
+                          "AuthServiceAuthorizerprodBCBA7B55",
+                          "Arn",
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              ":apigateway:",
+              {
+                "Fn::Select": [
+                  3,
+                  {
+                    "Fn::Split": [
+                      ":",
+                      {
+                        "Fn::GetAtt": [
+                          "AuthServiceAuthorizerprodBCBA7B55",
+                          "Arn",
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": [
+                  "AuthServiceAuthorizerprodBCBA7B55",
+                  "Arn",
+                ],
+              },
+              "/invocations",
+            ],
+          ],
+        },
+        "IdentitySource": "method.request.header.Cookie",
+        "Name": "TabsFlow-Authorizer_prod",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+        "Type": "REQUEST",
+      },
+      "Type": "AWS::ApiGateway::Authorizer",
+    },
+    "EmailServiceEmailServiceprod48B2B3A8": {
+      "DependsOn": [
+        "LambdaRoleDefaultPolicy75625A82",
+        "LambdaRole3A44B857",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "e674b73fa1e44f7ae764a6eb6363ecd8e05befc6b969e7d87cda26529b38455a.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "EMAIL_QUEUE_URL": {
+              "Ref": "EmailServiceTabsFlowEmailsprod08721A21",
+            },
+            "ZEPTO_MAIL_API_KEY": "PHtE6r1eR+/pim8opEUAtqW9QpPxPdsm9egxKlNBuI1LCPIAGE1U/tEowTDkrE8pXPFFRf+Ym9g5t7uftuzRczruY2wfXWqyqK3sx/VYSPOZsbq6x00btFQZfkPZU47ud9do1C3Xu9jSNA==",
+          },
+        },
+        "FunctionName": "EmailService_prod",
+        "Handler": "bootstrap",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole3A44B857",
+            "Arn",
+          ],
+        },
+        "Runtime": "provided.al2",
+        "Timeout": 20,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "EmailServiceEmailServiceprodLogRetention6272A9C8": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "EmailServiceEmailServiceprod48B2B3A8",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 1,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "EmailServiceEmailServiceprodSqsEventSourceServiceStackEmailServiceTabsFlowEmailsprodCB081CB66C7E6370": {
+      "Properties": {
+        "BatchSize": 1,
+        "EventSourceArn": {
+          "Fn::GetAtt": [
+            "EmailServiceTabsFlowEmailsprod08721A21",
+            "Arn",
+          ],
+        },
+        "FunctionName": {
+          "Ref": "EmailServiceEmailServiceprod48B2B3A8",
+        },
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "EmailServiceTabsFlowEmailsprod08721A21": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "DelaySeconds": 1,
+        "QueueName": "TabsFlow-Emails_prod",
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "EmailServiceTabsFlowEmailsproddlq1916767D",
+              "Arn",
+            ],
+          },
+          "maxReceiveCount": 3,
+        },
+        "VisibilityTimeout": 300,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "EmailServiceTabsFlowEmailsproddlq1916767D": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "VisibilityTimeout": 300,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "LambdaRole3A44B857": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LambdaRoleDefaultPolicy75625A82": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "EmailServiceTabsFlowEmailsprod08721A21",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Ref": "SsmParameterValuetabsflowtestsessionstablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                },
+                {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "EmailServiceTabsFlowEmailsprod08721A21",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": "iam:PassRole",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "NotificationsServiceNotificationsServiceSchedulerRoleA8E7E2B4",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "scheduler:CreateSchedule",
+                "scheduler:DeleteSchedule",
+                "scheduler:GetSchedule",
+                "scheduler:UpdateSchedule",
+                "scheduler:ListSchedules",
+                "iam:PassRole",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:scheduler:ap-south-1:430118850881:schedule/*",
+            },
+            {
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "NotificationsServiceTabsFlowNotificationsprod24D93279",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "NotificationsServiceTabsFlowNotificationsprod24D93279",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Ref": "SsmParameterValuetabsflowtestmaintablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                },
+                {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:DescribeTable",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Ref": "SsmParameterValuetabsflowtestsearchindextablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                },
+                {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LambdaRoleDefaultPolicy75625A82",
+        "Roles": [
+          {
+            "Ref": "LambdaRole3A44B857",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+      "DependsOn": [
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "5fa1330271b8967d9254ba2d4a07144f8acefe8b77e6d6bba38261373a50d5f8.zip",
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs16.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:PutRetentionPolicy",
+                "logs:DeleteRetentionPolicy",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "Roles": [
+          {
+            "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "NotesServiceNotesServiceprodA4AD5614": {
+      "DependsOn": [
+        "LambdaRoleDefaultPolicy75625A82",
+        "LambdaRole3A44B857",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "339382f2cc7578c76b8b23b10c4ff0d5c57d329493491b017c41951b0224e88c.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DDB_MAIN_TABLE_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "SsmParameterValuetabsflowtestmaintablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            "DDB_SEARCH_INDEX_TABLE_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "SsmParameterValuetabsflowtestsearchindextablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            "NOTIFICATIONS_QUEUE_URL": {
+              "Ref": "NotificationsServiceTabsFlowNotificationsprod24D93279",
+            },
+          },
+        },
+        "FunctionName": "NotesService_prod",
+        "Handler": "bootstrap",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole3A44B857",
+            "Arn",
+          ],
+        },
+        "Runtime": "provided.al2",
+        "Timeout": 20,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "NotesServiceNotesServiceprodLogRetentionA7A22D5A": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "NotesServiceNotesServiceprodA4AD5614",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 1,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "NotificationsServiceNotificationsServiceSchedulerRoleA8E7E2B4": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "scheduler.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Description": "Role that EventBridge Scheduler can assume to execute tasks",
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "NotificationsServiceNotificationsServiceSchedulerRoleDefaultPolicy2987149A": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "NotificationsServiceTabsFlowNotificationsprod24D93279",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "NotificationsServiceNotificationsServiceSchedulerRoleDefaultPolicy2987149A",
+        "Roles": [
+          {
+            "Ref": "NotificationsServiceNotificationsServiceSchedulerRoleA8E7E2B4",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "NotificationsServiceNotificationsServiceprod7BF5E693": {
+      "DependsOn": [
+        "LambdaRoleDefaultPolicy75625A82",
+        "LambdaRole3A44B857",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "39a0125481bc9cd27bb04e42a99d44a7fa0e49330c78ae87a1b0b49cef470578.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DDB_MAIN_TABLE_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "SsmParameterValuetabsflowtestmaintablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            "NOTIFICATIONS_QUEUE_ARN": {
+              "Fn::GetAtt": [
+                "NotificationsServiceTabsFlowNotificationsprod24D93279",
+                "Arn",
+              ],
+            },
+            "NOTIFICATIONS_QUEUE_URL": {
+              "Ref": "NotificationsServiceTabsFlowNotificationsprod24D93279",
+            },
+            "SCHEDULER_ROLE_ARN": {
+              "Fn::GetAtt": [
+                "NotificationsServiceNotificationsServiceSchedulerRoleA8E7E2B4",
+                "Arn",
+              ],
+            },
+            "VAPID_PRIVATE_KEY": "1UFGBolQ1JRKsKYt_fNxPpUgx0A7oVdKiGtC3iog89k",
+            "VAPID_PUBLIC_KEY": "BCyHuDMmzW-w2epmQlpmxSXrzk-tPDjiPygm6r0-HUVfs1R5oWx3NjZyPWHKt14Zivkz3z31JCsuBsFxvhpPEDs",
+          },
+        },
+        "FunctionName": "NotificationsService_prod",
+        "Handler": "bootstrap",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole3A44B857",
+            "Arn",
+          ],
+        },
+        "Runtime": "provided.al2",
+        "Timeout": 20,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "NotificationsServiceNotificationsServiceprodLogRetention3DABA5FE": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "NotificationsServiceNotificationsServiceprod7BF5E693",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 1,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "NotificationsServiceNotificationsServiceprodSqsEventSourceServiceStackNotificationsServiceTabsFlowNotificationsprod8769FA9568D27ABB": {
+      "Properties": {
+        "BatchSize": 1,
+        "EventSourceArn": {
+          "Fn::GetAtt": [
+            "NotificationsServiceTabsFlowNotificationsprod24D93279",
+            "Arn",
+          ],
+        },
+        "FunctionName": {
+          "Ref": "NotificationsServiceNotificationsServiceprod7BF5E693",
+        },
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "NotificationsServiceTabsFlowNotificationsprod24D93279": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "DelaySeconds": 1,
+        "QueueName": "TabsFlow-Notifications_prod",
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "NotificationsServiceTabsFlowNotificationsproddlq9F239D57",
+              "Arn",
+            ],
+          },
+          "maxReceiveCount": 3,
+        },
+        "VisibilityTimeout": 300,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "NotificationsServiceTabsFlowNotificationsproddlq9F239D57": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "VisibilityTimeout": 300,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "RestApiApiMapping6F9B1B41": {
+      "Properties": {
+        "DomainName": {
+          "Ref": "RestApiCustomDomainName94F28E16",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+        "Stage": {
+          "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+        },
+      },
+      "Type": "AWS::ApiGateway::BasePathMapping",
+    },
+    "RestApiCertificate6973EB71": {
+      "Properties": {
+        "DomainName": "82havj4w05.execute-api.ap-south-1.amazonaws.com/test",
+        "DomainValidationOptions": [
+          {
+            "DomainName": "82havj4w05.execute-api.ap-south-1.amazonaws.com/test",
+            "ValidationDomain": "com/test",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TabsFlowapi-cert",
+          },
+        ],
+        "ValidationMethod": "EMAIL",
+      },
+      "Type": "AWS::CertificateManager::Certificate",
+    },
+    "RestApiCustomDomainName94F28E16": {
+      "Properties": {
+        "CertificateArn": {
+          "Ref": "RestApiCertificate6973EB71",
+        },
+        "DomainName": "82havj4w05.execute-api.ap-south-1.amazonaws.com/test",
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE",
+          ],
+        },
+      },
+      "Type": "AWS::ApiGateway::DomainName",
+    },
+    "RestApiTabsFlowprodAccount13393F47": {
+      "DeletionPolicy": "Retain",
+      "DependsOn": [
+        "RestApiTabsFlowprodDA3673AF",
+      ],
+      "Properties": {
+        "CloudWatchRoleArn": {
+          "Fn::GetAtt": [
+            "RestApiTabsFlowprodCloudWatchRole78274748",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ApiGateway::Account",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "RestApiTabsFlowprodCloudWatchRole78274748": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "apigateway.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "RestApiTabsFlowprodDA3673AF": {
+      "Properties": {
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE",
+          ],
+        },
+        "Name": "TabsFlow-prod",
+      },
+      "Type": "AWS::ApiGateway::RestApi",
+    },
+    "RestApiTabsFlowprodDeployment899519A219484fadf0d24ba2ca179bcf157123e9": {
+      "DependsOn": [
+        "RestApiTabsFlowprodauthproxyANYB4A8BD1A",
+        "RestApiTabsFlowprodauthproxyOPTIONSCFB1E944",
+        "RestApiTabsFlowprodauthproxy0E2E5C13",
+        "RestApiTabsFlowprodauthOPTIONSE41C0DEC",
+        "RestApiTabsFlowprodauthAED02D17",
+        "RestApiTabsFlowprodnotesproxyANY048BB5A0",
+        "RestApiTabsFlowprodnotesproxyOPTIONSE79E35F1",
+        "RestApiTabsFlowprodnotesproxyBA0DEF3D",
+        "RestApiTabsFlowprodnotesANYA8EFAB32",
+        "RestApiTabsFlowprodnotesOPTIONSAA38A00A",
+        "RestApiTabsFlowprodnotesA6AB4FDC",
+        "RestApiTabsFlowprodnotificationsproxyANY67E25234",
+        "RestApiTabsFlowprodnotificationsproxyOPTIONS97C271F9",
+        "RestApiTabsFlowprodnotificationsproxyCC3B58C0",
+        "RestApiTabsFlowprodnotificationsANYD0FB623A",
+        "RestApiTabsFlowprodnotificationsOPTIONS831AE29A",
+        "RestApiTabsFlowprodnotifications294560B9",
+        "RestApiTabsFlowprodOPTIONS51CA840D",
+        "RestApiTabsFlowprodspacesproxyANY9D6E30A0",
+        "RestApiTabsFlowprodspacesproxyOPTIONSD4EA95FA",
+        "RestApiTabsFlowprodspacesproxy6FF33C12",
+        "RestApiTabsFlowprodspacesANY60254A5F",
+        "RestApiTabsFlowprodspacesOPTIONS55F6EFAA",
+        "RestApiTabsFlowprodspacesA2A1DEAB",
+        "RestApiTabsFlowprodusersproxyANY66DA677D",
+        "RestApiTabsFlowprodusersproxyOPTIONSAA0056D2",
+        "RestApiTabsFlowprodusersproxyE0C61F40",
+        "RestApiTabsFlowprodusersANY6AC94A9B",
+        "RestApiTabsFlowprodusersOPTIONSFF5B1A88",
+        "RestApiTabsFlowprodusers0B59A882",
+      ],
+      "Properties": {
+        "Description": "Automatically created by the RestApi construct",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Deployment",
+    },
+    "RestApiTabsFlowprodDeploymentStageprod85A533B4": {
+      "DependsOn": [
+        "RestApiTabsFlowprodAccount13393F47",
+      ],
+      "Properties": {
+        "DeploymentId": {
+          "Ref": "RestApiTabsFlowprodDeployment899519A219484fadf0d24ba2ca179bcf157123e9",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+        "StageName": "prod",
+      },
+      "Type": "AWS::ApiGateway::Stage",
+    },
+    "RestApiTabsFlowprodOPTIONS51CA840D": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "RestApiTabsFlowprodDA3673AF",
+            "RootResourceId",
+          ],
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodauthAED02D17": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "RestApiTabsFlowprodDA3673AF",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "auth",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodauthOPTIONSE41C0DEC": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodauthAED02D17",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodauthproxy0E2E5C13": {
+      "Properties": {
+        "ParentId": {
+          "Ref": "RestApiTabsFlowprodauthAED02D17",
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodauthproxyANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYauthproxy0161F19E": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AuthServiceAuthServiceprodE6D5C4EE",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/auth/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodauthproxyANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYauthproxy3F7A3847": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AuthServiceAuthServiceprodE6D5C4EE",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/auth/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodauthproxyANYB4A8BD1A": {
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "AuthServiceAuthServiceprodE6D5C4EE",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodauthproxy0E2E5C13",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodauthproxyOPTIONSCFB1E944": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodauthproxy0E2E5C13",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotesA6AB4FDC": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "RestApiTabsFlowprodDA3673AF",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "notes",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodnotesANYA8EFAB32": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "NotesServiceNotesServiceprodA4AD5614",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotesA6AB4FDC",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotesANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYnotes136449C3": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotesServiceNotesServiceprodA4AD5614",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/notes",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotesANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYnotesC05D1786": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotesServiceNotesServiceprodA4AD5614",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/notes",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotesOPTIONSAA38A00A": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotesA6AB4FDC",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotesproxyANY048BB5A0": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "NotesServiceNotesServiceprodA4AD5614",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotesproxyBA0DEF3D",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotesproxyANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYnotesproxy6F28EB1C": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotesServiceNotesServiceprodA4AD5614",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/notes/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotesproxyANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYnotesproxy76648B0C": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotesServiceNotesServiceprodA4AD5614",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/notes/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotesproxyBA0DEF3D": {
+      "Properties": {
+        "ParentId": {
+          "Ref": "RestApiTabsFlowprodnotesA6AB4FDC",
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodnotesproxyOPTIONSE79E35F1": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotesproxyBA0DEF3D",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotifications294560B9": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "RestApiTabsFlowprodDA3673AF",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "notifications",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodnotificationsANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYnotificationsD2D48284": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotificationsServiceNotificationsServiceprod7BF5E693",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/notifications",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotificationsANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYnotifications293CF3FC": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotificationsServiceNotificationsServiceprod7BF5E693",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/notifications",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotificationsANYD0FB623A": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "NotificationsServiceNotificationsServiceprod7BF5E693",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotifications294560B9",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotificationsOPTIONS831AE29A": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotifications294560B9",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotificationsproxyANY67E25234": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "NotificationsServiceNotificationsServiceprod7BF5E693",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotificationsproxyCC3B58C0",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodnotificationsproxyANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYnotificationsproxy4E57027A": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotificationsServiceNotificationsServiceprod7BF5E693",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/notifications/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotificationsproxyANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYnotificationsproxy547A5271": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "NotificationsServiceNotificationsServiceprod7BF5E693",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/notifications/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodnotificationsproxyCC3B58C0": {
+      "Properties": {
+        "ParentId": {
+          "Ref": "RestApiTabsFlowprodnotifications294560B9",
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodnotificationsproxyOPTIONS97C271F9": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodnotificationsproxyCC3B58C0",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodspacesA2A1DEAB": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "RestApiTabsFlowprodDA3673AF",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "spaces",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodspacesANY60254A5F": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "SpacesServiceSpacesServiceprod61C9F9A6",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodspacesA2A1DEAB",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodspacesANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYspaces3881EBA4": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SpacesServiceSpacesServiceprod61C9F9A6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/spaces",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodspacesANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYspaces45E9DCA5": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SpacesServiceSpacesServiceprod61C9F9A6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/spaces",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodspacesOPTIONS55F6EFAA": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodspacesA2A1DEAB",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodspacesproxy6FF33C12": {
+      "Properties": {
+        "ParentId": {
+          "Ref": "RestApiTabsFlowprodspacesA2A1DEAB",
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodspacesproxyANY9D6E30A0": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "SpacesServiceSpacesServiceprod61C9F9A6",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodspacesproxy6FF33C12",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodspacesproxyANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYspacesproxyF525A611": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SpacesServiceSpacesServiceprod61C9F9A6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/spaces/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodspacesproxyANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYspacesproxyD3B543A9": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "SpacesServiceSpacesServiceprod61C9F9A6",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/spaces/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodspacesproxyOPTIONSD4EA95FA": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodspacesproxy6FF33C12",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodusers0B59A882": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "RestApiTabsFlowprodDA3673AF",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "users",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodusersANY6AC94A9B": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "UsersServiceUsersServiceprod35610C2F",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodusers0B59A882",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodusersANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYusersF1544DE1": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "UsersServiceUsersServiceprod35610C2F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/users",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodusersANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYusersDB5EB214": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "UsersServiceUsersServiceprod35610C2F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/users",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodusersOPTIONSFF5B1A88": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodusers0B59A882",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodusersproxyANY66DA677D": {
+      "Properties": {
+        "AuthorizationType": "CUSTOM",
+        "AuthorizerId": {
+          "Ref": "AuthServiceTabsFlowAuthorizerprod329A4D69",
+        },
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:ap-south-1:lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "UsersServiceUsersServiceprod35610C2F",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodusersproxyE0C61F40",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "RestApiTabsFlowprodusersproxyANYApiPermissionServiceStackRestApiTabsFlowprod267DE481ANYusersproxy291C4D6A": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "UsersServiceUsersServiceprod35610C2F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/",
+              {
+                "Ref": "RestApiTabsFlowprodDeploymentStageprod85A533B4",
+              },
+              "/*/users/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodusersproxyANYApiPermissionTestServiceStackRestApiTabsFlowprod267DE481ANYusersproxyD8BBB34F": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "UsersServiceUsersServiceprod35610C2F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:ap-south-1:430118850881:",
+              {
+                "Ref": "RestApiTabsFlowprodDA3673AF",
+              },
+              "/test-invoke-stage/*/users/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "RestApiTabsFlowprodusersproxyE0C61F40": {
+      "Properties": {
+        "ParentId": {
+          "Ref": "RestApiTabsFlowprodusers0B59A882",
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "RestApiTabsFlowprodusersproxyOPTIONSAA0056D2": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "OPTIONS",
+        "Integration": {
+          "IntegrationResponses": [
+            {
+              "ResponseParameters": {
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+                "method.response.header.Access-Control-Allow-Origin": "'*'",
+              },
+              "StatusCode": "204",
+            },
+          ],
+          "RequestTemplates": {
+            "application/json": "{ statusCode: 200 }",
+          },
+          "Type": "MOCK",
+        },
+        "MethodResponses": [
+          {
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true,
+            },
+            "StatusCode": "204",
+          },
+        ],
+        "ResourceId": {
+          "Ref": "RestApiTabsFlowprodusersproxyE0C61F40",
+        },
+        "RestApiId": {
+          "Ref": "RestApiTabsFlowprodDA3673AF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "SpacesServiceSpacesServiceprod61C9F9A6": {
+      "DependsOn": [
+        "LambdaRoleDefaultPolicy75625A82",
+        "LambdaRole3A44B857",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "664c092f315c4847b5819749ade18c8d408e090372ab54f4565d219458d404c0.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DDB_MAIN_TABLE_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "SsmParameterValuetabsflowtestmaintablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            "NOTIFICATIONS_QUEUE_URL": {
+              "Ref": "NotificationsServiceTabsFlowNotificationsprod24D93279",
+            },
+          },
+        },
+        "FunctionName": "SpacesService_prod",
+        "Handler": "bootstrap",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole3A44B857",
+            "Arn",
+          ],
+        },
+        "Runtime": "provided.al2",
+        "Timeout": 20,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "SpacesServiceSpacesServiceprodLogRetentionA3F8DFA8": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "SpacesServiceSpacesServiceprod61C9F9A6",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 1,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "UsersServiceUsersServiceprod35610C2F": {
+      "DependsOn": [
+        "LambdaRoleDefaultPolicy75625A82",
+        "LambdaRole3A44B857",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-430118850881-ap-south-1",
+          "S3Key": "02f479afbae95ff6ac2fe22298c4a406e0ad2b75591abc53b5a3f734804636a4.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DDB_MAIN_TABLE_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "SsmParameterValuetabsflowtestmaintablearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            "EMAIL_QUEUE_URL": {
+              "Ref": "EmailServiceTabsFlowEmailsprod08721A21",
+            },
+          },
+        },
+        "FunctionName": "UsersService_prod",
+        "Handler": "bootstrap",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole3A44B857",
+            "Arn",
+          ],
+        },
+        "Runtime": "provided.al2",
+        "Timeout": 20,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "UsersServiceUsersServiceprodLogRetention3A0D56C4": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "UsersServiceUsersServiceprod35610C2F",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 1,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
