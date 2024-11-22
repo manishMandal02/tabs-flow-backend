@@ -29,7 +29,7 @@ export class NotesService extends Construct {
       logRetention: config.Lambda.LogRetention,
       role: props.lambdaRole,
       architecture: config.Lambda.Architecture,
-      bundling: config.Lambda.GoBundling,
+    bundling: config.Lambda.GoBundling,
       environment: {
         DDB_MAIN_TABLE_NAME: props.mainDB.tableName,
         DDB_SEARCH_INDEX_TABLE_NAME: props.searchIndexDB.tableName,

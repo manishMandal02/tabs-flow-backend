@@ -46,8 +46,7 @@ export class UsersService extends Construct {
 
     usersResource.addMethod('ANY', new aws_apigateway.LambdaIntegration(usersServiceLambda), {
       authorizationType: aws_apigateway.AuthorizationType.CUSTOM,
-      authorizer: props.apiAuthorizer,
-      
+      authorizer: props.apiAuthorizer
     });
 
     // add proxy resource

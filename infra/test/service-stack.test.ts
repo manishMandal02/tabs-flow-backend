@@ -1,11 +1,26 @@
-import { stat } from 'fs';
-import { PolicyDocument } from 'aws-cdk-lib/aws-iam';
+import { SpacesService } from './../lib/stacks/services/spaces';
 import { EmailService } from './../lib/stacks/services/email';
 import * as cdk from 'aws-cdk-lib';
-import { Capture, Match, Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 
 import { config } from '../config';
 import { ServiceStack } from './../lib/stacks/services/service-stack';
+import {
+  assertLambdaAPIGatewayIntegration,
+  assertLambdaFunction,
+  assertLambdaSQSEventSourceMapping,
+  assertSQSQueue,
+  verifyLambdaSQSPermission
+} from './helpers';
+
+const serviceName = {
+  Email: 'EmailService',
+  Auth: 'AuthService',
+  Users: 'UsersService',
+  Notes: 'NotesService',
+  Spaces: 'SpacesService',
+  Notification: 'NotificationsService'
+};
 
 describe('ServiceStack', () => {
   const app = new cdk.App();
@@ -23,107 +38,164 @@ describe('ServiceStack', () => {
 
   //   expect(template.toJSON()).toMatchSnapshot();
 
-  const resources = template.findResources('AWS::Lambda::Function');
-
-  //   console.log('🚀 email lambda: ', JSON.stringify(resources, null, 2));
-
+  // email  service
   test('EmailService', () => {
-    // assert lambda function
-    template.hasResourceProperties('AWS::Lambda::Function', {
-      FunctionName: `EmailService_${stage}`,
-      Handler: 'bootstrap',
-      Architectures: [config.Lambda.Architecture.name],
-      Runtime: config.Lambda.Runtime.name,
-      MemorySize: config.Lambda.MemorySize,
-      Timeout: config.Lambda.Timeout.toSeconds(),
-      Environment: {
-        Variables: {
-          ZEPTO_MAIL_API_KEY: stage === config.Stage.Test ? '' : expect.any(String),
-          EMAIL_QUEUE_URL: {
-            Ref: Match.stringLikeRegexp('EmailService')
-          }
-        }
+    assertLambdaFunction({
+      stage,
+      template,
+      service: serviceName.Email,
+      env: {
+        ZEPTO_MAIL_API_KEY: stage === config.Stage.Test ? '' : expect.any(String),
+        EMAIL_QUEUE_URL: Match.anyValue()
       }
     });
 
-    // assert sqs queue
-    template.hasResourceProperties('AWS::SQS::Queue', {
-      QueueName: `${config.AppName}-Emails_${stage}`,
-      VisibilityTimeout: 300,
-      DelaySeconds: 1,
-      // assert dead letter queue
-      RedrivePolicy: {
-        deadLetterTargetArn: {
-          'Fn::GetAtt': [Match.stringLikeRegexp('EmailService'), 'Arn']
-        },
-        maxReceiveCount: 3
-      }
-    });
+    assertSQSQueue(template, `${config.AppName}-Emails_${stage}`, serviceName.Email);
 
-    // assert lambda sqs event source
-    template.hasResourceProperties('AWS::Lambda::EventSourceMapping', {
-      FunctionName: {
-        Ref: Match.stringLikeRegexp('EmailService')
-      },
-      BatchSize: 1,
-      EventSourceArn: {
-        'Fn::GetAtt': [Match.stringLikeRegexp('EmailService'), 'Arn']
-      }
-    });
+    assertLambdaSQSEventSourceMapping(template, serviceName.Email);
 
-    let iamStatement: any[] = [];
-
-    let verifiedSQSIamPolicy = false;
-
-    // verify lambda permission for sqs
-    const policies = template.findResources('AWS::IAM::Policy', {});
-
-    for (const policy of Object.values(policies)) {
-      const PolicyDocument = policy['Properties']['PolicyDocument'] as any;
-
-      if ((policy['Properties']['PolicyName'] as string).startsWith('LambdaRoleDefaultPolicy')) {
-        const statement = PolicyDocument['Statement'] as any;
-        const actions = statement[0]['Action'] as string[];
-        if (Array.isArray(statement) && Array.isArray(actions) && actions[0].startsWith('sqs:')) {
-          iamStatement = statement as any[];
-          break;
-        }
-      }
-    }
-
-    expect(iamStatement.length).toBeGreaterThan(0);
-
-    for (const statement of iamStatement) {
-      if (
-        statement.Effect !== 'Allow' ||
-        !Array.isArray(statement.Action) ||
-        !Array.isArray(statement.Resource)
-      )
-        continue;
-
-      const actions = statement.Action as string[];
-
-      console.log('🚀 ~ file: service-stack.test.ts:116 ~ test ~ actions:', actions);
-
-      if (!actions[0].startsWith('sqs:')) continue;
-
-      // iam policy for sqs permission
-      expect(actions).toHaveLength(5);
-
-      expect(actions).toContain('sqs:ReceiveMessage');
-      expect(actions).toContain('sqs:DeleteMessage');
-
-      const resources = statement.Resource as { [key: string]: string[] }[];
-
-      console.log('🚀 ~ file: service-stack.test.ts:105 ~ test ~ resources:', resources);
-      for (const resource of resources) {
-        if (resource['Fn::GetAtt'][0].includes('EmailService') && resource['Fn::GetAtt'][1] === 'Arn') {
-          verifiedSQSIamPolicy = true;
-          break;
-        }
-      }
-    }
+    const verifiedSQSIamPolicy = verifyLambdaSQSPermission(template, serviceName.Email);
 
     expect(verifiedSQSIamPolicy).toBeTruthy();
+  });
+
+  // auth service
+  test('AuthService', () => {
+    // auth service lambda
+    assertLambdaFunction({
+      stage,
+      template,
+      service: serviceName.Auth,
+      env: {
+        JWT_SECRET_KEY: Match.stringLikeRegexp(config.AppName),
+        EMAIL_QUEUE_URL: Match.anyValue(),
+        DDB_SESSIONS_TABLE_NAME: Match.anyValue()
+      }
+    });
+
+    // authorizer lambda
+    assertLambdaFunction({
+      stage,
+      template,
+      service: serviceName.Auth,
+      name: 'Authorizer_' + stage,
+      env: {
+        JWT_SECRET_KEY: Match.stringLikeRegexp(config.AppName),
+        DDB_SESSIONS_TABLE_NAME: Match.anyValue()
+      }
+    });
+
+    assertLambdaAPIGatewayIntegration({ template, service: serviceName.Auth, baseURL: 'auth' });
+  });
+
+  test('UsersService', () => {
+    assertLambdaFunction({
+      stage,
+      template,
+      service: serviceName.Users,
+      env: {
+        EMAIL_QUEUE_URL: Match.anyValue(),
+        DDB_MAIN_TABLE_NAME: Match.anyValue()
+      }
+    });
+
+    assertLambdaAPIGatewayIntegration({
+      template,
+      service: serviceName.Users,
+      baseURL: 'users',
+      hasAuthorization: true
+    });
+  });
+
+  test('SpacesService', () => {
+    assertLambdaFunction({
+      stage,
+      template,
+      service: serviceName.Spaces,
+      env: {
+        DDB_MAIN_TABLE_NAME: Match.anyValue(),
+        NOTIFICATIONS_QUEUE_URL: Match.anyValue()
+      }
+    });
+
+    assertLambdaAPIGatewayIntegration({
+      template,
+      service: serviceName.Spaces,
+      baseURL: 'spaces',
+      hasAuthorization: true
+    });
+  });
+
+  test('NotesService', () => {
+    assertLambdaFunction({
+      stage,
+      template,
+      service: serviceName.Notes,
+      env: {
+        DDB_MAIN_TABLE_NAME: Match.anyValue(),
+        DDB_SEARCH_INDEX_TABLE_NAME: Match.anyValue(),
+        NOTIFICATIONS_QUEUE_URL: Match.anyValue()
+      }
+    });
+
+    assertLambdaAPIGatewayIntegration({
+      template,
+      service: serviceName.Notes,
+      baseURL: 'notes',
+      hasAuthorization: true
+    });
+  });
+
+  test('NotificationsService', () => {
+    assertLambdaFunction({
+      stage,
+      template,
+      service: serviceName.Notification,
+      env: {
+        DDB_MAIN_TABLE_NAME: Match.anyValue(),
+        NOTIFICATIONS_QUEUE_ARN: Match.anyValue(),
+        SCHEDULER_ROLE_ARN: Match.anyValue(),
+        NOTIFICATIONS_QUEUE_URL: Match.anyValue(),
+        VAPID_PRIVATE_KEY: Match.anyValue(),
+        VAPID_PUBLIC_KEY: Match.anyValue()
+      }
+    });
+
+    assertSQSQueue(template, `${config.AppName}-Notifications_${stage}`, serviceName.Notification);
+
+    assertLambdaSQSEventSourceMapping(template, serviceName.Notification);
+
+    const verifiedSQSIamPolicy = verifyLambdaSQSPermission(template, serviceName.Notification);
+
+    expect(verifiedSQSIamPolicy).toBeTruthy();
+
+    // assert scheduler role
+    const roles = template.findResources('AWS::IAM::Role');
+
+    for (const role of Object.values(roles)) {
+      if (role['Metadata']['aws:cdk:path'].includes('NotificationsServiceSchedulerRole')) {
+        expect(role.Properties).toMatchObject({
+          AssumeRolePolicyDocument: {
+            Statement: [
+              {
+                Action: 'sts:AssumeRole',
+                Effect: 'Allow',
+                Principal: {
+                  Service: 'scheduler.amazonaws.com'
+                }
+              }
+            ],
+            Version: '2012-10-17'
+          }
+        });
+      }
+    }
+
+    assertLambdaAPIGatewayIntegration({
+      template,
+      service: serviceName.Notification,
+      baseURL: 'notifications',
+      hasAuthorization: true
+    });
   });
 });
