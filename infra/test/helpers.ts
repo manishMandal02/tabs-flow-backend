@@ -17,47 +17,30 @@ export const verifyLambdaSQSPermission = (template: Template, service: string): 
     if ((policy['Properties']['PolicyName'] as string).startsWith('LambdaRoleDefaultPolicy')) {
       const statement = PolicyDocument['Statement'] as any;
       const actions = statement[0]['Action'] as string[];
-      if (Array.isArray(statement) && Array.isArray(actions) && actions[0].startsWith('sqs:')) {
-        iamStatement = statement as any[];
-        break;
-      }
-    }
-  }
-
-  if (!iamStatement.length) {
-    return false;
-  }
-
-  for (const statement of iamStatement) {
-    if (statement.Effect !== 'Allow' || !Array.isArray(statement.Action)) continue;
-
-    const actions = statement.Action as string[];
-
-    if (!actions[0].startsWith('sqs:')) continue;
-
-    // iam policy for sqs permission
-    expect(actions).toHaveLength(5);
-
-    expect(actions).toContain('sqs:ReceiveMessage');
-    expect(actions).toContain('sqs:DeleteMessage');
-
-    // verify policy resource
-    if (Array.isArray(statement.Resource)) {
-      // multiple resources
-      const resources = statement.Resource as { [key: string]: string[] }[];
-      for (const resource of resources) {
-        if (resource['Fn::GetAtt'][0].includes(service) && resource['Fn::GetAtt'][1] === 'Arn') {
-          verifiedSQSIamPolicy = true;
-          break;
-        }
-      }
-    } else {
       if (
-        statement.Resource['Fn::GetAtt'][0].includes(service) &&
-        statement.Resource['Fn::GetAtt'][1] === 'Arn'
+        Array.isArray(statement) &&
+        Array.isArray(actions) &&
+        actions[0].startsWith('sqs:') &&
+        actions.length >= 5
       ) {
-        verifiedSQSIamPolicy = true;
-        break;
+        const resource = statement[0]['Resource'] as any;
+        iamStatement = statement as any[];
+        expect(actions).toContain('sqs:ReceiveMessage');
+        expect(actions).toContain('sqs:DeleteMessage');
+
+        if (!Array.isArray(resource)) {
+          if (resource['Fn::GetAtt'][0].includes(service) && resource['Fn::GetAtt'][1] === 'Arn') {
+            verifiedSQSIamPolicy = true;
+            break;
+          }
+        } else {
+          for (const res of resource as any[]) {
+            if (res['Fn::GetAtt'][0].includes(service) && res['Fn::GetAtt'][1] === 'Arn') {
+              verifiedSQSIamPolicy = true;
+              break;
+            }
+          }
+        }
       }
     }
   }

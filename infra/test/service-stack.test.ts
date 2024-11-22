@@ -12,6 +12,7 @@ import {
   assertSQSQueue,
   verifyLambdaSQSPermission
 } from './helpers';
+import { log } from 'console';
 
 const serviceName = {
   Email: 'EmailService',
@@ -28,6 +29,7 @@ describe('ServiceStack', () => {
 
   const serviceStack = new ServiceStack(app, 'ServiceStack', {
     stage,
+    terminationProtection: stage === config.Stage.Prod,
     env: {
       region: process.env.AWS_REGION,
       account: process.env.AWS_ACCOUNT_ID
@@ -165,31 +167,38 @@ describe('ServiceStack', () => {
 
     assertLambdaSQSEventSourceMapping(template, serviceName.Notification);
 
-    const verifiedSQSIamPolicy = verifyLambdaSQSPermission(template, serviceName.Notification);
-
-    expect(verifiedSQSIamPolicy).toBeTruthy();
+    // assert sqs permission
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: [
+          {
+            Action: Match.arrayWith(['sqs:SendMessage', 'sqs:GetQueueAttributes', 'sqs:GetQueueUrl']),
+            Effect: 'Allow',
+            Resource: {
+              'Fn::GetAtt': [Match.stringLikeRegexp(serviceName.Notification), 'Arn']
+            }
+          }
+        ],
+        Version: '2012-10-17'
+      }
+    });
 
     // assert scheduler role
-    const roles = template.findResources('AWS::IAM::Role');
-
-    for (const role of Object.values(roles)) {
-      if (role['Metadata']['aws:cdk:path'].includes('NotificationsServiceSchedulerRole')) {
-        expect(role.Properties).toMatchObject({
-          AssumeRolePolicyDocument: {
-            Statement: [
-              {
-                Action: 'sts:AssumeRole',
-                Effect: 'Allow',
-                Principal: {
-                  Service: 'scheduler.amazonaws.com'
-                }
-              }
-            ],
-            Version: '2012-10-17'
+    template.hasResourceProperties('AWS::IAM::Role', {
+      AssumeRolePolicyDocument: {
+        Statement: [
+          {
+            Action: 'sts:AssumeRole',
+            Effect: 'Allow',
+            Principal: {
+              Service: 'scheduler.amazonaws.com'
+            }
           }
-        });
-      }
-    }
+        ],
+        Version: '2012-10-17'
+      },
+      Description: Match.stringLikeRegexp('EventBridge Scheduler')
+    });
 
     assertLambdaAPIGatewayIntegration({
       template,

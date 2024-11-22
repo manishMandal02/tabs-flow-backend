@@ -10,24 +10,26 @@ import { config } from '../config';
 
 const app = new App();
 
+const stage = config.Env.DEPLOY_STAGE;
+
 new StatefulStack(app, 'StatefulStack', {
-  terminationProtection: false,
+  terminationProtection: stage === config.Stage.Prod,
   env: {
     region: process.env.AWS_REGION,
     account: process.env.AWS_ACCOUNT_ID
   },
-  stage: config.Env.DEPLOY_STAGE,
-  removalPolicy: config.Env.DEPLOY_STAGE === config.Stage.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
+  stage: stage,
+  removalPolicy: stage === config.Stage.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
 });
 
 new ServiceStack(app, 'ServiceStack', {
-  terminationProtection: false,
+  terminationProtection: stage === config.Stage.Prod,
   env: {
     region: process.env.AWS_REGION,
     account: process.env.AWS_ACCOUNT_ID
   },
-  stage: config.Env.DEPLOY_STAGE,
-  removalPolicy: config.Env.DEPLOY_STAGE === config.Stage.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
+  stage: stage,
+  removalPolicy: stage === config.Stage.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
 });
 
 // synthesize stacks;

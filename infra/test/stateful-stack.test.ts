@@ -4,25 +4,25 @@ import { Template } from 'aws-cdk-lib/assertions';
 import { config } from '../config';
 
 test('StatefulStack', () => {
-  // skip test
-  return;
+  const stage = config.Env.DEPLOY_STAGE;
+
   const app = new cdk.App();
 
   const statefulStack = new StatefulStack(app, 'StatefulStack', {
-    terminationProtection: false,
+    stage,
+    terminationProtection: stage === config.Stage.Prod,
     env: {
       region: process.env.AWS_REGION,
       account: process.env.AWS_ACCOUNT_ID
     },
-    stage: config.Stage.Prod,
-    removalPolicy: cdk.RemovalPolicy.RETAIN
+    removalPolicy: stage === config.Stage.Prod ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
   });
 
   const template = Template.fromStack(statefulStack);
 
   const ddbPros = {
     BillingMode: 'PAY_PER_REQUEST',
-    DeletionProtectionEnabled: true,
+    DeletionProtectionEnabled: stage === config.Stage.Prod,
     KeySchema: [
       {
         AttributeName: config.DynamoDB.PrimaryKey,
@@ -37,16 +37,16 @@ test('StatefulStack', () => {
 
   // assert DynamoDB tables
   template.hasResourceProperties('AWS::DynamoDB::Table', {
-    TableName: `${config.AppName}-${config.DynamoDB.SessionsTableName}_${config.Stage.Prod}`,
+    TableName: `${config.DynamoDB.SessionsTableName}`,
     ...ddbPros
   });
   template.hasResourceProperties('AWS::DynamoDB::Table', {
-    TableName: `${config.AppName}-${config.DynamoDB.MainTableName}_${config.Stage.Prod}`,
+    TableName: `${config.DynamoDB.MainTableName}`,
     ...ddbPros
   });
 
   template.hasResourceProperties('AWS::DynamoDB::Table', {
-    TableName: `${config.AppName}-${config.DynamoDB.SearchIndexTableName}_${config.Stage.Prod}}`,
+    TableName: `${config.DynamoDB.SearchIndexTableName}`,
     ...ddbPros
   });
 

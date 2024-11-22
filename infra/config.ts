@@ -25,9 +25,9 @@ const getEnv = (key: string) => {
 };
 
 const dynamoDB = {
-  MainTableName: 'Main',
-  SessionsTableName: 'Sessions',
-  SearchIndexTableName: 'SearchIndex',
+  MainTableName: `${AppName}-Main_${getEnv('DEPLOY_STAGE')}`,
+  SessionsTableName: `${AppName}-Sessions_${getEnv('DEPLOY_STAGE')}`,
+  SearchIndexTableName: `${AppName}-SearchIndex_${getEnv('DEPLOY_STAGE')}`,
   PrimaryKey: 'PK',
   SortKey: 'SK',
   TTL: 'TTL'
