@@ -3,6 +3,8 @@ name: Deploy to Dev Environment on Pull Request
 on:
   pull_request:
     branches: [dev]
+  push:
+    branches: [dev]
 
 # common env variables
 env:
@@ -33,7 +35,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20"
+          node-version: 20.x"
 
       - name: Install dependencies
         run: |
@@ -64,7 +66,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.x'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
