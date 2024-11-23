@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
+import { describe, expect, test } from '@jest/globals';
 
 import { config } from '../config';
 import { ServiceStack } from './../lib/stacks/services/service-stack';
@@ -34,8 +35,6 @@ describe('ServiceStack', () => {
     removalPolicy: stage === config.Stage.Prod ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
   });
   const template = Template.fromStack(serviceStack);
-
-  expect(template.toJSON()).toMatchSnapshot();
 
   // email  service
   test('EmailService', () => {

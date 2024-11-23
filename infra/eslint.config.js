@@ -11,10 +11,7 @@ export default [
       parser: parser,
       globals: {
         process: 'readonly',
-        __dirname: 'readonly',
-        describe: 'readonly',
-        test: 'readonly',
-        expect: 'readonly'
+        __dirname: 'readonly'
       }
     },
     plugins: {

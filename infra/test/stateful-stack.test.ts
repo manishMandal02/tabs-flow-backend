@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
+import { test } from '@jest/globals';
 
 import { config } from '../config';
 import { StatefulStack } from '../lib/stacks/stateful/stateful';

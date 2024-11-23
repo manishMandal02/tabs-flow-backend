@@ -104,6 +104,8 @@ jobs:
         env:
           AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
 
+          # Set ENV variables from test deployment for e2e tests
+
       - name: Run E2E tests
         run: make test-e2e
 

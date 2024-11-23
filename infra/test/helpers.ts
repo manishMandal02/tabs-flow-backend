@@ -1,5 +1,6 @@
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { config } from '../config';
+import { expect } from '@jest/globals';
 
 export const verifyLambdaSQSPermission = (template: Template, service: string): boolean => {
   let verifiedSQSIamPolicy = false;
