@@ -39,6 +39,8 @@ jobs:
 
       - name: Set up PNPM
         uses: pnpm/action-setup@v4
+        with:
+          version: 8.x
 
       - name: Install dependencies
         run: |
@@ -72,6 +74,8 @@ jobs:
           node-version: 20.x
       - name: Set up PNPM
         uses: pnpm/action-setup@v4
+        with:
+          version: 8.x
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
