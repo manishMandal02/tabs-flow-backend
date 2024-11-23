@@ -1,6 +1,4 @@
 # typescript
-*.js
-!jest.config.js
 *.d.ts
 node_modules
 
@@ -27,9 +25,6 @@ cdk.out
 .DS_Store
 .env.local
 .idea
-
-/static/css/style.css
-/static/css/style.min.css
 
 /tmp
 /bin

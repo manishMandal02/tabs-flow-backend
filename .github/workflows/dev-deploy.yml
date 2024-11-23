@@ -55,10 +55,6 @@ jobs:
         run: |
           go install github.com/Antonboom/testifylint@latest
 
-      - name: list files
-        run: |
-          ls
-
       - name: Run linting
         run: make lint-all
 
