@@ -45,13 +45,15 @@ jobs:
       - name: Install dependencies
         run: |
           make install-deps
+
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v6
+
         with:
           install-mode: 'goinstall'
       - name: Install testifylint
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
+          go install github.com/Antonboom/testifylint@latest
 
       - name: Run linting
         run: make lint-all

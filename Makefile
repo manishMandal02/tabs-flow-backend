@@ -10,6 +10,7 @@ default: dev
 # install dependencies
 install-deps-go: 
 	go mod download && go mod tidy
+	
 install-deps-ts: 
 	cd infra/ && pnpm install 
 	
