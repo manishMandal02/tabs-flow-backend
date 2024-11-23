@@ -45,6 +45,10 @@ jobs:
       - name: Install dependencies
         run: |
           make install-deps
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          install-mode: 'goinstall'
 
       - name: Run linting
         run: make lint-all
