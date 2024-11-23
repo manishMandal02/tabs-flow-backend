@@ -11,8 +11,8 @@ default: dev
 install-deps-go: 
 	go mod download && go mod tidy
 install-deps-ts: 
-	cd infra/ && pnpm install
-
+	cd infra/ && pnpm install 
+	
 install-deps: install-deps-go install-deps-ts
 
 # local development
