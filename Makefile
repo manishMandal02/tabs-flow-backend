@@ -1,4 +1,7 @@
-include .env
+# Include .env file if it exists
+ifneq (,$(wildcard .env))
+    include .env
+endif
 
 # Default 
 default: dev
