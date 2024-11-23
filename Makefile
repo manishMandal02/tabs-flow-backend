@@ -10,7 +10,7 @@ default: dev
 # install dependencies
 install-deps-go: 
 	go mod download && go mod tidy
-	
+
 install-deps-ts: 
 	cd infra/ && pnpm install 
 	
@@ -22,7 +22,7 @@ dev:
 
 #  Linting
 lint-ts:
-	cd infra/ && npm run lint
+	cd infra/ && pnpm run lint
 
 lint-go:
 	go vet ./... && golangci-lint run ./... && testifylint --enable-all ./...
