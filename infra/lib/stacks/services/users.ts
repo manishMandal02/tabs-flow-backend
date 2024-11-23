@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 
 import { GoFunction } from '@aws-cdk/aws-lambda-go-alpha';
-import { aws_apigateway, aws_dynamodb, aws_iam, aws_lambda } from 'aws-cdk-lib';
+import { aws_apigateway, aws_dynamodb, aws_iam } from 'aws-cdk-lib';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 import { config } from '../../../config';

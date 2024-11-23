@@ -239,6 +239,11 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	// remove remainder at
 	err = removeNoteRemainder(db, p.UserId, p.NoteId)
 
+	if err != nil {
+		logger.Error("error removing note remainder", err)
+		return err
+	}
+
 	return nil
 
 }
@@ -301,6 +306,10 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	// delete snoozed tab
 	err = deleteSnoozedTab(db, p.UserId, p.SpaceId, p.SnoozedTabId)
 
+	if err != nil {
+		logger.Error("error deleting snoozed tab", err)
+		return err
+	}
 	return nil
 
 }

@@ -663,12 +663,6 @@ func subscriptionWebhookTestCases() []TestCase {
 
 	generateWebhookBody := func(createdEvent bool) map[string]interface{} {
 
-		type Item struct {
-			Price struct {
-				ID string `json:"id"`
-			} `json:"price"`
-		}
-
 		eventBody := map[string]interface{}{
 			"id":              "ntfsimevt_01jaqmyj1kg8gt3e02j25nfw25",
 			"event_type":      "subscription.updated",

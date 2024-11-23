@@ -43,6 +43,8 @@ type E2ETestSuite struct {
 }
 
 func (s *E2ETestSuite) initSuite() {
+	s.T().Helper()
+
 	env := getENVs()
 
 	s.ENV = env

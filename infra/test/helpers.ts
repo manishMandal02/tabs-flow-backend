@@ -1,21 +1,17 @@
-import { NotificationsService } from './../lib/stacks/services/notifications';
-import { EmailService } from './../lib/stacks/services/email';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { config } from '../config';
 
 export const verifyLambdaSQSPermission = (template: Template, service: string): boolean => {
-  let iamStatement: any[] = [];
-
   let verifiedSQSIamPolicy = false;
 
   // verify lambda permission for sqs
   const policies = template.findResources('AWS::IAM::Policy', {});
 
   for (const policy of Object.values(policies)) {
-    const PolicyDocument = policy['Properties']['PolicyDocument'] as any;
+    const PolicyDocument = policy['Properties']['PolicyDocument'];
 
     if ((policy['Properties']['PolicyName'] as string).startsWith('LambdaRoleDefaultPolicy')) {
-      const statement = PolicyDocument['Statement'] as any;
+      const statement = PolicyDocument['Statement'];
       const actions = statement[0]['Action'] as string[];
       if (
         Array.isArray(statement) &&
@@ -23,8 +19,7 @@ export const verifyLambdaSQSPermission = (template: Template, service: string): 
         actions[0].startsWith('sqs:') &&
         actions.length >= 5
       ) {
-        const resource = statement[0]['Resource'] as any;
-        iamStatement = statement as any[];
+        const resource = statement[0]['Resource'];
         expect(actions).toContain('sqs:ReceiveMessage');
         expect(actions).toContain('sqs:DeleteMessage');
 
@@ -34,7 +29,7 @@ export const verifyLambdaSQSPermission = (template: Template, service: string): 
             break;
           }
         } else {
-          for (const res of resource as any[]) {
+          for (const res of resource) {
             if (res['Fn::GetAtt'][0].includes(service) && res['Fn::GetAtt'][1] === 'Arn') {
               verifiedSQSIamPolicy = true;
               break;
@@ -52,7 +47,7 @@ type AssertLambdaFunctionProps = {
   template: Template;
   service: string;
   stage: string;
-  env: Record<string, any>;
+  env: Record<string, unknown>;
   name?: string;
 };
 

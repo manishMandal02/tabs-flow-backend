@@ -1,7 +1,8 @@
-import { StatefulStack } from '../lib/stacks/stateful/stateful';
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
+
 import { config } from '../config';
+import { StatefulStack } from '../lib/stacks/stateful/stateful';
 
 test('StatefulStack', () => {
   const stage = config.Env.DEPLOY_STAGE;

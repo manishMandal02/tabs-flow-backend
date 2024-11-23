@@ -6,14 +6,6 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 )
 
-var testCases = []struct {
-	name string
-}{
-	{
-		name: "test",
-	},
-}
-
 func TestNewEventFromJSON(t *testing.T) {
 	eventStr := `{
 		"event_type": "send_otp",

@@ -1,5 +1,3 @@
-import { SpacesService } from './../lib/stacks/services/spaces';
-import { EmailService } from './../lib/stacks/services/email';
 import * as cdk from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 
@@ -12,7 +10,6 @@ import {
   assertSQSQueue,
   verifyLambdaSQSPermission
 } from './helpers';
-import { log } from 'console';
 
 const serviceName = {
   Email: 'EmailService',
@@ -38,7 +35,7 @@ describe('ServiceStack', () => {
   });
   const template = Template.fromStack(serviceStack);
 
-  //   expect(template.toJSON()).toMatchSnapshot();
+  expect(template.toJSON()).toMatchSnapshot();
 
   // email  service
   test('EmailService', () => {

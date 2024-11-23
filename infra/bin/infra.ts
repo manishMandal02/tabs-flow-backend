@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
-import { App, Aspects, RemovalPolicy } from 'aws-cdk-lib';
+import { App, RemovalPolicy } from 'aws-cdk-lib';
 import { ServiceStack } from '../lib/stacks/services/service-stack';
 import { StatefulStack } from '../lib/stacks/stateful';
-
-import { AwsSolutionsChecks } from 'cdk-nag';
 
 import { config } from '../config';
 
@@ -31,6 +29,3 @@ new ServiceStack(app, 'ServiceStack', {
   stage: stage,
   removalPolicy: stage === config.Stage.Prod ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
 });
-
-// synthesize stacks;
-app.synth();
