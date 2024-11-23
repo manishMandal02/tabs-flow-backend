@@ -1,0 +1,126 @@
+name: Deploy to Prod Environment on Pull Request
+
+on:
+  pull_request:
+    branches: [prod]
+
+# common env variables
+env:
+  AWS_ACCOUNT_ID_DEV: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  API_DOMAIN_NAME_DEV: ${{ secrets.API_DOMAIN_NAME_DEV }}
+  AWS_GITHUB_OIDC_ROLE_DEV: ${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
+  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+  ZEPTO_MAIL_API_KEY: ${{ secrets.ZEPTO_MAIL_API_KEY }}
+  PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+  PADDLE_WEBHOOK_SECRET_KEY: ${{ secrets.PADDLE_WEBHOOK_SECRET_KEY }}
+  VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+  VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          make install-deps
+
+      - name: Run linting
+        run: make lint-all
+
+      - name: Run unit tests
+        run: make test-unit
+
+      - name: Run integration tests
+        run: make test-integration
+
+  deploy-test:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: true
+    env:
+      DEPLOY_STAGE: 'test'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          make install-deps
+
+      - name: Run infrastructure tests
+        run: make test-infra
+
+      - name: Deploy to test environment
+        run: make deploy-all
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
+
+      - name: Run E2E tests
+        run: make test-e2e
+
+      - name: Cleanup test environment
+        if: always()
+        run: make test-cleanup
+
+  deploy-prod:
+    needs: deploy-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: true
+    env:
+      DEPLOY_STAGE: 'prod'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          make install-deps
+
+      - name: Deploy to production
+        run: make deploy-all
+        env:
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID_DEV }}
+          API_DOMAIN_NAME: ${{ env.API_DOMAIN_NAME_DEV }}

@@ -3,6 +3,15 @@ include .env
 # Default 
 default: dev
 
+
+# install dependencies
+install-deps-go: 
+	go mod download && go mod tidy
+install-deps-ts: 
+	cd infra/ && pnpm install
+
+install-deps: install-deps-go install-deps-ts
+
 # local development
 dev:
 	air -- -local_dev=true
