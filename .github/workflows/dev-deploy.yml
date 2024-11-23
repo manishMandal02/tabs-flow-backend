@@ -1,15 +1,15 @@
-name: Deploy to Prod Environment on Pull Request
+name: Deploy to Dev Environment on Pull Request
 
 on:
   pull_request:
-    branches: [prod]
+    branches: [dev]
 
 # common env variables
 env:
-  AWS_ACCOUNT_ID_DEV: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  API_DOMAIN_NAME_DEV: ${{ secrets.API_DOMAIN_NAME_DEV }}
-  AWS_GITHUB_OIDC_ROLE_DEV: ${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
+  API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}
+  AWS_GITHUB_OIDC_ROLE: ${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
   JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
   ZEPTO_MAIL_API_KEY: ${{ secrets.ZEPTO_MAIL_API_KEY }}
   PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
@@ -69,7 +69,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
+          role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Install dependencies
@@ -82,7 +82,7 @@ jobs:
       - name: Deploy to test environment
         run: make deploy-all
         env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
 
       - name: Run E2E tests
         run: make test-e2e
@@ -100,7 +100,7 @@ jobs:
     strategy:
       fail-fast: true
     env:
-      DEPLOY_STAGE: 'prod'
+      DEPLOY_STAGE: 'dev'
     steps:
       - uses: actions/checkout@v4
 
@@ -112,15 +112,15 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_DEV }}
+          role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Install dependencies
         run: |
           make install-deps
 
-      - name: Deploy to production
+      - name: Deploy to development environment
         run: make deploy-all
         env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID_DEV }}
-          API_DOMAIN_NAME: ${{ env.API_DOMAIN_NAME_DEV }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+          API_DOMAIN_NAME: ${{ env.API_DOMAIN_NAME }}
