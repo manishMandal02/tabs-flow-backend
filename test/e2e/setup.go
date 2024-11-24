@@ -3,6 +3,7 @@ package e2e_tests
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+	"github.com/aws/aws-sdk-go-v2/service/apigateway"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/joho/godotenv"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
@@ -25,6 +27,7 @@ var CookieJar, _ = cookiejar.New(nil)
 
 type ENV struct {
 	ApiDomainName         string
+	AWS_ACCOUNT_ID        string
 	AWS_ACCOUNT_PROFILE   string
 	MainTable             string
 	SessionTable          string
@@ -72,6 +75,14 @@ func (s *E2ETestSuite) initSuite() {
 	s.AWSConfig = awsConfig
 
 	s.DDBClient = dynamodb.NewFromConfig(*awsConfig)
+
+	// get api gateway url
+
+	apiURL, err := getApiGatewayURL(awsConfig)
+
+	s.Require().NoError(err, "Error getting api gateway url")
+
+	s.ENV.ApiDomainName = apiURL
 }
 
 func getENVs() ENV {
@@ -84,21 +95,22 @@ func getENVs() ENV {
 	}
 
 	// Load environment variables
+	awsAccountRegion, awsAccountRegionK := os.LookupEnv("AWS_ACCOUNT_REGION")
+	awsAccountId, awsAccountIdK := os.LookupEnv("AWS_ACCOUNT_ID")
 	awsProfile, awsProfileOK := os.LookupEnv("AWS_ACCOUNT_PROFILE")
-	apiDomain, apiDomainOK := os.LookupEnv("API_DOMAIN_NAME")
-	mainTableName, mainTableNameOK := os.LookupEnv("DDB_MAIN_TABLE_NAME")
-	sessionTableName, sessionTableNameOK := os.LookupEnv("DDB_SESSIONS_TABLE_NAME")
-	searchIndexTableName, searchIndexTableNameOK := os.LookupEnv("DDB_SEARCH_INDEX_TABLE_NAME")
-	emailQueueURL, emailQueueUrlOK := os.LookupEnv("EMAIL_QUEUE_URL")
-	notificationsQueueURL, notificationsQueueUrlOK := os.LookupEnv("NOTIFICATIONS_QUEUE_URL")
 
-	if !apiDomainOK || !mainTableNameOK || !sessionTableNameOK || !awsProfileOK ||
-		!searchIndexTableNameOK || !emailQueueUrlOK || !notificationsQueueUrlOK {
+	if !awsAccountIdK || !awsProfileOK || !awsAccountRegionK {
 		panic("Missing environment variables")
 	}
 
+	mainTableName := "TabsFlow-Main_test"
+	sessionTableName := "TabsFlow-Sessions_test"
+	searchIndexTableName := "TabsFlow-SearchIndex_test"
+	emailQueueURL := fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/TabsFlow-Emails_test", awsAccountRegion, awsAccountId)
+	notificationsQueueURL := fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/TabsFlow-Notifications_test", awsAccountRegion, awsAccountId)
+
 	return ENV{
-		ApiDomainName:         apiDomain,
+		AWS_ACCOUNT_ID:        awsAccountId,
 		AWS_ACCOUNT_PROFILE:   awsProfile,
 		MainTable:             mainTableName,
 		SessionTable:          sessionTableName,
@@ -122,6 +134,25 @@ func configureAWS(profile string) *aws.Config {
 	}
 
 	return &config
+}
+
+func getApiGatewayURL(c *aws.Config) (string, error) {
+	apiGWClient := apigateway.NewFromConfig(*c)
+
+	restAPIs, err := apiGWClient.GetRestApis(context.Background(), &apigateway.GetRestApisInput{})
+
+	if err != nil {
+		return "", err
+	}
+
+	apiId := *restAPIs.Items[0].Id
+
+	apiURL, err := url.Parse(fmt.Sprintf("https://%s.execute-api.%s.amazonaws.com/%s", apiId, c.Region, "test"))
+	if err != nil {
+		return "", err
+	}
+
+	return apiURL.String(), nil
 }
 
 func getOTPs(client *dynamodb.Client, tableName string) ([]string, error) {

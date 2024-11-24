@@ -9,9 +9,6 @@ on:
 # common env variables
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
-  API_DOMAIN_NAME_DEV: ${{ secrets.API_DOMAIN_NAME_DEV }}
-  AWS_GITHUB_OIDC_ROLE: ${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
   JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
   ZEPTO_MAIL_API_KEY: ${{ secrets.ZEPTO_MAIL_API_KEY }}
   PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
@@ -90,7 +87,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_GITHUB_OIDC_ROLE }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID_TEST }}:role/${{ env.AWS_GITHUB_OIDC_ROLE }}
 
       - name: Install dependencies
         run: |
@@ -102,9 +99,9 @@ jobs:
       - name: Deploy to test environment
         run: make deploy-all
         env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
-
-          # Set ENV variables from test deployment for e2e tests
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID_TEST }}
+          AWS_ACCOUNT_PROFILE: ${{ env.AWS_ACCOUNT_PROFILE_TEST }}
+          DEPLOY_STAGE: 'test'
 
       - name: Run E2E tests
         run: make test-e2e
@@ -123,6 +120,9 @@ jobs:
       fail-fast: true
     env:
       DEPLOY_STAGE: 'dev'
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
+      API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -135,7 +135,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_GITHUB_OIDC_ROLE }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID_DEV }}:role/${{ env.AWS_GITHUB_OIDC_ROLE_DEV }}
 
       - name: Install dependencies
         run: |
@@ -144,5 +144,5 @@ jobs:
       - name: Deploy to development environment
         run: make deploy-all
         env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID_DEV }}
           API_DOMAIN_NAME: ${{ env.API_DOMAIN_NAME_DEV }}
