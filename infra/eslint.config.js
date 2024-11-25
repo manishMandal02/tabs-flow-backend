@@ -10,8 +10,7 @@ export default [
     languageOptions: {
       parser: parser,
       globals: {
-        process: 'readonly',
-        __dirname: 'readonly'
+        process: 'readonly'
       }
     },
     plugins: {

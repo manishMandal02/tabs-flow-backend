@@ -2,13 +2,8 @@ import { Duration } from 'aws-cdk-lib';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
 
-//@ts-expect-error  ts target set to es2020
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: '../.env' });
 
 const AppName = 'TabsFlow';
 
