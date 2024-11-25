@@ -38,8 +38,8 @@ cdk-diff:
 cdk-bootstrap:
 	cd infra/ && cdk bootstrap --profile ${AWS_ACCOUNT_PROFILE}
 
-cdk-deploy-all:
-	cd infra/ && cdk deploy --all --profile ${AWS_ACCOUNT_PROFILE}
+cdk-deploy-main:
+	cd infra/ && cdk deploy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE}
 
 cdk-deploy-stack-service:  
 	cd infra/ && cdk deploy ServiceStack --profile ${AWS_ACCOUNT_PROFILE} --no-previous-parameters
@@ -53,15 +53,16 @@ cdk-deploy-stack-oidc:
 cdk-deploy-stack-acm:
 	cd infra/ && cdk deploy ACMStack --profile ${AWS_ACCOUNT_PROFILE}
 
+#! cdk destroy
 cdk-destroy-stack-service:  
 	cd infra/ && cdk destroy ServiceStack --profile ${AWS_ACCOUNT_PROFILE}
 
-cdk-destroy-all:
-	cd infra/ && cdk destroy --all --profile ${AWS_ACCOUNT_PROFILE}
+cdk-destroy-main:
+	cd infra/ && cdk destroy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE}
 
 
 # tests
-# cdl/infra test
+# cdk test
 test-infra:
 	cd infra/ && pnpm test
 

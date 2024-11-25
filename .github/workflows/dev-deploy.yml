@@ -91,7 +91,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_TEST }}:role/${{ env.OIDC_ROLE_NAME }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.OIDC_ROLE_NAME }}
 
       - name: Install dependencies
         run: |
@@ -101,7 +101,7 @@ jobs:
         run: make test-infra
 
       - name: Deploy to test environment
-        run: make deploy-all
+        run: make cdk-deploy-main
 
       - name: Run E2E tests
         run: make test-e2e
@@ -142,7 +142,7 @@ jobs:
           make install-deps
 
       - name: Deploy to development environment
-        run: make deploy-all
+        run: make cdk-deploy-main
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
           API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}

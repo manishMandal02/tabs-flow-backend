@@ -45,8 +45,12 @@ export class ServiceStack extends Stack {
         ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.APIDomainCertArn)
     });
 
-    if (!mainTableArn || !sessionsTableArn || !searchIndexTableArn || !apiDomainCertArn) {
-      throw new Error('Missing required SSM parameters.');
+    if (!mainTableArn || !sessionsTableArn || !searchIndexTableArn) {
+      throw new Error('Missing required DynamoDB Table ARNs SSM parameters.');
+    }
+
+    if (props.stage !== config.Stage.Test && !apiDomainCertArn) {
+      throw new Error('Missing required API Domain Certificate ARN SSM parameter.');
     }
 
     const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTableAr', mainTableArn);
