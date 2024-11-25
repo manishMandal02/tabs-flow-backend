@@ -78,7 +78,7 @@ test-e2e:
 test-all: test-infra test-unit test-integration test-e2e
 	echo "All tests passed"
 
-test-cleanup: cdk-destroy-all && s3-bucket-empty
+test-cleanup: cdk-destroy-main && s3-bucket-empty
 	echo "Cleanup Complete"
 
 # show html report for go test coverage in browser
