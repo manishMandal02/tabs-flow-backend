@@ -15,6 +15,11 @@ const Stage = {
 
 // helper to get env variables
 const getEnv = (key: string) => {
+  // api domain name is not required in test environment
+  if (key === 'API_DOMAIN_NAME' && getEnv('DEPLOY_STAGE') === Stage.Test) {
+    return '';
+  }
+
   const evn = process.env[key];
 
   if (!evn) {

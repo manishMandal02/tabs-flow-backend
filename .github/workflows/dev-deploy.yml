@@ -72,6 +72,9 @@ jobs:
       fail-fast: true
     env:
       DEPLOY_STAGE: 'test'
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_TEST }}
+      AWS_ACCOUNT_PROFILE: ${{ secrets.AWS_ACCOUNT_PROFILE_TEST }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -99,10 +102,6 @@ jobs:
 
       - name: Deploy to test environment
         run: make deploy-all
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_TEST }}
-          AWS_ACCOUNT_PROFILE: ${{ secrets.AWS_ACCOUNT_PROFILE_TEST }}
-          DEPLOY_STAGE: 'test'
 
       - name: Run E2E tests
         run: make test-e2e
