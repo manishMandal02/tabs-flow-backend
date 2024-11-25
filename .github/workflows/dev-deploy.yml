@@ -102,6 +102,7 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.OIDC_ROLE_NAME }}
+          role-session-name: ${{ env.AWS_ACCOUNT_PROFILE }}
 
       - name: Install dependencies
         run: |
@@ -132,6 +133,7 @@ jobs:
       DEPLOY_STAGE: 'dev'
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
       API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}
+      AWS_ACCOUNT_PROFILE: ${{ secrets.AWS_ACCOUNT_PROFILE_DEV }}
 
     steps:
       - uses: actions/checkout@v4
@@ -160,6 +162,7 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/${{ env.OIDC_ROLE_NAME }}
+          role-session-name: ${{ env.AWS_ACCOUNT_PROFILE }}
 
       - name: Install dependencies
         run: |
