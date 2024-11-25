@@ -102,7 +102,7 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.OIDC_ROLE_NAME }}
-          role-session-name: ${{ env.AWS_ACCOUNT_PROFILE }}
+          mask-aws-account-id: 'no'
 
       - name: Setup AWS Profile
         run: |
