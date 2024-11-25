@@ -3,7 +3,7 @@ import 'source-map-support/register';
 import { App, RemovalPolicy } from 'aws-cdk-lib';
 
 import { config } from '../config';
-
+import { ACMStack } from './../lib/stacks/acm/acm';
 import { StatefulStack } from '../lib/stacks/stateful';
 import { ServiceStack } from '../lib/stacks/services/services';
 import { GithubOIDCStack } from '../lib/stacks/github-oidc/github-oidc';
@@ -36,8 +36,19 @@ new ServiceStack(app, 'ServiceStack', {
 
 // github oidc stack
 new GithubOIDCStack(app, 'GithubOIDCStack', {
-  stackName: 'GithubOIDCStack',
   stage,
+  stackName: 'GithubOIDCStack',
+  env: {
+    region: process.env.AWS_REGION,
+    account: process.env.AWS_ACCOUNT_ID
+  },
+  terminationProtection: stage === config.Stage.Prod
+});
+
+// acm stack
+new ACMStack(app, 'ACMStack', {
+  stage,
+  stackName: 'ACMStack',
   env: {
     region: process.env.AWS_REGION,
     account: process.env.AWS_ACCOUNT_ID

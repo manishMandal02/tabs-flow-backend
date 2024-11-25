@@ -15,6 +15,7 @@ env:
   PADDLE_WEBHOOK_SECRET_KEY: ${{ secrets.PADDLE_WEBHOOK_SECRET_KEY }}
   VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
   VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+  OIDC_ROLE_NAME: ${{ secrets.AWS_GITHUB_OIDC_ROLE }}
 
 jobs:
   lint-and-test:
@@ -87,7 +88,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_TEST }}:role/${{ secrets.AWS_GITHUB_OIDC_ROLE_TEST }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_TEST }}:role/${{ env.OIDC_ROLE_NAME }}
 
       - name: Install dependencies
         run: |
@@ -135,7 +136,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/${{ env.OIDC_ROLE_NAME }}
 
       - name: Install dependencies
         run: |
