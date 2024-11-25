@@ -78,14 +78,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
+
       - name: Set up PNPM
         uses: pnpm/action-setup@v4
         with:
           version: 8.x
+
+      - name: Install CDK
+        run: |
+          pnpm install -g aws-cdk
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -110,7 +120,7 @@ jobs:
         if: always()
         run: make test-cleanup
 
-  deploy-prod:
+  deploy-dev:
     needs: deploy-test
     runs-on: ubuntu-latest
     permissions:
@@ -126,10 +136,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
+      - name: Set up PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.x
+
+      - name: Install CDK
+        run: |
+          pnpm install -g aws-cdk
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
