@@ -87,7 +87,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID_TEST }}:role/${{ env.AWS_GITHUB_OIDC_ROLE }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_TEST }}:role/${{ secrets.AWS_GITHUB_OIDC_ROLE_TEST }}
 
       - name: Install dependencies
         run: |
@@ -99,8 +99,8 @@ jobs:
       - name: Deploy to test environment
         run: make deploy-all
         env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID_TEST }}
-          AWS_ACCOUNT_PROFILE: ${{ env.AWS_ACCOUNT_PROFILE_TEST }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_TEST }}
+          AWS_ACCOUNT_PROFILE: ${{ secrets.AWS_ACCOUNT_PROFILE_TEST }}
           DEPLOY_STAGE: 'test'
 
       - name: Run E2E tests
@@ -135,7 +135,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID_DEV }}:role/${{ env.AWS_GITHUB_OIDC_ROLE_DEV }}
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/${{ secrets.AWS_GITHUB_OIDC_ROLE_DEV }}
 
       - name: Install dependencies
         run: |
@@ -144,5 +144,5 @@ jobs:
       - name: Deploy to development environment
         run: make deploy-all
         env:
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID_DEV }}
-          API_DOMAIN_NAME: ${{ env.API_DOMAIN_NAME_DEV }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
+          API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}

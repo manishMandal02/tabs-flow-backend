@@ -47,6 +47,12 @@ cdk-deploy-stack-service:
 cdk-deploy-stack-stateful:  
 	cd infra/ && cdk deploy StatefulStack --profile ${AWS_ACCOUNT_PROFILE}
 
+cdk-deploy-stack-oidc:
+	cd infra/ && cdk deploy GithubOIDCStack --profile ${AWS_ACCOUNT_PROFILE}
+
+cdk-deploy-stack-acm:
+	cd infra/ && cdk deploy ACMStack --profile ${AWS_ACCOUNT_PROFILE}
+
 cdk-destroy-stack-service:  
 	cd infra/ && cdk destroy ServiceStack --profile ${AWS_ACCOUNT_PROFILE}
 

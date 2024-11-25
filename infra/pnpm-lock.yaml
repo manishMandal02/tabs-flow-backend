@@ -31,6 +31,9 @@ devDependencies:
   '@jest/globals':
     specifier: ^29.7.0
     version: 29.7.0
+  '@k-foss/ts-esnode':
+    specifier: ^2.0.3
+    version: 2.0.3(typescript@5.1.6)
   '@types/jest':
     specifier: ^29.5.1
     version: 29.5.14
@@ -811,6 +814,15 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
+    dev: true
+
+  /@k-foss/ts-esnode@2.0.3(typescript@5.1.6):
+    resolution: {integrity: sha512-CF5XDSlThtqNI7tU89+EmKCk5DnlxmYe5iVYDkrVi8ILzWQt6hzY9nr451/kDfeklXciVA3WsMHk677rg9D8RQ==}
+    engines: {node: '>= 14.5'}
+    peerDependencies:
+      typescript: '>=3.7'
+    dependencies:
+      typescript: 5.1.6
     dev: true
 
   /@nodelib/fs.scandir@2.1.5:

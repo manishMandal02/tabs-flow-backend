@@ -3,6 +3,10 @@ import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+//@ts-expect-error  ts target set to es2020
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -24,6 +28,13 @@ const getEnv = (key: string) => {
   return evn;
 };
 
+const GithubOIDC = {
+  domain: 'token.actions.githubusercontent.com',
+  owner: 'manishMandal02',
+  repo: 'tabs-flow-backend',
+  roleName: 'GithubActionsDeployRole'
+} as const;
+
 const dynamoDB = {
   MainTableName: `${AppName}-Main_${getEnv('DEPLOY_STAGE')}`,
   SessionsTableName: `${AppName}-Sessions_${getEnv('DEPLOY_STAGE')}`,
@@ -38,7 +49,8 @@ const ssmParamNameBase = `/${AppName.toLowerCase()}/${getEnv('DEPLOY_STAGE')}`;
 const ssmParameterNames = {
   MainTableArn: `${ssmParamNameBase}/main-table-arn`,
   SessionsTableArn: `${ssmParamNameBase}/sessions-table-arn`,
-  SearchIndexTableArn: `${ssmParamNameBase}/search-index-table-arn`
+  SearchIndexTableArn: `${ssmParamNameBase}/search-index-table-arn`,
+  APIDomainCertArn: `${ssmParamNameBase}/api-domain-cert-arn`
 } as const;
 
 const lambda = {
@@ -65,6 +77,7 @@ export const config = {
   AppName,
   Stage,
   Env,
+  GithubOIDC,
   Lambda: lambda,
   DynamoDB: dynamoDB,
   SSMParameterName: ssmParameterNames

@@ -1,5 +1,4 @@
 import { Construct } from 'constructs';
-
 import {
   Stack,
   StackProps,
@@ -31,6 +30,7 @@ export class ServiceStack extends Stack {
     const mainTableArn = Lazy.string({
       produce: () => ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.MainTableArn)
     });
+
     const sessionsTableArn = Lazy.string({
       produce: () =>
         ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.SessionsTableArn)
@@ -39,6 +39,15 @@ export class ServiceStack extends Stack {
       produce: () =>
         ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.SearchIndexTableArn)
     });
+
+    const apiDomainCertArn = Lazy.string({
+      produce: () =>
+        ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.APIDomainCertArn)
+    });
+
+    if (!mainTableArn || !sessionsTableArn || !searchIndexTableArn || !apiDomainCertArn) {
+      throw new Error('Missing required SSM parameters.');
+    }
 
     const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTableAr', mainTableArn);
 
@@ -61,7 +70,8 @@ export class ServiceStack extends Stack {
     );
 
     const apiG = new RestApi(this, {
-      stage: props.stage
+      stage: props.stage,
+      domainCertArn: apiDomainCertArn
     });
 
     const emailService = new EmailService(this, {

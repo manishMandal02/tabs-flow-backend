@@ -35,6 +35,7 @@ type ENV struct {
 	EmailQueueURL         string
 	NotificationsQueueURL string
 }
+
 type E2ETestSuite struct {
 	suite.Suite
 	ENV        ENV

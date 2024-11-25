@@ -3,7 +3,7 @@ import { Match, Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, test } from '@jest/globals';
 
 import { config } from '../config';
-import { ServiceStack } from './../lib/stacks/services/service-stack';
+import { ServiceStack } from '../lib/stacks/services/services';
 import {
   assertLambdaAPIGatewayIntegration,
   assertLambdaFunction,

@@ -1,1 +1,1 @@
-export * from './service-stack';
+export * from './services';

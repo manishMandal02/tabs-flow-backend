@@ -5,6 +5,7 @@ import { config } from '../../../config';
 
 type RestApiProps = {
   stage: string;
+  domainCertArn: string;
 };
 
 export class RestApi extends Construct {
@@ -27,16 +28,8 @@ export class RestApi extends Construct {
     });
 
     if (props.stage !== config.Stage.Test) {
-      // Create an ACM certificate for api domain
-      const certificate = new acm.Certificate(this, 'Certificate', {
-        domainName: config.Env.API_DOMAIN_NAME,
-        validation: acm.CertificateValidation.fromEmail(),
-        certificateName: config.AppName + 'api-cert'
-      });
-
-      //* Info: Alternative way to verify domain name for aws certificate manager,
-      // create a certificate stack
-      // create a dns for subdomain with Route53 and then use the hosted zone to verify the domain
+      // get the certificate from the arn
+      const certificate = acm.Certificate.fromCertificateArn(this, 'Certificate', props.domainCertArn);
 
       // Create a custom domain name for your API
       const domainName = new apiGateway.DomainName(this, 'CustomDomainName', {
