@@ -38,11 +38,14 @@ cdk-diff:
 cdk-bootstrap:
 	cd infra/ && cdk bootstrap --profile ${AWS_ACCOUNT_PROFILE}
 
-cdk-deploy-main:
+cdk-deploy-main: 
 	cd infra/ && cdk deploy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE}
 
 cdk-deploy-stack-service:  
-	cd infra/ && cdk deploy ServiceStack --profile ${AWS_ACCOUNT_PROFILE} --no-previous-parameters
+	cd infra/ && cdk deploy ServiceStack --profile ${AWS_ACCOUNT_PROFILE}  --no-previous-parameters
+
+cdk-deploy-main-no-approval:
+	cd infra/ && cdk deploy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE} --require-approval never
 
 cdk-deploy-stack-stateful:  
 	cd infra/ && cdk deploy StatefulStack --profile ${AWS_ACCOUNT_PROFILE}
@@ -59,6 +62,9 @@ cdk-destroy-stack-service:
 
 cdk-destroy-main:
 	cd infra/ && cdk destroy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE}
+
+cdk-destroy-main-no-approval:
+	cd infra/ && cdk destroy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE} --require-approval never
 
 
 # tests
@@ -78,7 +84,7 @@ test-e2e:
 test-all: test-infra test-unit test-integration test-e2e
 	echo "All tests passed"
 
-test-cleanup: cdk-destroy-main && s3-bucket-empty
+test-cleanup: cdk-destroy-main-no-approval && s3-bucket-empty
 	echo "Cleanup Complete"
 
 # show html report for go test coverage in browser

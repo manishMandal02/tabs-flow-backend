@@ -125,7 +125,7 @@ jobs:
         run: make test-infra
 
       - name: Deploy to test environment
-        run: make cdk-deploy-main
+        run: make cdk-deploy-main-no-approval
 
       - name: Run E2E tests
         run: make test-e2e
@@ -182,7 +182,7 @@ jobs:
           make install-deps
 
       - name: Deploy to development environment
-        run: make cdk-deploy-main
+        run: make cdk-deploy-main-no-approval
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
           API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}
