@@ -106,7 +106,7 @@ jobs:
 
       - name: AWS List Profiles
         run: |
-          aws configure list-profiles
+          aws --profile ${{ env.AWS_ACCOUNT_PROFILE }} sts get-caller-identity
 
       - name: Install dependencies
         run: |
