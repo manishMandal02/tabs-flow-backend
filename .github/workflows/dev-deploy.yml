@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup-go-node.yml
+      - uses: ./.github/actions/setup-go-node
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -61,14 +61,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup-go-node.yml
+      - uses: ./.github/actions/setup-go-node
 
       - name: Install CDK
         run: |
           pnpm install -g aws-cdk
 
-      # Use the custom AWS configure action
-      - uses: ./.github/actions/aws-configure.yml
+      # custom AWS configure action
+      - uses: ./.github/actions/aws-configure
         with:
           aws-region: ${{ env.AWS_REGION }}
           aws-account-id: ${{ env.AWS_ACCOUNT_ID }}
@@ -105,14 +105,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup-go-node.yml
+      - uses: ./.github/actions/setup-go-node
 
       - name: Install CDK
         run: |
           pnpm install -g aws-cdk
 
       # Use the custom AWS configure action
-      - uses: ./.github/actions/aws-configure.yml
+      - uses: ./.github/actions/aws-configure
         with:
           aws-region: ${{ env.AWS_REGION }}
           aws-account-id: ${{ env.AWS_ACCOUNT_ID }}
