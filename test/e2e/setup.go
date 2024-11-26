@@ -88,11 +88,14 @@ func (s *E2ETestSuite) initSuite() {
 
 func getENVs() ENV {
 
-	err := godotenv.Load("./../../.env")
+	// load .env file if it exists
+	if _, err := os.Stat("./../../.env"); err == nil {
+		err = godotenv.Load("./../../.env")
 
-	if err != nil {
-		logger.Errorf("Error loading .env file: [Error] %v", err)
-		panic("Error loading .env file")
+		if err != nil {
+			logger.Errorf("Error loading .env file: [Error] %v", err)
+			panic("Error loading .env file")
+		}
 	}
 
 	// Load environment variables
