@@ -6,7 +6,8 @@ import {
   aws_iam as iam,
   aws_ssm as ssm,
   Lazy,
-  RemovalPolicy
+  RemovalPolicy,
+  aws_certificatemanager as acm
 } from 'aws-cdk-lib';
 
 import { RestApi } from './rest-api';
@@ -27,10 +28,10 @@ export class ServiceStack extends Stack {
   constructor(scope: Construct, id: string, props: ServiceStackProps) {
     super(scope, id, props);
 
+    // get ARNs from ssm parameter store
     const mainTableArn = Lazy.string({
       produce: () => ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.MainTableArn)
     });
-
     const sessionsTableArn = Lazy.string({
       produce: () =>
         ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.SessionsTableArn)
@@ -53,29 +54,32 @@ export class ServiceStack extends Stack {
       throw new Error('Missing required API Domain Certificate ARN SSM parameter.');
     }
 
-    const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTableAr', mainTableArn);
+    // get Dynamodb tables form ARNs
 
+    const mainDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(this, 'MainTableAr', mainTableArn);
+    const searchIndexDB = aws_dynamodb.Table.fromTableArn(this, 'SearchIndexTable', searchIndexTableArn);
     const sessionsDB: aws_dynamodb.ITable = aws_dynamodb.Table.fromTableArn(
       this,
       'SessionsTable',
       sessionsTableArn
     );
 
-    const searchIndexDB = aws_dynamodb.Table.fromTableArn(this, 'SearchIndexTable', searchIndexTableArn);
+    // get the certificate from the arn
+    const apiDomainCert = acm.Certificate.fromCertificateArn(this, 'Certificate', apiDomainCertArn);
 
-    // create an IAM role for lambda
+    // common IAM role for lambda
     const lambdaRole = new iam.Role(this, 'LambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
     });
 
-    // add basic execution role permissions
+    // add basic execution role permission
     lambdaRole.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
 
     const apiG = new RestApi(this, {
-      stage: props.stage,
-      domainCertArn: apiDomainCertArn
+      apiDomainCert,
+      stage: props.stage
     });
 
     const emailService = new EmailService(this, {

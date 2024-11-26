@@ -18,22 +18,28 @@ env:
   OIDC_ROLE_NAME: ${{ secrets.AWS_GITHUB_OIDC_ROLE }}
 
 jobs:
-  lint-and-test:
+  setup:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
+    outputs:
+      setup-cache-key: ${{ steps.setup-cache.outputs.cache-key }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Generate cache key
+        id: setup-cache
+        run: echo "cache-key=${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version-file: './go.mod'
+          cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
+          cache: 'pnpm'
 
       - name: Set up PNPM
         uses: pnpm/action-setup@v4
@@ -41,8 +47,32 @@ jobs:
           version: 8.x
 
       - name: Install dependencies
-        run: |
-          make install-deps
+        run: make install-deps
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            node_modules
+          key: ${{ runner.os }}-deps-${{ steps.setup-cache.outputs.cache-key }}
+
+  lint-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            node_modules
+          key: ${{ runner.os }}-deps-${{ needs.setup.outputs.setup-cache-key }}
 
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -78,48 +108,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Restore cache
+        uses: actions/cache@v3
         with:
-          go-version: '1.21'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-
-      - name: Set up PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8.x
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            node_modules
+          key: ${{ runner.os }}-deps-${{ needs.setup.outputs.setup-cache-key }}
 
       - name: Install CDK
         run: |
           pnpm install -g aws-cdk
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # Use the custom AWS configure action
+      - uses: ./.github/actions/aws-configure.yml
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.OIDC_ROLE_NAME }}
-          mask-aws-account-id: 'no'
-
-      - name: Setup AWS Profile
-        run: |
-          aws configure set region ${{  env.AWS_REGION  }} --profile ${{ env.AWS_ACCOUNT_PROFILE }}
-          aws configure set aws_access_key_id ${{ env.AWS_ACCESS_KEY_ID }} --profile ${{ env.AWS_ACCOUNT_PROFILE }}
-          aws configure set aws_secret_access_key ${{ env.AWS_SECRET_ACCESS_KEY }} --profile ${{ env.AWS_ACCOUNT_PROFILE }}
-          aws configure set aws_session_token ${{ env.AWS_SESSION_TOKEN }} --profile ${{ env.AWS_ACCOUNT_PROFILE }}
-
-      - name: Reset AWS Environment Variables to use profile
-        run: |
-          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
-
-      - name: Install dependencies
-        run: |
-          make install-deps
+          aws-account-id: ${{ env.AWS_ACCOUNT_ID }}
+          oidc-role-name: ${{ env.OIDC_ROLE_NAME }}
+          aws-account-profile: ${{ env.AWS_ACCOUNT_PROFILE }}
 
       - name: Run infrastructure tests
         run: make test-infra
@@ -151,38 +159,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Restore cache
+        uses: actions/cache@v3
         with:
-          go-version: '1.21'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Set up PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8.x
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            node_modules
+          key: ${{ runner.os }}-deps-${{ needs.setup.outputs.setup-cache-key }}
 
       - name: Install CDK
         run: |
           pnpm install -g aws-cdk
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # Use the custom AWS configure action
+      - uses: ./.github/actions/aws-configure.yml
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID_DEV }}:role/${{ env.OIDC_ROLE_NAME }}
-          role-session-name: ${{ env.AWS_ACCOUNT_PROFILE }}
-
-      - name: Install dependencies
-        run: |
-          make install-deps
+          aws-account-id: ${{ env.AWS_ACCOUNT_ID }}
+          oidc-role-name: ${{ env.OIDC_ROLE_NAME }}
+          aws-account-profile: ${{ env.AWS_ACCOUNT_PROFILE }}
 
       - name: Deploy to development environment
         run: make cdk-deploy-main-no-approval
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
-          API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}
