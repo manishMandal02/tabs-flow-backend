@@ -1,4 +1,5 @@
 name: 'Setup Golang and Node.js'
+description: 'Setup Golang and Node.js'
 
 runs:
   using: 'composite'
@@ -24,4 +25,6 @@ runs:
         cache-dependency-path: './infra/pnpm-lock.yaml'
 
     - name: Install dependencies
-      run: make install-deps
+      shell: bash
+      run: |
+        make install-deps
