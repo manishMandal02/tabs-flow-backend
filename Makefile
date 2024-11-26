@@ -64,7 +64,7 @@ cdk-destroy-main:
 	cd infra/ && cdk destroy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE}
 
 cdk-destroy-main-no-approval:
-	cd infra/ && cdk destroy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE} --require-approval never
+	cd infra/ && cdk destroy StatefulStack ServiceStack --profile ${AWS_ACCOUNT_PROFILE} --force
 
 
 # tests
