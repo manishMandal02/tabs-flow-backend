@@ -99,7 +99,7 @@ func getENVs() ENV {
 	}
 
 	// Load environment variables
-	awsAccountRegion, awsAccountRegionK := os.LookupEnv("AWS_ACCOUNT_REGION")
+	awsAccountRegion, awsAccountRegionK := os.LookupEnv("AWS_REGION")
 	awsAccountId, awsAccountIdK := os.LookupEnv("AWS_ACCOUNT_ID")
 	awsProfile, awsProfileOK := os.LookupEnv("AWS_ACCOUNT_PROFILE")
 
