@@ -1,6 +1,6 @@
 import { Construct } from 'constructs';
-import { Stack, StackProps } from 'aws-cdk-lib';
-import { aws_certificatemanager as acm, aws_ssm as ssm } from 'aws-cdk-lib';
+import { Stack, StackProps, aws_certificatemanager as acm, custom_resources } from 'aws-cdk-lib';
+
 import { config } from '../../../config';
 
 type ACMStackProps = StackProps & {
@@ -20,11 +20,23 @@ export class ACMStack extends Stack {
       validation: acm.CertificateValidation.fromEmail()
     });
 
-    // save table arns in ssm parameters store
-    new ssm.StringParameter(this, 'APIDomainCert', {
-      parameterName: config.SSMParameterName.MainTableArn,
-      stringValue: certificate.certificateArn,
-      tier: ssm.ParameterTier.STANDARD
+    // set the certificate arn to a  ssm parameter in the main region
+    new custom_resources.AwsCustomResource(this, 'PutParameterAPIDomainCert', {
+      onCreate: {
+        service: 'SSM',
+        action: 'putParameter',
+        parameters: {
+          Name: config.SSMParameterName.APIDomainCertArn,
+          Value: certificate.certificateArn,
+          Type: 'String',
+          Overwrite: true
+        },
+        region: config.Env.AWS_REGION,
+        physicalResourceId: custom_resources.PhysicalResourceId.of('PutParameterAPIDomainCert')
+      },
+      policy: custom_resources.AwsCustomResourcePolicy.fromSdkCalls({
+        resources: custom_resources.AwsCustomResourcePolicy.ANY_RESOURCE
+      })
     });
 
     //* Info: Alternative way to verify domain name for aws certificate manager,

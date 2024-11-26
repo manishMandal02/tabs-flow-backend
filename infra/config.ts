@@ -65,6 +65,7 @@ const lambda = {
 } as const;
 
 const Env = {
+  AWS_REGION: getEnv('AWS_REGION'),
   DEPLOY_STAGE: getEnv('DEPLOY_STAGE'),
   API_DOMAIN_NAME: getEnv('API_DOMAIN_NAME'),
   JWT_SECRET_KEY: getEnv('JWT_SECRET_KEY'),

@@ -5,7 +5,7 @@ import { config } from '../../../config';
 
 type RestApiProps = {
   stage: string;
-  apiDomainCert: acm.ICertificate;
+  apiDomainCertArn: string;
 };
 
 export class RestApi extends Construct {
@@ -28,10 +28,13 @@ export class RestApi extends Construct {
     });
 
     if (props.stage !== config.Stage.Test) {
+      // get the certificate from the arn
+      const apiDomainCert = acm.Certificate.fromCertificateArn(this, 'Certificate', props.apiDomainCertArn);
+
       // Create a custom domain name for your API
       const domainName = new apiGateway.DomainName(this, 'CustomDomainName', {
         domainName: config.Env.API_DOMAIN_NAME,
-        certificate: props.apiDomainCert,
+        certificate: apiDomainCert,
         endpointType: apiGateway.EndpointType.EDGE
       });
 

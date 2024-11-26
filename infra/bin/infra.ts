@@ -50,7 +50,8 @@ new ACMStack(app, 'ACMStack', {
   stage,
   stackName: 'ACMStack',
   env: {
-    region: process.env.AWS_REGION,
+    // API GW requires certificate to be in us-east-1 for custom domain (with edge endpoints)
+    region: 'us-east-1',
     account: process.env.AWS_ACCOUNT_ID
   },
   terminationProtection: stage === config.Stage.Prod

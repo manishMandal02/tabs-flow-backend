@@ -6,8 +6,7 @@ import {
   aws_iam as iam,
   aws_ssm as ssm,
   Lazy,
-  RemovalPolicy,
-  aws_certificatemanager as acm
+  RemovalPolicy
 } from 'aws-cdk-lib';
 
 import { RestApi } from './rest-api';
@@ -41,17 +40,17 @@ export class ServiceStack extends Stack {
         ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.SearchIndexTableArn)
     });
 
+    if (!mainTableArn || !sessionsTableArn || !searchIndexTableArn) {
+      throw new Error('Missing required SSM parameters: DynamoDB Table ARNs.');
+    }
+
     const apiDomainCertArn = Lazy.string({
       produce: () =>
         ssm.StringParameter.valueForStringParameter(this, config.SSMParameterName.APIDomainCertArn)
     });
 
-    if (!mainTableArn || !sessionsTableArn || !searchIndexTableArn) {
-      throw new Error('Missing required DynamoDB Table ARNs SSM parameters.');
-    }
-
     if (props.stage !== config.Stage.Test && !apiDomainCertArn) {
-      throw new Error('Missing required API Domain Certificate ARN SSM parameter.');
+      throw new Error('Missing required SSM parameter: API Domain Certificate ARN.');
     }
 
     // get Dynamodb tables form ARNs
@@ -64,9 +63,6 @@ export class ServiceStack extends Stack {
       sessionsTableArn
     );
 
-    // get the certificate from the arn
-    const apiDomainCert = acm.Certificate.fromCertificateArn(this, 'Certificate', apiDomainCertArn);
-
     // common IAM role for lambda
     const lambdaRole = new iam.Role(this, 'LambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
@@ -78,7 +74,7 @@ export class ServiceStack extends Stack {
     );
 
     const apiG = new RestApi(this, {
-      apiDomainCert,
+      apiDomainCertArn,
       stage: props.stage
     });
 
