@@ -88,6 +88,7 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&b)
 
 	userAgent := r.Header.Get("User-Agent")
+	origin := r.Header.Get("Origin")
 
 	if err != nil {
 		logger.Error("Error decoding request body for verify otp", err)
@@ -112,7 +113,7 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new session and set to cookie
-	res, err := createNewSession(b.Email, userAgent, h.r)
+	res, err := createNewSession(b.Email, userAgent, origin, h.r)
 
 	if err != nil {
 		http.Error(w, errMsg.createSession, http.StatusInternalServerError)
@@ -129,6 +130,7 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userAgent := r.Header.Get("User-Agent")
+	origin := r.Header.Get("Origin")
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -140,7 +142,7 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create new session and set to cookie
-	res, err := createNewSession(b.Email, userAgent, h.r)
+	res, err := createNewSession(b.Email, userAgent, origin, h.r)
 
 	if err != nil {
 		logger.Error(errMsg.createSession, errors.New(errMsg.createSession))
@@ -286,7 +288,7 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		return nil, errors.New("Usnauthorized")
 	}
 
-	res, err := createNewSession(email, ev.Headers["User-Agent"], h.r)
+	res, err := createNewSession(email, ev.Headers["User-Agent"], ev.Headers["Origin"], h.r)
 
 	if err != nil {
 		return nil, errors.New("Unauthorized")

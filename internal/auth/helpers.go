@@ -91,7 +91,7 @@ type createSessionRes struct {
 	}
 }
 
-func createNewSession(email, userAgent string, aR authRepository) (*createSessionRes, error) {
+func createNewSession(email, userAgent, origin string, aR authRepository) (*createSessionRes, error) {
 
 	//  check if user exits
 	userId, err := aR.userIdByEmail(email)
@@ -160,12 +160,19 @@ func createNewSession(email, userAgent string, aR authRepository) (*createSessio
 		return nil, err
 	}
 
+	cookieDomain := "tabsflow.com"
+
+	if strings.Contains(origin, "localhost") {
+		cookieDomain = "localhost"
+	}
+
 	cookie := &http.Cookie{
 		Name:     "session",
 		Value:    newToken,
 		HttpOnly: true,
 		Secure:   true,
 		Path:     "/",
+		Domain:   cookieDomain,
 		SameSite: http.SameSiteNoneMode,
 	}
 

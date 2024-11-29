@@ -29,6 +29,7 @@ func SuccessResData(w http.ResponseWriter, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
+
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Data: data})
 
 	if err != nil {

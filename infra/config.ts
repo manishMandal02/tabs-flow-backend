@@ -74,6 +74,13 @@ const Env = {
   ZEPTO_MAIL_API_KEY: getEnv('ZEPTO_MAIL_API_KEY')
 } as const;
 
+const AllowedOrigins = [
+  'https://localhost:3000',
+  'https://localhost:3003',
+  'https://tabsflow.com',
+  'https://www.tabsflow.com'
+];
+
 export const config = {
   Env,
   Stage,
@@ -81,5 +88,6 @@ export const config = {
   Lambda,
   DynamoDB,
   GithubOIDC,
+  AllowedOrigins,
   SSMParameterName
 } as const;

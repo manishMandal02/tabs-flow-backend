@@ -19,8 +19,9 @@ export class RestApi extends Construct {
           ? [apiGateway.EndpointType.REGIONAL]
           : [apiGateway.EndpointType.EDGE],
       defaultCorsPreflightOptions: {
-        allowOrigins: apiGateway.Cors.ALL_ORIGINS,
-        allowMethods: apiGateway.Cors.ALL_METHODS
+        allowOrigins: config.AllowedOrigins,
+        allowMethods: apiGateway.Cors.ALL_METHODS,
+        allowCredentials: true
       },
       deployOptions: {
         stageName: props.stage

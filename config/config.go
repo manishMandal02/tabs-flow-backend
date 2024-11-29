@@ -43,6 +43,8 @@ const (
 	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
 )
 
+var AllowedOrigins = []string{"https://localhost:3000", "https://localhost:3003", "https://tabsflow.com", "https://www.tabsflow.com"}
+
 func Init() {
 
 	localDevFlag := flag.Bool("local_dev", false, "local development mode")
