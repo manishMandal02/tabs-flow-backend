@@ -16,6 +16,8 @@ func Router() http_api.IRouter {
 
 	spacesRouter := http_api.NewRouter("/spaces")
 
+	spacesRouter.Use(http_api.SetAllowOriginHeader())
+
 	spacesRouter.Use(userIdMiddleware)
 
 	// spaces

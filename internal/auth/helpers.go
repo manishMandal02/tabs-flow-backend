@@ -166,7 +166,7 @@ func createNewSession(email, userAgent string, aR authRepository) (*createSessio
 		HttpOnly: true,
 		Secure:   true,
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 	}
 
 	return &createSessionRes{

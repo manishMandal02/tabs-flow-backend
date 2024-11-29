@@ -27,7 +27,7 @@ func Router() http_api.IRouter {
 
 	authRouter := http_api.NewRouter("/auth")
 
-	// authRouter("/", handler.getUserId)
+	authRouter.Use(http_api.SetAllowOriginHeader())
 
 	authRouter.POST("/verify-otp", handler.verifyOTP)
 

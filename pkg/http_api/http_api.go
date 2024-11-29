@@ -25,8 +25,10 @@ type APIResponse struct {
 }
 
 func SuccessResData(w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Data: data})
 
 	if err != nil {
@@ -36,8 +38,11 @@ func SuccessResData(w http.ResponseWriter, data interface{}) {
 }
 
 func SuccessResMsg(w http.ResponseWriter, msg string) {
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg})
 	if err != nil {
 		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
@@ -46,8 +51,11 @@ func SuccessResMsg(w http.ResponseWriter, msg string) {
 }
 
 func SuccessResMsgWithBody(w http.ResponseWriter, msg string, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg, Data: data})
 	if err != nil {
 		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)

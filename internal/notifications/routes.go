@@ -15,6 +15,9 @@ func Router() http_api.IRouter {
 
 	notificationsRouter := http_api.NewRouter("/notifications")
 
+	notificationsRouter.Use(http_api.SetAllowOriginHeader())
+
+
 	notificationsRouter.Use(userIdMiddleware)
 
 	// notifications subscription

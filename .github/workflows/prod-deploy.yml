@@ -1,8 +1,8 @@
-name: Deploy to Dev Environment on Pull Request
+name: Deploy to Prod Environment on Pull Request
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [prod]
 
 # common env variables
 env:
@@ -86,7 +86,7 @@ jobs:
         if: always()
         run: make test-cleanup
 
-  deploy-dev:
+  deploy-prod:
     needs: deploy-test
     runs-on: ubuntu-latest
     permissions:
@@ -95,10 +95,11 @@ jobs:
     strategy:
       fail-fast: true
     env:
-      DEPLOY_STAGE: 'dev'
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_DEV }}
-      API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_DEV }}
-      AWS_ACCOUNT_PROFILE: ${{ secrets.AWS_ACCOUNT_PROFILE_DEV }}
+      #   TODO: Add prod aws secrets (account id)
+      DEPLOY_STAGE: 'prod'
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID_PROD }}
+      API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME_PROD }}
+      AWS_ACCOUNT_PROFILE: ${{ secrets.AWS_ACCOUNT_PROFILE_PROD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -117,5 +118,5 @@ jobs:
           oidc-role-name: ${{ env.OIDC_ROLE_NAME }}
           aws-account-profile: ${{ env.AWS_ACCOUNT_PROFILE }}
 
-      - name: Deploy to development environment
+      - name: Deploy to production environment
         run: make cdk-deploy-main-no-approval

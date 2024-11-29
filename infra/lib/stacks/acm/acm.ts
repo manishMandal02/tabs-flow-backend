@@ -38,9 +38,5 @@ export class ACMStack extends Stack {
         resources: custom_resources.AwsCustomResourcePolicy.ANY_RESOURCE
       })
     });
-
-    //* Info: Alternative way to verify domain name for aws certificate manager,
-    // create a certificate stack
-    // create a dns for subdomain with Route53 and then use the hosted zone to verify the domain
   }
 }

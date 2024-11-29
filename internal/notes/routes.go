@@ -16,6 +16,8 @@ func Router() http_api.IRouter {
 
 	notesRouter := http_api.NewRouter("/notes")
 
+	notesRouter.Use(http_api.SetAllowOriginHeader())
+
 	notesRouter.Use(userIdMiddleware)
 
 	notesRouter.POST("/", nh.create)
