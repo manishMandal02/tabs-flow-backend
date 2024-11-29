@@ -162,10 +162,6 @@ func createNewSession(email, userAgent, origin string, aR authRepository) (*crea
 
 	cookieDomain := "tabsflow.com"
 
-	if strings.Contains(origin, "localhost") {
-		cookieDomain = "localhost"
-	}
-
 	cookie := &http.Cookie{
 		Name:     "session",
 		Value:    newToken,

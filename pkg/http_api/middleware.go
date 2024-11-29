@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/manishMandal02/tabsflow-backend/config"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 func SetAllowOriginHeader() Handler {
@@ -12,12 +13,16 @@ func SetAllowOriginHeader() Handler {
 
 		origin := r.Header.Get("Origin")
 
+		logger.Dev("origin: %v", origin)
+
 		if origin == "" {
 			http.Error(w, "Origin not allowed", http.StatusForbidden)
+			return
 		}
 
 		if !slices.Contains(config.AllowedOrigins, origin) {
 			http.Error(w, "Origin not allowed", http.StatusForbidden)
+			return
 		}
 
 		w.Header().Add("Access-Control-Allow-Origin", origin)

@@ -75,8 +75,7 @@ const Env = {
 } as const;
 
 const AllowedOrigins = [
-  'https://localhost:3000',
-  'https://localhost:3003',
+  'https://local.tabsflow.com:3000',
   'https://tabsflow.com',
   'https://www.tabsflow.com'
 ];
