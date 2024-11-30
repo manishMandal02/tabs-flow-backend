@@ -115,7 +115,7 @@ func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) erro
 func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
 
 	if id == "" {
-		http.Error(w, ErrMsg.InvalidUserId, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.InvalidUserId, http.StatusBadRequest)
 		return false
 	}
 
@@ -124,15 +124,15 @@ func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
 
 	if err != nil {
 		if err.Error() == ErrMsg.UserNotFound {
-			http.Error(w, ErrMsg.UserNotFound, http.StatusBadRequest)
+			http_api.ErrorRes(w, ErrMsg.UserNotFound, http.StatusBadRequest)
 		} else {
-			http.Error(w, ErrMsg.GetUser, http.StatusInternalServerError)
+			http_api.ErrorRes(w, ErrMsg.GetUser, http.StatusInternalServerError)
 		}
 		return false
 	}
 
 	if userExists == nil {
-		http.Error(w, ErrMsg.UserNotFound, http.StatusNotFound)
+		http_api.ErrorRes(w, ErrMsg.UserNotFound, http.StatusNotFound)
 		return false
 	}
 	return true

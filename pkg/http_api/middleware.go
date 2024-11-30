@@ -16,12 +16,12 @@ func SetAllowOriginHeader() Handler {
 		logger.Dev("origin: %v", origin)
 
 		if origin == "" {
-			http.Error(w, "Origin not allowed", http.StatusForbidden)
+			ErrorRes(w, "Origin not allowed", http.StatusForbidden)
 			return
 		}
 
 		if !slices.Contains(config.AllowedOrigins, origin) {
-			http.Error(w, "Origin not allowed", http.StatusForbidden)
+			ErrorRes(w, "Origin not allowed", http.StatusForbidden)
 			return
 		}
 

@@ -24,6 +24,19 @@ type APIResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
+func ErrorRes(w http.ResponseWriter, errMsg string, statusCode int) {
+	w.WriteHeader(statusCode)
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	err := json.NewEncoder(w).Encode(APIResponse{Success: false, Message: errMsg})
+
+	if err != nil {
+		ErrorRes(w, ErrorMarshalling, http.StatusInternalServerError)
+		return
+	}
+}
+
 func SuccessResData(w http.ResponseWriter, data interface{}) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
@@ -33,7 +46,7 @@ func SuccessResData(w http.ResponseWriter, data interface{}) {
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Data: data})
 
 	if err != nil {
-		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
+		ErrorRes(w, ErrorMarshalling, http.StatusInternalServerError)
 		return
 	}
 }
@@ -46,7 +59,7 @@ func SuccessResMsg(w http.ResponseWriter, msg string) {
 
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg})
 	if err != nil {
-		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
+		ErrorRes(w, ErrorMarshalling, http.StatusInternalServerError)
 		return
 	}
 }
@@ -59,7 +72,7 @@ func SuccessResMsgWithBody(w http.ResponseWriter, msg string, data interface{}) 
 
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg, Data: data})
 	if err != nil {
-		http.Error(w, ErrorMarshalling, http.StatusInternalServerError)
+		ErrorRes(w, ErrorMarshalling, http.StatusInternalServerError)
 		return
 	}
 }

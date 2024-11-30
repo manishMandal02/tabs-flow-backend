@@ -13,6 +13,7 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
+	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
 // lambda authorizer simple moc
@@ -28,14 +29,14 @@ func authorizer(next http.Handler) http.Handler {
 		token, err := r.Cookie("session")
 
 		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		claims, err := auth.ValidateToken(token.Value)
 
 		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
 
 			return
 		}
@@ -46,13 +47,13 @@ func authorizer(next http.Handler) http.Handler {
 		expiryTime, expiryOK := claims["exp"].(float64)
 
 		if !emailOK || !sIdOK || !expiryOK || !userIdOK {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		if int64(expiryTime) < time.Now().Unix() {
 			// token expired, redirect to login
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
@@ -90,7 +91,7 @@ func main() {
 
 	// handle unknown service routes
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Unknown Service", http.StatusNotFound)
+		http_api.ErrorRes(w, "Unknown Service", http.StatusNotFound)
 	}))
 
 	fmt.Println("Running auth service on port 8080")

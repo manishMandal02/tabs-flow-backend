@@ -23,7 +23,7 @@ func (h *notificationHandler) get(w http.ResponseWriter, r *http.Request) {
 	notificationId := r.PathValue("id")
 
 	if notificationId == "" {
-		http.Error(w, errMsg.notificationGet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.notificationGet, http.StatusBadRequest)
 		return
 	}
 
@@ -33,7 +33,7 @@ func (h *notificationHandler) get(w http.ResponseWriter, r *http.Request) {
 			http_api.SuccessResData(w, []notification{})
 			return
 		}
-		http.Error(w, errMsg.notificationGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.notificationGet, http.StatusBadGateway)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (h *notificationHandler) getUserNotifications(w http.ResponseWriter, r *htt
 			http_api.SuccessResData(w, []notification{})
 			return
 		}
-		http.Error(w, errMsg.notificationGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.notificationGet, http.StatusBadGateway)
 		return
 	}
 
@@ -66,21 +66,21 @@ func (h *notificationHandler) subscribe(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Errorf("error decoding notification subscription for user_id: %v. \n[Error]: %v", userId, err)
-		http.Error(w, errMsg.notificationsSubscribe, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.notificationsSubscribe, http.StatusBadRequest)
 		return
 	}
 
 	err = subscription.validate()
 	if err != nil {
 		logger.Errorf("error validating notification subscription for user_id: %v. \n[Error]: %v", userId, err)
-		http.Error(w, errMsg.notificationsSubscribe, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.notificationsSubscribe, http.StatusBadRequest)
 		return
 	}
 
 	err = h.r.subscribe(userId, &subscription)
 
 	if err != nil {
-		http.Error(w, errMsg.notificationsSubscribe, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.notificationsSubscribe, http.StatusBadGateway)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (h *notificationHandler) getNotificationSubscription(w http.ResponseWriter,
 			http_api.SuccessResData(w, PushSubscription{})
 			return
 		}
-		http.Error(w, errMsg.notificationsSubscribeEmpty, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.notificationsSubscribeEmpty, http.StatusBadGateway)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (h *notificationHandler) unsubscribe(w http.ResponseWriter, r *http.Request
 	err := h.r.deleteNotificationSubscription(userId)
 
 	if err != nil {
-		http.Error(w, errMsg.notificationsUnsubscribe, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.notificationsUnsubscribe, http.StatusBadGateway)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 	notificationId := r.PathValue("id")
 
 	if notificationId == "" {
-		http.Error(w, errMsg.notificationDelete, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.notificationDelete, http.StatusBadRequest)
 		return
 	}
 
@@ -133,7 +133,7 @@ func (h *notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error deleting notification", err)
-		http.Error(w, errMsg.notificationDelete, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.notificationDelete, http.StatusBadGateway)
 		return
 	}
 
@@ -146,13 +146,13 @@ func (h *notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 // 	err := json.NewDecoder(r.Body).Decode(&n)
 // 	if err != nil {
 // 		logger.Error("error decoding notification", err)
-// 		http.Error(w, errMsg.notificationCreate, http.StatusBadRequest)
+// 		http_api.ErrorRes(w, errMsg.notificationCreate, http.StatusBadRequest)
 // 		return
 // 	}
 // 	err = h.r.createNotification(userId, &n)
 // 	if err != nil {
 // 		logger.Error("error creating notification", err)
-// 		http.Error(w, errMsg.notificationCreate, http.StatusBadGateway)
+// 		http_api.ErrorRes(w, errMsg.notificationCreate, http.StatusBadGateway)
 // 		return
 // 	}
 // 	http_api.SuccessResMsg(w, "notification created successfully")

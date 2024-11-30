@@ -32,14 +32,14 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("error decoding note: %v. [Error]: %v", note, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http_api.ErrorRes(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err = note.validate()
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http_api.ErrorRes(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -47,14 +47,14 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("error getting note text from note json: %v. [Error]: %v", note, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http_api.ErrorRes(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err = h.r.createNote(userId, note)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http_api.ErrorRes(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 		err = events.NewNotificationQueue().AddMessage(event)
 
 		if err != nil {
-			http.Error(w, errMsg.noteCreate, http.StatusBadGateway)
+			http_api.ErrorRes(w, errMsg.noteCreate, http.StatusBadGateway)
 			return
 		}
 	}
@@ -95,7 +95,7 @@ func (h noteHandler) get(w http.ResponseWriter, r *http.Request) {
 	noteId := r.PathValue("noteId")
 
 	if noteId == "" {
-		http.Error(w, errMsg.noteId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.noteId, http.StatusBadRequest)
 		return
 	}
 
@@ -103,10 +103,10 @@ func (h noteHandler) get(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == errMsg.notesGetEmpty {
-			http.Error(w, errMsg.notesGetEmpty, http.StatusNotFound)
+			http_api.ErrorRes(w, errMsg.notesGetEmpty, http.StatusNotFound)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http_api.ErrorRes(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h noteHandler) getAllByUser(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Error("Couldn't parse noteId", err)
-			http.Error(w, errMsg.noteGet, http.StatusBadRequest)
+			http_api.ErrorRes(w, errMsg.noteGet, http.StatusBadRequest)
 			return
 		}
 	}
@@ -134,10 +134,10 @@ func (h noteHandler) getAllByUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == errMsg.notesGetEmpty {
-			http.Error(w, errMsg.notesGetEmpty, http.StatusNotFound)
+			http_api.ErrorRes(w, errMsg.notesGetEmpty, http.StatusNotFound)
 			return
 		}
-		http.Error(w, errMsg.notesGet, http.StatusInternalServerError)
+		http_api.ErrorRes(w, errMsg.notesGet, http.StatusInternalServerError)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h noteHandler) search(w http.ResponseWriter, r *http.Request) {
 	maxSearchLimit := r.URL.Query().Get("limit")
 
 	if query == "" {
-		http.Error(w, "search query required", http.StatusBadRequest)
+		http_api.ErrorRes(w, "search query required", http.StatusBadRequest)
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h noteHandler) search(w http.ResponseWriter, r *http.Request) {
 		n, err := strconv.ParseInt(maxSearchLimit, 10, 32)
 		if err != nil {
 			logger.Error("Couldn't parse search limit query", err)
-			http.Error(w, errMsg.notesSearch, http.StatusBadRequest)
+			http_api.ErrorRes(w, errMsg.notesSearch, http.StatusBadRequest)
 			return
 		}
 
@@ -179,10 +179,10 @@ func (h noteHandler) search(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == errMsg.notesSearchEmpty {
-			http.Error(w, errMsg.notesSearchEmpty, http.StatusNotFound)
+			http_api.ErrorRes(w, errMsg.notesSearchEmpty, http.StatusNotFound)
 			return
 		}
-		http.Error(w, errMsg.notesSearch, http.StatusInternalServerError)
+		http_api.ErrorRes(w, errMsg.notesSearch, http.StatusInternalServerError)
 		return
 	}
 
@@ -192,12 +192,12 @@ func (h noteHandler) search(w http.ResponseWriter, r *http.Request) {
 	notes, err := h.r.getNotesByIds(userId, &notesIds)
 
 	if err != nil {
-		http.Error(w, errMsg.notesSearch, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.notesSearch, http.StatusBadGateway)
 		return
 	}
 
 	if len(*notes) == 0 {
-		http.Error(w, errMsg.notesSearchEmpty, http.StatusNotFound)
+		http_api.ErrorRes(w, errMsg.notesSearchEmpty, http.StatusNotFound)
 		return
 	}
 
@@ -214,12 +214,12 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&body)
 
 	if err != nil {
-		http.Error(w, errMsg.noteUpdate, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.noteUpdate, http.StatusBadRequest)
 		return
 	}
 
 	if body.Note.Id == "" {
-		http.Error(w, errMsg.noteId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.noteId, http.StatusBadRequest)
 		return
 	}
 
@@ -228,10 +228,10 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == errMsg.notesGetEmpty {
-			http.Error(w, errMsg.notesGetEmpty, http.StatusNotFound)
+			http_api.ErrorRes(w, errMsg.notesGetEmpty, http.StatusNotFound)
 			return
 		}
-		http.Error(w, errMsg.noteUpdate, http.StatusInternalServerError)
+		http_api.ErrorRes(w, errMsg.noteUpdate, http.StatusInternalServerError)
 		return
 
 	}
@@ -239,7 +239,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 	err = h.r.updateNote(userId, body.Note)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http_api.ErrorRes(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -266,7 +266,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Errorf("error scheduling note  noteId: %v. \n[Error]: %v", body.Note.Id, err)
-			http.Error(w, errMsg.noteUpdate, http.StatusBadRequest)
+			http_api.ErrorRes(w, errMsg.noteUpdate, http.StatusBadRequest)
 			return
 		}
 
@@ -279,7 +279,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Errorf("error getting note text from note json: %v. \n[Error]: %v", body.Note.Id, err)
-			http.Error(w, errMsg.noteUpdate, http.StatusBadRequest)
+			http_api.ErrorRes(w, errMsg.noteUpdate, http.StatusBadRequest)
 			return
 		}
 
@@ -290,7 +290,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Errorf("error deleting search terms for noteId: %v. \n[Error]: %v", body.Note.Id, err)
-			http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
+			http_api.ErrorRes(w, errMsg.noteUpdate, http.StatusBadGateway)
 			return
 		}
 
@@ -300,7 +300,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Errorf("error indexing search terms for noteId: %v. \n[Error]: %v", body.Note.Id, err)
-			http.Error(w, errMsg.noteUpdate, http.StatusBadGateway)
+			http_api.ErrorRes(w, errMsg.noteUpdate, http.StatusBadGateway)
 			return
 		}
 
@@ -315,7 +315,7 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 	noteId := r.PathValue("noteId")
 
 	if noteId == "" {
-		http.Error(w, errMsg.noteId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.noteId, http.StatusBadRequest)
 		return
 	}
 
@@ -324,10 +324,10 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == errMsg.notesGetEmpty {
-			http.Error(w, errMsg.notesGetEmpty, http.StatusNotFound)
+			http_api.ErrorRes(w, errMsg.notesGetEmpty, http.StatusNotFound)
 			return
 		}
-		http.Error(w, errMsg.noteUpdate, http.StatusInternalServerError)
+		http_api.ErrorRes(w, errMsg.noteUpdate, http.StatusInternalServerError)
 		return
 
 	}
@@ -335,7 +335,7 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 	err = h.r.deleteNote(userId, noteId)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http_api.ErrorRes(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

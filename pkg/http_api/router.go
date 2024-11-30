@@ -134,5 +134,5 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	}
 
-	http.Error(w, ErrorRouteNotFound, http.StatusNotFound)
+	ErrorRes(w, ErrorRouteNotFound, http.StatusNotFound)
 }

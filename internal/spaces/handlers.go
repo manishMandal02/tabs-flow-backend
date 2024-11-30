@@ -25,7 +25,7 @@ func (h *spaceHandler) get(w http.ResponseWriter, r *http.Request) {
 	spaceId := r.PathValue("id")
 
 	if spaceId == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -35,10 +35,10 @@ func (h *spaceHandler) get(w http.ResponseWriter, r *http.Request) {
 
 		if err.Error() == errMsg.spaceNotFound {
 			//  space not found
-			http.Error(w, errMsg.spaceNotFound, http.StatusNotFound)
+			http_api.ErrorRes(w, errMsg.spaceNotFound, http.StatusNotFound)
 			return
 		}
-		http.Error(w, errMsg.spaceGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.spaceGet, http.StatusBadGateway)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *spaceHandler) spacesByUser(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 
 	if userId == "" {
-		http.Error(w, errMsg.groupsSet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.groupsSet, http.StatusBadRequest)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *spaceHandler) spacesByUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logger.Error("error getting spaces", err)
-		http.Error(w, errMsg.spaceGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.spaceGet, http.StatusBadGateway)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error un_marshalling body", err)
-		http.Error(w, errMsg.spaceCreate, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceCreate, http.StatusBadRequest)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error validating space", err)
-		http.Error(w, errMsg.spaceCreate, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceCreate, http.StatusBadRequest)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error creating space", err)
-		http.Error(w, errMsg.spaceCreate, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceCreate, http.StatusBadRequest)
 		return
 	}
 
@@ -113,12 +113,12 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error decoding space", err)
-		http.Error(w, errMsg.spaceUpdate, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceUpdate, http.StatusBadRequest)
 		return
 	}
 
 	if s.Id == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -127,10 +127,10 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err.Error() == errMsg.spaceNotFound {
 			//  space not found
-			http.Error(w, errMsg.spaceNotFound, http.StatusBadRequest)
+			http_api.ErrorRes(w, errMsg.spaceNotFound, http.StatusBadRequest)
 			return
 		}
-		http.Error(w, errMsg.spaceUpdate, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.spaceUpdate, http.StatusBadGateway)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error updating space", err)
-		http.Error(w, errMsg.spaceUpdate, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.spaceUpdate, http.StatusBadGateway)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 
 	if spaceId == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -159,7 +159,7 @@ func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error deleting space", err)
-		http.Error(w, errMsg.spaceDelete, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.spaceDelete, http.StatusBadGateway)
 		return
 	}
 	http_api.SuccessResMsg(w, "space deleted successfully")
@@ -174,7 +174,7 @@ func (h *spaceHandler) getTabsInSpace(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error getting tabs for space", err)
-		http.Error(w, errMsg.tabsGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.tabsGet, http.StatusBadGateway)
 		return
 	}
 
@@ -186,7 +186,7 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 	spaceId := r.PathValue("spaceId")
 
 	if spaceId == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -198,12 +198,12 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error decoding tabs", err)
-		http.Error(w, errMsg.tabsSet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.tabsSet, http.StatusBadRequest)
 		return
 	}
 
 	if len(data.Tabs) < 1 {
-		http.Error(w, errMsg.tabsSet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.tabsSet, http.StatusBadRequest)
 		return
 	}
 
@@ -211,7 +211,7 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error setting tabs for space", err)
-		http.Error(w, errMsg.tabsSet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.tabsSet, http.StatusBadGateway)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (h *spaceHandler) getGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 	spaceId := r.PathValue("spaceId")
 
 	if spaceId == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -232,7 +232,7 @@ func (h *spaceHandler) getGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Error("error getting groups for space", err)
-		http.Error(w, errMsg.groupsGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.groupsGet, http.StatusBadGateway)
 		return
 	}
 
@@ -244,7 +244,7 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 	spaceId := r.PathValue("spaceId")
 
 	if spaceId == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 	data := struct {
@@ -255,12 +255,12 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Error("error decoding groups", err)
-		http.Error(w, errMsg.groupsSet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.groupsSet, http.StatusBadRequest)
 		return
 	}
 
 	if len(data.Groups) < 1 {
-		http.Error(w, errMsg.groupsSet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.groupsSet, http.StatusBadRequest)
 		return
 	}
 
@@ -268,7 +268,7 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Error("error setting groups for space", err)
-		http.Error(w, errMsg.groupsSet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.groupsSet, http.StatusBadGateway)
 		return
 	}
 
@@ -287,7 +287,7 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Error("error decoding snoozed tab", err)
-		http.Error(w, errMsg.snoozedTabsCreate, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.snoozedTabsCreate, http.StatusBadRequest)
 		return
 	}
 
@@ -295,7 +295,7 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Error("error snoozing tab", err)
-		http.Error(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
 		return
 	}
 
@@ -311,7 +311,7 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 	err = events.NewNotificationQueue().AddMessage(event)
 
 	if err != nil {
-		http.Error(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
 		return
 	}
 
@@ -324,7 +324,7 @@ func (h *spaceHandler) getSnoozedTab(w http.ResponseWriter, r *http.Request) {
 	snoozedTabId := r.PathValue("id")
 
 	if spaceId == "" || snoozedTabId == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -332,7 +332,7 @@ func (h *spaceHandler) getSnoozedTab(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error parsing snoozedTabId to int", err)
-		http.Error(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
 		return
 	}
 
@@ -340,11 +340,11 @@ func (h *spaceHandler) getSnoozedTab(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == errMsg.snoozedTabsNotFound {
-			http.Error(w, errMsg.snoozedTabsNotFound, http.StatusNotFound)
+			http_api.ErrorRes(w, errMsg.snoozedTabsNotFound, http.StatusNotFound)
 			return
 		}
 		logger.Error("error getting snoozed tab", err)
-		http.Error(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
 		return
 	}
 
@@ -356,7 +356,7 @@ func (h *spaceHandler) getSnoozedTabsBySpace(w http.ResponseWriter, r *http.Requ
 	spaceId := r.PathValue("spaceId")
 
 	if spaceId == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -370,7 +370,7 @@ func (h *spaceHandler) getSnoozedTabsBySpace(w http.ResponseWriter, r *http.Requ
 
 	if err != nil {
 		logger.Error("error parsing lastSnoozedTabId", err)
-		http.Error(w, errMsg.snoozedTabsGet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.snoozedTabsGet, http.StatusBadRequest)
 		return
 	}
 
@@ -379,7 +379,7 @@ func (h *spaceHandler) getSnoozedTabsBySpace(w http.ResponseWriter, r *http.Requ
 
 	if err != nil {
 		logger.Error("error getting snoozed tabs for space", err)
-		http.Error(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
 		return
 	}
 	http_api.SuccessResData(w, sT)
@@ -398,7 +398,7 @@ func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request
 
 	if err != nil {
 		logger.Error("error parsing lastSnoozedTabId", err)
-		http.Error(w, errMsg.snoozedTabsGet, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.snoozedTabsGet, http.StatusBadRequest)
 		return
 	}
 
@@ -411,7 +411,7 @@ func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request
 			return
 		}
 		logger.Error("error getting snoozed tabs for user", err)
-		http.Error(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
 		return
 	}
 
@@ -424,7 +424,7 @@ func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 	snoozedAt := r.PathValue("id")
 
 	if spaceId == "" || snoozedAt == "" {
-		http.Error(w, errMsg.spaceId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
 
@@ -432,7 +432,7 @@ func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Error("error parsing snoozedAt", err)
-		http.Error(w, errMsg.snoozedTabsDelete, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.snoozedTabsDelete, http.StatusBadRequest)
 		return
 	}
 
@@ -440,7 +440,7 @@ func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		logger.Error("error deleting snoozed tab", err)
-		http.Error(w, errMsg.snoozedTabsDelete, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsDelete, http.StatusBadGateway)
 		return
 	}
 
@@ -453,7 +453,7 @@ func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 	err = events.NewNotificationQueue().AddMessage(event)
 
 	if err != nil {
-		http.Error(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
 		return
 	}
 

@@ -43,7 +43,7 @@ func (h handler) userById(w http.ResponseWriter, r *http.Request) {
 	id := r.Header.Get("UserId")
 
 	if id == "" {
-		http.Error(w, ErrMsg.InvalidUserId, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.InvalidUserId, http.StatusBadRequest)
 		return
 	}
 
@@ -51,9 +51,9 @@ func (h handler) userById(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == ErrMsg.UserNotFound {
-			http.Error(w, ErrMsg.UserNotFound, http.StatusBadRequest)
+			http_api.ErrorRes(w, ErrMsg.UserNotFound, http.StatusBadRequest)
 		} else {
-			http.Error(w, ErrMsg.GetUser, http.StatusInternalServerError)
+			http_api.ErrorRes(w, ErrMsg.GetUser, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -67,7 +67,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("decoding user from body at createUser()", err)
-		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusBadRequest)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error validating user at createUser()", err)
-		http.Error(w, ErrMsg.CreateUser, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusBadRequest)
 		return
 	}
 
@@ -83,12 +83,12 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	userExists, err := h.r.getUserByID(user.Id)
 
 	if err != nil && err.Error() != ErrMsg.UserNotFound {
-		http.Error(w, ErrMsg.GetUser, http.StatusBadGateway)
+		http_api.ErrorRes(w, ErrMsg.GetUser, http.StatusBadGateway)
 		return
 	}
 
 	if userExists != nil {
-		http.Error(w, ErrMsg.UserExists, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.UserExists, http.StatusBadRequest)
 		return
 	}
 
@@ -110,7 +110,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", user.Email, err)
-		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
@@ -132,7 +132,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("Error un_marshaling user id data for email: %v. \n [Error]: %v", user.Email, err)
-		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	err = h.r.insertUser(user)
 
 	if err != nil {
-		http.Error(w, ErrMsg.CreateUser, http.StatusBadGateway)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusBadGateway)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("Error setting user default data", err)
-		http.Error(w, ErrMsg.CreateUser, http.StatusInternalServerError)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
@@ -173,14 +173,14 @@ func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error un_marshaling name from JSON at updateUser()", err)
-		http.Error(w, ErrMsg.UpdateUser, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.UpdateUser, http.StatusBadRequest)
 		return
 	}
 
 	err = h.r.updateUser(id, n.Name)
 
 	if err != nil {
-		http.Error(w, ErrMsg.UpdateUser, http.StatusBadGateway)
+		http_api.ErrorRes(w, ErrMsg.UpdateUser, http.StatusBadGateway)
 		return
 	}
 
@@ -194,7 +194,7 @@ func (h handler) deleteUser(w http.ResponseWriter, r *http.Request) {
 	err := h.r.deleteAccount(id)
 
 	if err != nil {
-		http.Error(w, ErrMsg.DeleteUser, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.DeleteUser, http.StatusBadRequest)
 		return
 	}
 
@@ -209,7 +209,7 @@ func (h handler) getPreferences(w http.ResponseWriter, r *http.Request) {
 	preferences, err := h.r.getAllPreferences(id)
 
 	if err != nil {
-		http.Error(w, ErrMsg.PreferencesGet, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.PreferencesGet, http.StatusBadRequest)
 		return
 	}
 
@@ -231,21 +231,21 @@ func (h handler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error un_marshaling preferences from req body at updatePreferences()", err)
-		http.Error(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
 
 	sk, subPref, err := parseSubPreferencesData(updateB)
 
 	if err != nil {
-		http.Error(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
 
 	err = h.r.updatePreferences(id, sk, *subPref)
 
 	if err != nil {
-		http.Error(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
 	http_api.SuccessResMsg(w, "user preferences updated")
@@ -258,7 +258,7 @@ func (h handler) getSubscription(w http.ResponseWriter, r *http.Request) {
 	subscription, err := h.r.getSubscription(id)
 
 	if err != nil {
-		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, ErrMsg.SubscriptionGet, http.StatusBadGateway)
 		return
 	}
 
@@ -271,7 +271,7 @@ func (h handler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request)
 	s, err := h.r.getSubscription(id)
 
 	if err != nil {
-		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
 		return
 	}
 
@@ -285,7 +285,7 @@ func (h handler) checkSubscriptionStatus(w http.ResponseWriter, r *http.Request)
 		// if subscription is active, check the end date
 		if err != nil {
 			logger.Error("error parsing subscription end date", err)
-			http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
+			http_api.ErrorRes(w, ErrMsg.SubscriptionGet, http.StatusBadRequest)
 			return
 		}
 
@@ -310,7 +310,7 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 	s, err := h.r.getSubscription(id)
 
 	if err != nil {
-		http.Error(w, ErrMsg.SubscriptionGet, http.StatusBadGateway)
+		http_api.ErrorRes(w, ErrMsg.SubscriptionGet, http.StatusBadGateway)
 		return
 	}
 
@@ -320,7 +320,7 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error getting paddle subscription", err)
-		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadGateway)
+		http_api.ErrorRes(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadGateway)
 		return
 	}
 
@@ -338,12 +338,12 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if shouldSendCancelURL && resBody.CancelURL == "" {
-		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
 		return
 	}
 
 	if !shouldSendCancelURL && resBody.UpdateURL == "" {
-		http.Error(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
+		http_api.ErrorRes(w, ErrMsg.SubscriptionPaddleURL, http.StatusBadRequest)
 		return
 	}
 
@@ -365,12 +365,12 @@ func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Error("error verifying paddle webhook", err)
-			http.Error(w, "Error", http.StatusInternalServerError)
+			http_api.ErrorRes(w, "Error", http.StatusInternalServerError)
 			return
 		}
 
 		if !ok {
-			http.Error(w, "Error bad_request", http.StatusBadRequest)
+			http_api.ErrorRes(w, "Error bad_request", http.StatusBadRequest)
 			return
 		}
 	}
@@ -388,7 +388,7 @@ func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("error decoding paddle webhook event", err)
-		http.Error(w, "Error", http.StatusBadRequest)
+		http_api.ErrorRes(w, "Error", http.StatusBadRequest)
 		return
 	}
 

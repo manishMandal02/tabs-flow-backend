@@ -18,14 +18,14 @@ func Router() http.Handler {
 
 	r.GET("/hello", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			http_api.ErrorRes(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		userId := r.PathValue("userId")
 
 		if userId == "" {
-			http.Error(w, "User ID not found", http.StatusBadRequest)
+			http_api.ErrorRes(w, "User ID not found", http.StatusBadRequest)
 			return
 		}
 
@@ -34,7 +34,7 @@ func Router() http.Handler {
 
 	r.POST("/hello", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			http_api.ErrorRes(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 

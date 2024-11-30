@@ -40,7 +40,7 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("Error decoding request body for sendOTP", err)
-		http.Error(w, errMsg.sendOTP, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.sendOTP, http.StatusBadRequest)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		http.Error(w, errMsg.sendOTP, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.sendOTP, http.StatusBadGateway)
 		return
 	}
 
@@ -69,7 +69,7 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 	err = sqs.AddMessage(event)
 
 	if err != nil {
-		http.Error(w, errMsg.sendOTP, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.sendOTP, http.StatusBadGateway)
 		return
 	}
 
@@ -92,7 +92,7 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("Error decoding request body for verify otp", err)
-		http.Error(w, errMsg.validateOTP, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.validateOTP, http.StatusBadRequest)
 		return
 	}
 
@@ -100,15 +100,15 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == errMsg.expiredOTP {
-			http.Error(w, errMsg.expiredOTP, http.StatusBadRequest)
+			http_api.ErrorRes(w, errMsg.expiredOTP, http.StatusBadRequest)
 			return
 		}
-		http.Error(w, errMsg.validateOTP, http.StatusBadGateway)
+		http_api.ErrorRes(w, errMsg.validateOTP, http.StatusBadGateway)
 		return
 	}
 
 	if !valid {
-		http.Error(w, errMsg.inValidOTP, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.inValidOTP, http.StatusBadRequest)
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	res, err := createNewSession(b.Email, userAgent, origin, h.r)
 
 	if err != nil {
-		http.Error(w, errMsg.createSession, http.StatusInternalServerError)
+		http_api.ErrorRes(w, errMsg.createSession, http.StatusInternalServerError)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&b)
 	if err != nil {
 		logger.Error("Error decoding request body for google auth", err)
-		http.Error(w, errMsg.googleAuth, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.googleAuth, http.StatusBadRequest)
 		return
 	}
 
@@ -161,12 +161,12 @@ func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
 	userId, err := h.r.userIdByEmail(email)
 
 	if err != nil {
-		http.Error(w, errMsg.getUserId, http.StatusBadRequest)
+		http_api.ErrorRes(w, errMsg.getUserId, http.StatusBadRequest)
 		return
 	}
 
 	if userId == "" {
-		http.Error(w, "No user with given email", http.StatusBadRequest)
+		http_api.ErrorRes(w, "No user with given email", http.StatusBadRequest)
 		return
 	}
 
