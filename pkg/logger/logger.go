@@ -3,23 +3,23 @@ package logger
 import "fmt"
 
 func Error(msg string, err error) {
-	fmt.Printf("❌ Logger: %v\n [Error]: %v\n", msg, err)
+	fmt.Printf("❌ Log: %v\n [Error]: %v\n", msg, err)
 }
 
 func Errorf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 
-	fmt.Println("❌ Logger:Error: ", msg)
+	fmt.Println("❌ Log:Error: ", msg)
 }
 
 func Dev(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 
-	fmt.Println("🛜  Logger:Dev:", msg)
+	fmt.Println("🛜  Log:Dev:", msg)
 }
 
 func Info(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 
-	fmt.Println("ℹ️  Logger:Info:", msg)
+	fmt.Println("ℹ️  Log:Info:", msg)
 }

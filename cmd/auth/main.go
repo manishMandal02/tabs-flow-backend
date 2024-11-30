@@ -14,7 +14,7 @@ func main() {
 	// load config
 	config.Init()
 
-	ddb := db.New()
+	ddb := db.NewSessionTable()
 
 	queue := events.NewEmailQueue()
 
