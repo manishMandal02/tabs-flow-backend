@@ -2,14 +2,14 @@ package spaces
 
 import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-func Router() http_api.IRouter {
+func Router(db *db.DDB, q *events.Queue) http_api.IRouter {
 
-	db := db.New()
 	sr := NewSpaceRepository(db)
-	sh := newSpaceHandler(sr)
+	sh := newSpaceHandler(sr, q)
 
 	// middleware to get userId from jwt token
 	userIdMiddleware := newUserIdMiddleware()

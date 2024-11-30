@@ -6,16 +6,17 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
+	lambda_events "github.com/aws/aws-lambda-go/events"
 	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 )
 
-type sqsHandler func(context.Context, events.SQSEvent) (interface{}, error)
+type SQSHandler func(messages []lambda_events.SQSMessage) (interface{}, error)
 
 // API Gateway proxy events handler
 type APIGatewayHandler struct {
 	baseURL    string
 	handler    http.Handler
-	sqsHandler sqsHandler
+	sqsHandler SQSHandler
 }
 
 func NewAPIGatewayHandler(baseURL string, handler http.Handler) *APIGatewayHandler {
@@ -25,7 +26,7 @@ func NewAPIGatewayHandler(baseURL string, handler http.Handler) *APIGatewayHandl
 	}
 }
 
-func NewAPIGatewayHandlerWithSQSHandler(baseURL string, handler http.Handler, sH sqsHandler) *APIGatewayHandler {
+func NewAPIGatewayHandlerWithSQSHandler(baseURL string, handler http.Handler, sH SQSHandler) *APIGatewayHandler {
 	return &APIGatewayHandler{
 		baseURL:    baseURL,
 		handler:    handler,
@@ -54,7 +55,7 @@ func (h *APIGatewayHandler) Handle(ctx context.Context, event json.RawMessage) (
 			var sqsEvent events.SQSEvent
 			if err := json.Unmarshal(event, &sqsEvent); err == nil && len(sqsEvent.Records) > 0 {
 				// This is an SQS event
-				return h.sqsHandler(ctx, sqsEvent)
+				return h.sqsHandler(sqsEvent.Records)
 			}
 		}
 		return nil, err

@@ -16,7 +16,6 @@ func Router(db *db.DDB, q *events.Queue, c http_api.Client, p paddleClientInterf
 
 	usersRouter.Use(http_api.SetAllowOriginHeader())
 
-
 	checkUserMiddleware := newUserMiddleware(r)
 
 	// profile

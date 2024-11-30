@@ -19,12 +19,14 @@ import (
 // if userId not found in Session table, add user profile (U#Profile) to main table
 
 type authHandler struct {
-	r authRepository
+	r          authRepository
+	emailQueue *events.Queue
 }
 
-func newAuthHandler(repo authRepository) *authHandler {
+func newAuthHandler(repo authRepository, q *events.Queue) *authHandler {
 	return &authHandler{
-		r: repo,
+		r:          repo,
+		emailQueue: q,
 	}
 }
 
@@ -64,9 +66,7 @@ func (h *authHandler) sendOTP(w http.ResponseWriter, r *http.Request) {
 		OTP:   otp,
 	})
 
-	sqs := events.NewEmailQueue()
-
-	err = sqs.AddMessage(event)
+	err = h.emailQueue.AddMessage(event)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.sendOTP, http.StatusBadGateway)

@@ -2,14 +2,14 @@ package notes
 
 import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-func Router() http_api.IRouter {
-	mainDB := db.New()
-	searchIndexTable := db.NewSearchIndexTable()
-	nr := NewNoteRepository(mainDB, searchIndexTable)
-	nh := newNoteHandler(nr)
+func Router(mainTable, searchIndexTable *db.DDB, q *events.Queue) http_api.IRouter {
+
+	nr := NewNoteRepository(mainTable, searchIndexTable)
+	nh := newNoteHandler(nr, q)
 
 	// middleware to get userId from jwt token
 	userIdMiddleware := newUserIdMiddleware()

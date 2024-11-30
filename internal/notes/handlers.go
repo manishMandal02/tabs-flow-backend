@@ -14,12 +14,14 @@ import (
 )
 
 type noteHandler struct {
-	r noteRepository
+	r                 noteRepository
+	notificationQueue *events.Queue
 }
 
-func newNoteHandler(nr noteRepository) *noteHandler {
+func newNoteHandler(nr noteRepository, q *events.Queue) *noteHandler {
 	return &noteHandler{
-		r: nr,
+		r:                 nr,
+		notificationQueue: q,
 	}
 }
 
@@ -78,7 +80,7 @@ func (h noteHandler) create(w http.ResponseWriter, r *http.Request) {
 			SubEvent:  events.SubEventCreate,
 			TriggerAt: note.RemainderAt,
 		})
-		err = events.NewNotificationQueue().AddMessage(event)
+		err = h.notificationQueue.AddMessage(event)
 
 		if err != nil {
 			http_api.ErrorRes(w, errMsg.noteCreate, http.StatusBadGateway)
@@ -252,7 +254,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 				SubEvent:  events.SubEventUpdate,
 				TriggerAt: body.Note.RemainderAt,
 			})
-			err = events.NewNotificationQueue().AddMessage(event)
+			err = h.notificationQueue.AddMessage(event)
 		}
 
 		if body.Note.RemainderAt == 0 {
@@ -261,7 +263,7 @@ func (h noteHandler) update(w http.ResponseWriter, r *http.Request) {
 				NoteId:   body.Note.Id,
 				SubEvent: events.SubEventDelete,
 			})
-			err = events.NewNotificationQueue().AddMessage(event)
+			err = h.notificationQueue.AddMessage(event)
 		}
 
 		if err != nil {
@@ -345,7 +347,7 @@ func (h noteHandler) delete(w http.ResponseWriter, r *http.Request) {
 			NoteId:   noteToDelete.Id,
 			SubEvent: events.SubEventDelete,
 		})
-		err = events.NewNotificationQueue().AddMessage(event)
+		err = h.notificationQueue.AddMessage(event)
 		if err != nil {
 			logger.Errorf("error sending delete schedule for  noteId: %v. \n[Error]: %v", noteToDelete.Id, err)
 		}

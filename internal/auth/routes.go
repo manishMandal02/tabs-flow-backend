@@ -3,6 +3,7 @@ package auth
 import (
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
@@ -12,18 +13,16 @@ func LambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthorizerRequestTypeReq
 	db := db.NewSessionTable()
 	ar := newAuthRepository(db)
 
-	handler := newAuthHandler(ar)
+	handler := newAuthHandler(ar, nil)
 
 	return handler.lambdaAuthorizer(ev)
 }
 
-func Router() http_api.IRouter {
-
-	db := db.NewSessionTable()
+func Router(db *db.DDB, q *events.Queue) http_api.IRouter {
 
 	ar := newAuthRepository(db)
 
-	handler := newAuthHandler(ar)
+	handler := newAuthHandler(ar, q)
 
 	authRouter := http_api.NewRouter("/auth")
 

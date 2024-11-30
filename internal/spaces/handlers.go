@@ -11,12 +11,14 @@ import (
 )
 
 type spaceHandler struct {
-	sr spaceRepository
+	sr                spaceRepository
+	notificationQueue *events.Queue
 }
 
-func newSpaceHandler(sr spaceRepository) *spaceHandler {
+func newSpaceHandler(sr spaceRepository, q *events.Queue) *spaceHandler {
 	return &spaceHandler{
-		sr: sr,
+		sr:                sr,
+		notificationQueue: q,
 	}
 }
 
@@ -308,7 +310,7 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		TriggerAt:    sT.SnoozedUntil,
 	})
 
-	err = events.NewNotificationQueue().AddMessage(event)
+	err = h.notificationQueue.AddMessage(event)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)
@@ -450,7 +452,7 @@ func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		SubEvent:     events.SubEventDelete,
 	})
 
-	err = events.NewNotificationQueue().AddMessage(event)
+	err = h.notificationQueue.AddMessage(event)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.snoozedTabsCreate, http.StatusBadGateway)

@@ -72,7 +72,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	ddb := db.New()
+	searchIndexTable := db.NewSearchIndexTable()
+
 	emailQueue := events.NewEmailQueue()
+	notificationQueue := events.NewNotificationQueue()
 	// client := &http.Client{}
 
 	httpClient := http.DefaultClient
@@ -83,11 +86,11 @@ func main() {
 		panic(err)
 	}
 
-	mux.Handle("/auth/", auth.Router())
+	mux.Handle("/auth/", auth.Router(ddb, emailQueue))
 	mux.Handle("/users/", authorizer(users.Router(ddb, emailQueue, httpClient, paddle)))
-	mux.Handle("/spaces/", authorizer(spaces.Router()))
-	mux.Handle("/notes/", authorizer(notes.Router()))
-	mux.Handle("/notifications/", authorizer(notifications.Router()))
+	mux.Handle("/spaces/", authorizer(spaces.Router(ddb, notificationQueue)))
+	mux.Handle("/notes/", authorizer(notes.Router(ddb, searchIndexTable, notificationQueue)))
+	mux.Handle("/notifications/", authorizer(notifications.Router(ddb)))
 
 	// handle unknown service routes
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

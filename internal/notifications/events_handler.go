@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -16,57 +15,59 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
+	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
-func EventsHandler(_ context.Context, event lambda_events.SQSEvent) (interface{}, error) {
-	if len(event.Records) < 1 {
-		errMsg := "no events to process"
-		logger.Errorf("%v", errMsg)
+func SQSMessagesHandler(q *events.Queue) http_api.SQSHandler {
+	return func(messages []lambda_events.SQSMessage) (interface{}, error) {
+		if len(messages) < 1 {
+			errMsg := "no events to process"
+			logger.Errorf("%v", errMsg)
 
-		return nil, errors.New(errMsg)
-	}
+			return nil, errors.New(errMsg)
+		}
 
-	//  process batch of events
-	for _, record := range event.Records {
+		//  process batch of events
+		for _, msg := range messages {
 
-		logger.Info("processing record: %v", record.Body)
+			logger.Info("processing msg: %v", msg.Body)
 
-		eventType := ""
+			eventType := ""
 
-		if _, ok := record.MessageAttributes["event_type"]; ok {
-			eventType = *record.MessageAttributes["event_type"].StringValue
-		} else {
+			if _, ok := msg.MessageAttributes["event_type"]; ok {
+				eventType = *msg.MessageAttributes["event_type"].StringValue
+			} else {
 
-			e, err := events.NewFromJSON[any](record.Body)
+				e, err := events.NewFromJSON[any](msg.Body)
 
-			if err != nil {
-				logger.Errorf("error un_marshalling event from json: %v", err)
+				if err != nil {
+					logger.Errorf("error un_marshalling event from json: %v", err)
+				}
+
+				eventType = string(e.EventType)
+
 			}
 
-			eventType = string(e.EventType)
+			err := processEvent(eventType, msg.Body)
+
+			if err != nil {
+				logger.Errorf("error processing event: %v", err)
+				continue
+			}
+
+			// remove message from sqs
+			err = q.DeleteMessage(msg.ReceiptHandle)
+
+			if err != nil {
+				return nil, err
+			}
 
 		}
 
-		err := processEvent(eventType, record.Body)
-
-		if err != nil {
-			logger.Errorf("error processing event: %v", err)
-			continue
-		}
-
-		// remove message from sqs
-		q := events.NewNotificationQueue()
-
-		err = q.DeleteMessage(record.ReceiptHandle)
-
-		if err != nil {
-			return nil, err
-		}
+		return nil, nil
 
 	}
-
-	return nil, nil
 }
 
 func processEvent(eventType string, body string) error {

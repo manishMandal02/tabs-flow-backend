@@ -5,8 +5,8 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 )
 
-func Router() http_api.IRouter {
-	db := db.New()
+func Router(db *db.DDB) http_api.IRouter {
+
 	nr := newRepository(db)
 	h := newHandler(nr)
 
@@ -16,7 +16,6 @@ func Router() http_api.IRouter {
 	notificationsRouter := http_api.NewRouter("/notifications")
 
 	notificationsRouter.Use(http_api.SetAllowOriginHeader())
-
 
 	notificationsRouter.Use(userIdMiddleware)
 
