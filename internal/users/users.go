@@ -9,7 +9,8 @@ import (
 
 type User struct {
 	Id         string `json:"id" dynamodbav:"PK" validate:"required"`
-	FullName   string `json:"fullName" dynamodbav:"FullName" validate:"required"`
+	FirstName  string `json:"firstName" dynamodbav:"FirstName" validate:"required"`
+	LastName   string `json:"lastName" dynamodbav:"LastName" validate:"required"`
 	Email      string `json:"email" dynamodbav:"Email" validate:"required,email"`
 	ProfilePic string `json:"profilePic" dynamodbav:"ProfilePic" validate:"url"`
 }

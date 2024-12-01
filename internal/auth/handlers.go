@@ -189,6 +189,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 			Secure:   true,
 			Path:     "/",
 			MaxAge:   -1,
+			Domain:   config.APP_DOMAIN_NAME,
 		}
 
 		http.SetCookie(w, cookie)

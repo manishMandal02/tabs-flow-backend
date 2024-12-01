@@ -106,7 +106,22 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	authServiceURL := fmt.Sprintf("%s://%s/auth/user/%s", p, host, user.Email)
 
-	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, map[string]string{}, nil, h.httpClient)
+	origin := r.Header.Get("Origin")
+
+	if origin == "" {
+		referrer := r.Header.Get("Referer")
+		if referrer == "" {
+			origin = "http://tabsflow.com"
+		} else {
+			origin = referrer
+		}
+	}
+
+	headers := map[string]string{
+		"Origin": origin,
+	}
+
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, nil, h.httpClient)
 
 	if err != nil {
 		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", user.Email, err)

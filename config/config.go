@@ -35,15 +35,16 @@ var (
 )
 
 const (
+	APP_DOMAIN_NAME          = "tabsflow.com"
 	TRAIL_DAYS               = 14
 	OTP_EXPIRY_TIME_IN_MIN   = 5
 	JWT_TOKEN_EXPIRY_IN_DAYS = 10
-	USER_SESSION_EXPIRY_DAYS = 10
+	USER_SESSION_EXPIRY_DAYS = 360
 	DATE_TIME_FORMAT         = "2006-01-02T15:04:05"
 	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
 )
 
-var AllowedOrigins = []string{"https://local.tabsflow.com:3000", "https://tabsflow.com", "https://www.tabsflow.com"}
+var AllowedOrigins = []string{"https://local.tabsflow.com:3000", "https://tabsflow.com", "https://app.tabsflow.com"}
 
 func Init() {
 

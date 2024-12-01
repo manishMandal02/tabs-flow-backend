@@ -9,7 +9,8 @@ import (
 
 var TestUser = users.User{
 	Email:      "mmjdd67@gmail.com",
-	FullName:   "Manish Mandal",
+	FirstName:  "Manish",
+	LastName:   "Mandal",
 	ProfilePic: "https://avatars.githubusercontent.com/u/123456789?v=4",
 }
 

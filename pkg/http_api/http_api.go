@@ -26,9 +26,9 @@ type APIResponse struct {
 
 func ErrorRes(w http.ResponseWriter, errMsg string, statusCode int) {
 	w.WriteHeader(statusCode)
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	err := json.NewEncoder(w).Encode(APIResponse{Success: false, Message: errMsg})
 
 	if err != nil {
@@ -39,9 +39,9 @@ func ErrorRes(w http.ResponseWriter, errMsg string, statusCode int) {
 
 func SuccessResData(w http.ResponseWriter, data interface{}) {
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Data: data})
 
@@ -53,9 +53,9 @@ func SuccessResData(w http.ResponseWriter, data interface{}) {
 
 func SuccessResMsg(w http.ResponseWriter, msg string) {
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg})
 	if err != nil {
@@ -66,9 +66,9 @@ func SuccessResMsg(w http.ResponseWriter, msg string) {
 
 func SuccessResMsgWithBody(w http.ResponseWriter, msg string, data interface{}) {
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Add("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 	err := json.NewEncoder(w).Encode(APIResponse{Success: true, Message: msg, Data: data})
 	if err != nil {

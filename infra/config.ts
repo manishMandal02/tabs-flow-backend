@@ -77,7 +77,7 @@ const Env = {
 const AllowedOrigins = [
   'https://local.tabsflow.com:3000',
   'https://tabsflow.com',
-  'https://www.tabsflow.com'
+  'https://app.tabsflow.com'
 ];
 
 export const config = {

@@ -89,11 +89,12 @@ func (s *UserAuthSuite) TestUsers1_RegisterLogin() {
 	// create new  user in db, if NewUser flag is true
 	reqBody = fmt.Sprintf(`{
 		"id": "%s",
-		"fullName": "%s",
+		"firstName": "%s",
+		"lastName": "%s",
 		"email": "%s",
 		"profilePic": "%s"
 		}`,
-		resData.Data.UserId, TestUser.FullName, TestUser.Email, TestUser.ProfilePic)
+		resData.Data.UserId, TestUser.FirstName, TestUser.LastName, TestUser.Email, TestUser.ProfilePic)
 
 	res, _, err = utils.MakeHTTPRequest(http.MethodPost, s.ENV.ApiDomainName+"/users/", s.Headers, []byte(reqBody), s.HttpClient)
 

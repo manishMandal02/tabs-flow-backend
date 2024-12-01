@@ -18,7 +18,7 @@ import (
 
 // middleware to get userId from header ( set by authorizer after validating jwt token claims)
 // also check if user exits
-func newUserMiddleware(ur repository) http_api.Handler {
+func newUserIdMiddleware(ur repository) http_api.Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId := r.Header.Get("UserId")
 
@@ -98,7 +98,7 @@ func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) erro
 	// send USER_REGISTERED event to email service (queue)
 	event := events.New(events.EventTypeUserRegistered, &events.UserRegisteredPayload{
 		Email:        user.Email,
-		Name:         user.FullName,
+		Name:         user.FirstName,
 		TrailEndDate: trialEndDate.Format(time.DateOnly),
 	})
 

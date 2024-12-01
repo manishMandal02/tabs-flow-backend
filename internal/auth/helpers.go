@@ -137,7 +137,7 @@ func createNewSession(email, userAgent, origin string, aR authRepository) (*crea
 	session := session{
 		Email: email,
 		Id:    utils.GenerateRandomString(20),
-		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Unix(),
+		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS).Unix(),
 		DeviceInfo: &deviceInfo{
 			Browser:  browser,
 			OS:       ua.OS(),
@@ -160,15 +160,13 @@ func createNewSession(email, userAgent, origin string, aR authRepository) (*crea
 		return nil, err
 	}
 
-	cookieDomain := "tabsflow.com"
-
 	cookie := &http.Cookie{
 		Name:     "session",
 		Value:    newToken,
 		HttpOnly: true,
 		Secure:   true,
 		Path:     "/",
-		Domain:   cookieDomain,
+		Domain:   config.APP_DOMAIN_NAME,
 		SameSite: http.SameSiteNoneMode,
 	}
 
@@ -210,7 +208,7 @@ func generatePolicy(principalId, effect, methodArn, userId string, cookies map[s
 	if cookies != nil {
 		cookieStrings := make([]string, 0, len(cookies))
 		for key, value := range cookies {
-			cookieStrings = append(cookieStrings, fmt.Sprintf("%s=%s; HttpOnly; Secure; SameSite=Strict; Expires:%v", key, value, time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS*3).Format(time.RFC1123)))
+			cookieStrings = append(cookieStrings, fmt.Sprintf("%s=%s; HttpOnly; Secure; SameSite=Strict; Expires:%v", key, value, time.Now().AddDate(0, 0, config.JWT_TOKEN_EXPIRY_IN_DAYS*3).Format(time.RFC1123)))
 		}
 		authResponse.Context = map[string]interface{}{
 			"Set-Cookie": strings.Join(cookieStrings, ", "),
