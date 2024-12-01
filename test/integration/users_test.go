@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/users"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
@@ -58,7 +59,8 @@ func mockClientSuccessRes(userId string) func(*mockClient) {
 			Body: io.NopCloser(bytes.NewBufferString(fmt.Sprintf(`{
 				"data":{
 					"userId": "%v",
-					"name": "New User",
+					"firstName": "New",
+					"lastName": "User",
 					"email": "test@test.com"
 				}
 				}`, userId))),
@@ -79,7 +81,8 @@ func mockDBGetUser(mockDB *DynamoDBClientMock) {
 		Item: map[string]types.AttributeValue{
 			"PK":         &types.AttributeValueMemberS{Value: testUser.Id},
 			"SK":         &types.AttributeValueMemberS{Value: db.SORT_KEY.Profile},
-			"name":       &types.AttributeValueMemberS{Value: testUser.FullName},
+			"FirstName":  &types.AttributeValueMemberS{Value: testUser.FirstName},
+			"LastName":   &types.AttributeValueMemberS{Value: testUser.LastName},
 			"email":      &types.AttributeValueMemberS{Value: testUser.Email},
 			"profilePic": &types.AttributeValueMemberS{Value: testUser.ProfilePic},
 		},
@@ -111,7 +114,8 @@ func mockDBGetUserSubscription(mockDB *DynamoDBClientMock) {
 
 var testUser = &users.User{
 	Id:         "123",
-	FullName:   "Test Name",
+	FirstName:  "Test",
+	LastName:   "Name",
 	Email:      "test@test.com",
 	ProfilePic: "https://test.com/test.png",
 }
@@ -138,14 +142,16 @@ func getUserByIDTestCases() []TestCase {
 			method:         "GET",
 			path:           "/me",
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.InvalidUserId,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.InvalidUserId},
 		},
 		{
 			name:           "GET-/users/me > dynamodb error",
 			method:         "GET",
 			path:           "/me",
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   users.ErrMsg.GetUser,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.GetUser},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, errors.New("error getting user by id"))
@@ -156,7 +162,8 @@ func getUserByIDTestCases() []TestCase {
 			method:         "GET",
 			path:           "/me",
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.UserNotFound,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.UserNotFound},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{Item: nil}, nil)
@@ -171,20 +178,15 @@ func getUserByIDTestCases() []TestCase {
 				"success": true,
 				"data": map[string]interface{}{
 					"id":         "123",
-					"fullName":   "Test Name",
+					"firstName":  "Test",
+					"lastName":   "Name",
 					"email":      "test@test.com",
 					"profilePic": "https://test.com/test.png",
 				},
 			},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
-			setupMockDB: func(ddm *DynamoDBClientMock) {
-				ddm.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{Item: map[string]types.AttributeValue{
-					"PK":         &types.AttributeValueMemberS{Value: testUser.Id},
-					"SK":         &types.AttributeValueMemberS{Value: db.SORT_KEY.Profile},
-					"FullName":   &types.AttributeValueMemberS{Value: testUser.FullName},
-					"Email":      &types.AttributeValueMemberS{Value: testUser.Email},
-					"ProfilePic": &types.AttributeValueMemberS{Value: testUser.ProfilePic},
-				}}, nil)
+			setupMockDB: func(mockDB *DynamoDBClientMock) {
+				mockDBGetUser(mockDB)
 			},
 		},
 	}
@@ -198,7 +200,8 @@ func createUserTestCases() []TestCase {
 			path:           "/",
 			body:           nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.CreateUser,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.CreateUser},
 		},
 		{
 			name:   "POST-/users/ > invalid body error",
@@ -209,7 +212,8 @@ func createUserTestCases() []TestCase {
 				"name": "Test Name",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.CreateUser,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.CreateUser},
 		},
 		{
 			name:           "POST-/users/ > error checking if user exists",
@@ -217,7 +221,8 @@ func createUserTestCases() []TestCase {
 			path:           "/",
 			body:           testUser,
 			expectedStatus: http.StatusBadGateway,
-			expectedBody:   users.ErrMsg.GetUser,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.GetUser},
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(nil, errors.New("error checking if user exists"))
 			},
@@ -228,16 +233,10 @@ func createUserTestCases() []TestCase {
 			path:           "/",
 			body:           testUser,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.UserExists,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.UserExists},
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
-				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{
-					Item: map[string]types.AttributeValue{
-						"PK":       &types.AttributeValueMemberS{Value: testUser.Id},
-						"SK":       &types.AttributeValueMemberS{Value: "Profile"},
-						"FullName": &types.AttributeValueMemberS{Value: testUser.FullName},
-						"Email":    &types.AttributeValueMemberS{Value: testUser.Email},
-					},
-				}, nil)
+				mockDBGetUser(mockDB)
 			},
 		},
 		{
@@ -246,7 +245,8 @@ func createUserTestCases() []TestCase {
 			path:           "/",
 			body:           testUser,
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   users.ErrMsg.CreateUser,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.CreateUser},
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 			},
@@ -282,12 +282,13 @@ func createUserTestCases() []TestCase {
 			setupMockClient: mockClientSuccessRes("123-wrong-user-id"),
 		},
 		{
-			name:            "POST-/users/ > error inserting data into dynamodb",
-			method:          "POST",
-			path:            "/",
-			body:            testUser,
-			expectedStatus:  http.StatusBadGateway,
-			expectedBody:    users.ErrMsg.CreateUser,
+			name:           "POST-/users/ > error inserting data into dynamodb",
+			method:         "POST",
+			path:           "/",
+			body:           testUser,
+			expectedStatus: http.StatusBadGateway,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.CreateUser},
 			setupMockClient: mockClientSuccessRes(testUser.Id),
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
@@ -295,12 +296,13 @@ func createUserTestCases() []TestCase {
 			},
 		},
 		{
-			name:            "POST-/users/ > error user_registered event to sqs queue",
-			method:          "POST",
-			path:            "/",
-			body:            testUser,
-			expectedStatus:  http.StatusInternalServerError,
-			expectedBody:    users.ErrMsg.CreateUser,
+			name:           "POST-/users/ > error user_registered event to sqs queue",
+			method:         "POST",
+			path:           "/",
+			body:           testUser,
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.CreateUser},
 			setupMockClient: mockClientSuccessRes(testUser.Id),
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
@@ -353,7 +355,7 @@ func createUserTestCases() []TestCase {
 
 						assert.Equal(t, string(events.EventTypeUserRegistered), *input.MessageAttributes["event_type"].StringValue)
 						assert.Equal(t, testUser.Email, ev.Payload.Email)
-						assert.Equal(t, testUser.FullName, ev.Payload.Name)
+						assert.Equal(t, testUser.FirstName, ev.Payload.Name)
 						assert.NotEmpty(t, ev.Payload.TrailEndDate)
 					}),
 				).Return(&sqs.SendMessageOutput{MessageId: aws.String("123")}, nil)
@@ -371,7 +373,8 @@ func updateUserTestCases() []TestCase {
 			path:           "/",
 			body:           `{}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.UpdateUser,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.UpdateUser},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
@@ -385,7 +388,8 @@ func updateUserTestCases() []TestCase {
 				"fullName": "Test Name 2",
 			},
 			expectedStatus: http.StatusBadGateway,
-			expectedBody:   users.ErrMsg.UpdateUser,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.UpdateUser},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
@@ -465,7 +469,9 @@ func updateUserPreferencesTestCases() []TestCase {
 				"Data": json.RawMessage(`{"theme": "dark"}`),
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.PreferencesUpdate,
+
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.PreferencesUpdate},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
@@ -480,7 +486,8 @@ func updateUserPreferencesTestCases() []TestCase {
 				"Data": json.RawMessage(`{"theme": "dark"}`),
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.PreferencesUpdate,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.PreferencesUpdate},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
@@ -496,7 +503,8 @@ func updateUserPreferencesTestCases() []TestCase {
 				"Data": json.RawMessage(`{"theme": "dark"}`),
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   users.ErrMsg.PreferencesUpdate,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.PreferencesUpdate},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
@@ -532,7 +540,8 @@ func getUserSubscriptionsTestCases() []TestCase {
 			method:         "GET",
 			path:           "/subscription",
 			expectedStatus: http.StatusBadGateway,
-			expectedBody:   users.ErrMsg.SubscriptionGet,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.SubscriptionGet},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
@@ -594,7 +603,8 @@ func getPaddleURLTestCases() []TestCase {
 			method:         "GET",
 			path:           "/subscription/paddle-url",
 			expectedStatus: http.StatusBadGateway,
-			expectedBody:   users.ErrMsg.SubscriptionPaddleURL,
+			expectedBody: map[string]interface{}{"success": false,
+				"message": users.ErrMsg.SubscriptionPaddleURL},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
@@ -809,6 +819,7 @@ func TestUsersService(t *testing.T) {
 			}
 
 			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Origin", config.AllowedOrigins[0])
 			// recorder
 			w := httptest.NewRecorder()
 

@@ -43,7 +43,7 @@ describe('ServiceStack', () => {
       template,
       service: serviceName.Email,
       env: {
-        ZEPTO_MAIL_API_KEY: stage === config.Stage.Test ? '' : expect.any(String),
+        ZEPTO_MAIL_API_KEY: stage === config.Stage.Test ? '' : Match.anyValue(),
         EMAIL_QUEUE_URL: Match.anyValue()
       }
     });
