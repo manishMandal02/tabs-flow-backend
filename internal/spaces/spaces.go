@@ -1,6 +1,9 @@
 package spaces
 
-import "github.com/go-playground/validator/v10"
+import (
+	"github.com/go-playground/validator/v10"
+	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
+)
 
 type space struct {
 	Id             string `json:"id" validate:"required"`
@@ -24,7 +27,6 @@ func (s space) validate() error {
 }
 
 type tab struct {
-	Id      int    `json:"id"`
 	URL     string `json:"url"`
 	Title   string `json:"title"`
 	Index   int    `json:"index"`
@@ -47,7 +49,53 @@ type SnoozedTab struct {
 	SnoozedUntil int64  `json:"snoozedUntil,omitempty"`
 }
 
+var defaultSpaceId = utils.GenerateRandomString(11)
+
+var defaultUserSpace = space{
+	Id:             defaultSpaceId,
+	Title:          "TabsFlow - sample space",
+	Theme:          "blue",
+	IsSaved:        true,
+	Emoji:          "🗂️",
+	WindowId:       0,
+	ActiveTabIndex: 1,
+}
+
+var defaultUserGroup = []group{
+	{
+		Id:        8499388491,
+		Name:      "Gmail Cleaner",
+		Theme:     "blue",
+		Collapsed: false,
+	},
+}
+
+var defaultUserTabs = []tab{
+	{
+		URL:     "https://tabsflow.com",
+		Title:   "TabsFlow",
+		Index:   0,
+		Icon:    "https://tabsflow.com/favicon.ico",
+		GroupId: 0,
+	},
+	{
+		URL:     "https://freshinbox.xyz",
+		Title:   "Clean Inbox, Total Privacy | FreshInbox",
+		Index:   1,
+		Icon:    "https://freshinbox.xyz/favicon.ico",
+		GroupId: 8499388491,
+	},
+	{
+		URL:     "https://x.com/manishMandalJ",
+		Title:   "Manish Mandal (manishMandalJ) / X",
+		Index:   2,
+		Icon:    "https://abs.twimg.com/favicons/twitter.2.ico",
+		GroupId: 0,
+	},
+}
+
 var errMsg = struct {
+	userDefaultSpace    string
 	spaceNotFound       string
 	spaceGet            string
 	spaceId             string
@@ -64,6 +112,7 @@ var errMsg = struct {
 	snoozedTabsNotFound string
 	snoozedTabsDelete   string
 }{
+	userDefaultSpace:    "Error setting default space",
 	spaceNotFound:       "Space not found",
 	spaceGet:            "Error getting space",
 	spaceId:             "Invalid space id",

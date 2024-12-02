@@ -28,16 +28,18 @@ var space = map[string]interface{}{
 
 var tabs = []map[string]interface{}{
 	{
-		"id":    123456789,
-		"url":   "https://github.com",
-		"title": "GitHub",
-		"icon":  "https://github.githubassets.com/favicons/favicon.svg",
+		"url":     "https://github.com",
+		"title":   "GitHub",
+		"index":   0,
+		"groupId": 0,
+		"icon":    "https://github.githubassets.com/favicons/favicon.svg",
 	},
 	{
-		"id":    987654321,
-		"url":   "https://twitter.com",
-		"title": "Twitter",
-		"icon":  "https://abs.twimg.com/favicons/twitter.2.ico",
+		"url":     "https://twitter.com",
+		"title":   "Twitter",
+		"index":   1,
+		"groupId": 49254834,
+		"icon":    "https://abs.twimg.com/favicons/twitter.2.ico",
 	},
 }
 

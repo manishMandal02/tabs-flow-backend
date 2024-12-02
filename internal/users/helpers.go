@@ -62,6 +62,7 @@ func setDefaultUserPreferences(userId string, r repository) error {
 
 }
 
+// set default user data (preferences, subscription)
 func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) error {
 	// set default preferences for user
 	err := setDefaultUserPreferences(user.Id, r)
@@ -97,8 +98,6 @@ func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) erro
 		return err
 	}
 
-	// TODO: send api req to spaces service to save a default space and tabs
-
 	// send USER_REGISTERED event to email service to send welcome email
 	event := events.New(events.EventTypeUserRegistered, &events.UserRegisteredPayload{
 		Email:        user.Email,
@@ -114,6 +113,32 @@ func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) erro
 
 	return nil
 
+}
+
+// set default spaces and tabs
+func setDefaultUserSpaces(reqHostUrl string, c http_api.Client) error {
+	p := "https"
+	if config.LOCAL_DEV_ENV {
+		p = "http"
+	}
+
+	if strings.Contains(reqHostUrl, "amazonaws.com") {
+		reqHostUrl += "/test"
+	}
+
+	spacesServiceURL := fmt.Sprintf("%s://%s/spaces/set-default", p, reqHostUrl)
+
+	headers := map[string]string{
+		"Referrer": config.AllowedOrigins[1],
+	}
+
+	res, _, err := utils.MakeHTTPRequest(http.MethodGet, spacesServiceURL, headers, nil, c)
+
+	if err != nil || res.StatusCode != http.StatusOK {
+		return err
+	}
+
+	return nil
 }
 
 func checkUserExits(id string, r repository, w http.ResponseWriter) bool {

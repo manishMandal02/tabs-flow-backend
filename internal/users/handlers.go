@@ -100,7 +100,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if shouldLogout {
 		logger.Error("error verifying user id from auth service", err)
-		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
 
 		return
 	}
@@ -118,6 +118,15 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Error("Error setting user default data", err)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
+		return
+	}
+
+	// set default space and tabs
+	err = setDefaultUserSpaces(r.Host, h.httpClient)
+
+	if err != nil {
+		logger.Error("Error setting user default space & tabs", err)
 		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}

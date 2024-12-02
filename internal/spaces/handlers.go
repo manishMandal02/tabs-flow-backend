@@ -11,15 +11,41 @@ import (
 )
 
 type spaceHandler struct {
-	sr                spaceRepository
+	r                 spaceRepository
 	notificationQueue *events.Queue
 }
 
-func newSpaceHandler(sr spaceRepository, q *events.Queue) *spaceHandler {
+func newSpaceHandler(r spaceRepository, q *events.Queue) *spaceHandler {
 	return &spaceHandler{
-		sr:                sr,
+		r:                 r,
 		notificationQueue: q,
 	}
+}
+
+func (h *spaceHandler) setUserDefaultSpace(w http.ResponseWriter, r *http.Request) {
+	userId := r.Header.Get("UserId")
+
+	err := h.r.createSpace(userId, &defaultUserSpace)
+
+	if err != nil {
+		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
+		return
+	}
+
+	err = h.r.setGroupsForSpace(userId, defaultSpaceId, &defaultUserGroup)
+
+	if err != nil {
+		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
+		return
+	}
+
+	err = h.r.setTabsForSpace(userId, defaultSpaceId, &defaultUserTabs)
+
+	if err != nil {
+		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
+		return
+	}
+
 }
 
 func (h *spaceHandler) get(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +57,7 @@ func (h *spaceHandler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	space, err := h.sr.getSpaceById(userId, spaceId)
+	space, err := h.r.getSpaceById(userId, spaceId)
 
 	if err != nil {
 
@@ -55,7 +81,7 @@ func (h *spaceHandler) spacesByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	spaces, err := h.sr.getSpacesByUser(userId)
+	spaces, err := h.r.getSpacesByUser(userId)
 
 	if err != nil {
 		if err.Error() == errMsg.spaceNotFound {
@@ -94,7 +120,7 @@ func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.sr.createSpace(userId, &s)
+	err = h.r.createSpace(userId, &s)
 
 	if err != nil {
 		logger.Error("error creating space", err)
@@ -124,7 +150,7 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.sr.getSpaceById(userId, s.Id)
+	_, err = h.r.getSpaceById(userId, s.Id)
 
 	if err != nil {
 		if err.Error() == errMsg.spaceNotFound {
@@ -136,7 +162,7 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.sr.updateSpace(userId, &s)
+	err = h.r.updateSpace(userId, &s)
 
 	if err != nil {
 		logger.Error("error updating space", err)
@@ -157,7 +183,7 @@ func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.sr.deleteSpace(userId, spaceId)
+	err := h.r.deleteSpace(userId, spaceId)
 
 	if err != nil {
 		logger.Error("error deleting space", err)
@@ -172,7 +198,7 @@ func (h *spaceHandler) getTabsInSpace(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("spaceId")
 
-	tabs, err := h.sr.getTabsForSpace(userId, spaceId)
+	tabs, err := h.r.getTabsForSpace(userId, spaceId)
 
 	if err != nil {
 		logger.Error("error getting tabs for space", err)
@@ -209,7 +235,7 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.sr.setTabsForSpace(userId, spaceId, &data.Tabs)
+	err = h.r.setTabsForSpace(userId, spaceId, &data.Tabs)
 
 	if err != nil {
 		logger.Error("error setting tabs for space", err)
@@ -230,7 +256,7 @@ func (h *spaceHandler) getGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groups, err := h.sr.getGroupsForSpace(userId, spaceId)
+	groups, err := h.r.getGroupsForSpace(userId, spaceId)
 
 	if err != nil {
 		logger.Error("error getting groups for space", err)
@@ -266,7 +292,7 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.sr.setGroupsForSpace(userId, spaceId, &data.Groups)
+	err = h.r.setGroupsForSpace(userId, spaceId, &data.Groups)
 
 	if err != nil {
 		logger.Error("error setting groups for space", err)
@@ -293,7 +319,7 @@ func (h *spaceHandler) createSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.sr.addSnoozedTab(userId, spaceId, &sT)
+	err = h.r.addSnoozedTab(userId, spaceId, &sT)
 
 	if err != nil {
 		logger.Error("error snoozing tab", err)
@@ -338,7 +364,7 @@ func (h *spaceHandler) getSnoozedTab(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sT, err := h.sr.GetSnoozedTab(userId, spaceId, intId)
+	sT, err := h.r.GetSnoozedTab(userId, spaceId, intId)
 
 	if err != nil {
 		if err.Error() == errMsg.snoozedTabsNotFound {
@@ -377,7 +403,7 @@ func (h *spaceHandler) getSnoozedTabsBySpace(w http.ResponseWriter, r *http.Requ
 	}
 
 	// return all snoozed tabs for space
-	sT, err := h.sr.geSnoozedTabsInSpace(userId, spaceId, lastSnoozedTabId)
+	sT, err := h.r.geSnoozedTabsInSpace(userId, spaceId, lastSnoozedTabId)
 
 	if err != nil {
 		logger.Error("error getting snoozed tabs for space", err)
@@ -404,7 +430,7 @@ func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	sT, err := h.sr.getAllSnoozedTabsByUser(userId, lastSnoozedTabId)
+	sT, err := h.r.getAllSnoozedTabsByUser(userId, lastSnoozedTabId)
 
 	if err != nil {
 		if err.Error() == errMsg.snoozedTabsNotFound {
@@ -438,7 +464,7 @@ func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.sr.DeleteSnoozedTab(userId, spaceId, snoozedAtInt)
+	err = h.r.DeleteSnoozedTab(userId, spaceId, snoozedAtInt)
 
 	if err != nil {
 		logger.Error("error deleting snoozed tab", err)
