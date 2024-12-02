@@ -3,9 +3,7 @@ package users
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	paddle "github.com/PaddleHQ/paddle-go-sdk"
@@ -14,7 +12,6 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
-	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
 
 type paddleClientInterface interface {
@@ -51,7 +48,7 @@ func (h handler) userById(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if err.Error() == ErrMsg.UserNotFound {
-			http_api.ErrorRes(w, ErrMsg.UserNotFound, http.StatusBadRequest)
+			http_api.ErrorRes(w, ErrMsg.UserNotFound, http.StatusNotFound)
 		} else {
 			http_api.ErrorRes(w, ErrMsg.GetUser, http.StatusInternalServerError)
 		}
@@ -92,68 +89,19 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := "https"
+	//  verify if userid received is valid from auth service
+	shouldLogout, err := verifyUserIdFromAuthService(user, r.Host, h.httpClient)
 
-	if config.LOCAL_DEV_ENV {
-		p = "http"
-	}
-
-	host := r.Host
-
-	if strings.Contains(host, "amazonaws.com") {
-		host += "/test"
-	}
-
-	authServiceURL := fmt.Sprintf("%s://%s/auth/user/%s", p, host, user.Email)
-
-	origin := r.Header.Get("Origin")
-
-	if origin == "" {
-		referrer := r.Header.Get("Referer")
-		if referrer == "" {
-			origin = "http://tabsflow.com"
-		} else {
-			origin = referrer
-		}
-	}
-
-	headers := map[string]string{
-		"Origin": origin,
-	}
-
-	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, nil, h.httpClient)
-
-	if err != nil {
-		logger.Errorf("Error fetching user id from Auth Service for email: %v. \n [Error]: %v", user.Email, err)
+	if err != nil && !shouldLogout {
+		logger.Error("error verifying user id from auth service", err)
 		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
-	if res.StatusCode != http.StatusOK {
-		logger.Errorf("User does not have a valid session profile for email: %v. \n [Error]: %v", user.Email, err)
-		//  Logout
+	if shouldLogout {
+		logger.Error("error verifying user id from auth service", err)
 		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
-		return
-	}
 
-	// check user id
-	var userIdData struct {
-		Data struct {
-			UserId string `json:"userId"`
-		} `json:"data"`
-	}
-
-	err = json.Unmarshal([]byte(respBody), &userIdData)
-
-	if err != nil {
-		logger.Errorf("Error un_marshaling user id data for email: %v. \n [Error]: %v", user.Email, err)
-		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
-		return
-	}
-
-	if userIdData.Data.UserId != user.Id {
-		logger.Errorf("User Id mismatch for email: %v. \n [Error]: %v", user.Email, err)
-		http.Redirect(w, r, "/auth/logout", http.StatusTemporaryRedirect)
 		return
 	}
 

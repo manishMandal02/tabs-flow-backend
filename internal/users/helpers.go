@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
+	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
 
 // middleware to get userId from header ( set by authorizer after validating jwt token claims)
@@ -95,7 +97,9 @@ func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) erro
 		return err
 	}
 
-	// send USER_REGISTERED event to email service (queue)
+	// TODO: send api req to spaces service to save a default space and tabs
+
+	// send USER_REGISTERED event to email service to send welcome email
 	event := events.New(events.EventTypeUserRegistered, &events.UserRegisteredPayload{
 		Email:        user.Email,
 		Name:         user.FirstName,
@@ -136,6 +140,53 @@ func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
 		return false
 	}
 	return true
+}
+
+func verifyUserIdFromAuthService(user *User, reqHostUrl string, c http_api.Client) (bool, error) {
+	p := "https"
+	if config.LOCAL_DEV_ENV {
+		p = "http"
+	}
+
+	if strings.Contains(reqHostUrl, "amazonaws.com") {
+		reqHostUrl += "/test"
+	}
+
+	authServiceURL := fmt.Sprintf("%s://%s/auth/user/%s", p, reqHostUrl, user.Email)
+
+	headers := map[string]string{
+		"Referrer": config.AllowedOrigins[1],
+	}
+
+	res, respBody, err := utils.MakeHTTPRequest(http.MethodGet, authServiceURL, headers, nil, c)
+
+	if err != nil {
+		return false, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return true, fmt.Errorf("User does not have a valid session profile for email: %v. \n [Error]: %v", user.Email, err)
+	}
+
+	// check user id
+	var userIdData struct {
+		Data struct {
+			UserId string `json:"userId"`
+		} `json:"data"`
+	}
+
+	err = json.Unmarshal([]byte(respBody), &userIdData)
+
+	if err != nil {
+		return false, err
+	}
+
+	if userIdData.Data.UserId != user.Id {
+		return true, fmt.Errorf("User Id mismatch for email: %v. \n [Error]: %v", user.Email, err)
+
+	}
+
+	return false, nil
 }
 
 // unmarshal json to sub preference struct
