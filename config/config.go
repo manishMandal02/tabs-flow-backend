@@ -35,6 +35,7 @@ var (
 )
 
 const (
+	DEFAULT_SPACE_TITLE      = "TabsFlow - sample space"
 	APP_DOMAIN_NAME          = "tabsflow.com"
 	TRAIL_DAYS               = 14
 	OTP_EXPIRY_TIME_IN_MIN   = 5
@@ -44,7 +45,7 @@ const (
 	ZEPTO_MAIL_API_URL       = "https://api.zeptomail.in/v1.1/email/template"
 )
 
-var AllowedOrigins = []string{"https://local.tabsflow.com:3000", "https://tabsflow.com", "https://app.tabsflow.com"}
+var AllowedOrigins = []string{"chrome-extension://eidcobgdojgmpdkaajefdgniiaklpfno","https://local.tabsflow.com:3000", "https://tabsflow.com", "https://app.tabsflow.com"}
 
 func Init() {
 

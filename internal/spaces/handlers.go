@@ -46,6 +46,8 @@ func (h *spaceHandler) setUserDefaultSpace(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	http_api.SuccessResMsg(w, "user default space created successfully")
+
 }
 
 func (h *spaceHandler) get(w http.ResponseWriter, r *http.Request) {

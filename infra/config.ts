@@ -77,7 +77,8 @@ const Env = {
 const AllowedOrigins = [
   'https://local.tabsflow.com:3000',
   'https://tabsflow.com',
-  'https://app.tabsflow.com'
+  'https://app.tabsflow.com',
+  'chrome-extension://eidcobgdojgmpdkaajefdgniiaklpfno'
 ];
 
 export const config = {

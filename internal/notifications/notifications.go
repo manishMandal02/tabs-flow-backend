@@ -11,9 +11,10 @@ const (
 )
 
 type snoozedTabNotification struct {
-	Id    string `json:"id"`
-	Title string `json:"title"`
-	Icon  string `json:"icon"`
+	SnoozedAt string `json:"snoozedAt"`
+	URL       string `json:"url"`
+	Title     string `json:"title"`
+	Icon      string `json:"icon"`
 }
 
 type noteRemainderNotification struct {

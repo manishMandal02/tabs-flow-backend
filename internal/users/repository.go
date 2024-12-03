@@ -434,8 +434,6 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*Preferences, error) {
 		}
 		sk := item["SK"].(*types.AttributeValueMemberS).Value
 
-		logger.Dev("pref SK: %v", sk)
-
 		switch sk {
 		case "P#General":
 			err = w(item, &p.General)

@@ -272,9 +272,9 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 		IsRead:    false,
 		Timestamp: time.Now().UTC().Unix(),
 		SnoozedTab: &snoozedTabNotification{
-			Id:    p.SnoozedTabId,
-			Title: snoozedTab.Title,
-			Icon:  snoozedTab.Icon,
+			SnoozedAt: p.SnoozedTabId,
+			Title:     snoozedTab.Title,
+			Icon:      snoozedTab.Icon,
 		},
 	}
 

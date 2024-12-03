@@ -116,7 +116,12 @@ func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) erro
 }
 
 // set default spaces and tabs
-func setDefaultUserSpaces(reqHostUrl string, c http_api.Client) error {
+func setDefaultUserSpaces(reqHostUrl string, c http_api.Client, cookie string) error {
+
+	if cookie == "" {
+		return errors.New("cookie is empty")
+	}
+
 	p := "https"
 	if config.LOCAL_DEV_ENV {
 		p = "http"
@@ -124,18 +129,26 @@ func setDefaultUserSpaces(reqHostUrl string, c http_api.Client) error {
 
 	if strings.Contains(reqHostUrl, "amazonaws.com") {
 		reqHostUrl += "/test"
+
 	}
 
 	spacesServiceURL := fmt.Sprintf("%s://%s/spaces/set-default", p, reqHostUrl)
 
 	headers := map[string]string{
 		"Referrer": config.AllowedOrigins[1],
+		"Cookie":   cookie,
 	}
 
 	res, _, err := utils.MakeHTTPRequest(http.MethodGet, spacesServiceURL, headers, nil, c)
 
-	if err != nil || res.StatusCode != http.StatusOK {
+	if err != nil {
 		return err
+	}
+
+	logger.Dev("set default spaces response: %v", res)
+
+	if res.StatusCode != http.StatusOK {
+		return errors.New("failed to set default spaces")
 	}
 
 	return nil

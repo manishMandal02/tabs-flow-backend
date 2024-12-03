@@ -2,7 +2,7 @@ package spaces
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
+	"github.com/manishMandal02/tabsflow-backend/config"
 )
 
 type space struct {
@@ -49,12 +49,12 @@ type SnoozedTab struct {
 	SnoozedUntil int64  `json:"snoozedUntil,omitempty"`
 }
 
-var defaultSpaceId = utils.GenerateRandomString(11)
+var defaultSpaceId = "default2024"
 
 var defaultUserSpace = space{
 	Id:             defaultSpaceId,
-	Title:          "TabsFlow - sample space",
-	Theme:          "blue",
+	Title:          config.DEFAULT_SPACE_TITLE,
+	Theme:          "#38bdf8",
 	IsSaved:        true,
 	Emoji:          "🗂️",
 	WindowId:       0,

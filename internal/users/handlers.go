@@ -123,7 +123,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set default space and tabs
-	err = setDefaultUserSpaces(r.Host, h.httpClient)
+	err = setDefaultUserSpaces(r.Host, h.httpClient, r.Header.Get("Cookie"))
 
 	if err != nil {
 		logger.Error("Error setting user default space & tabs", err)
@@ -326,8 +326,6 @@ func (h handler) getPaddleURL(w http.ResponseWriter, r *http.Request) {
 // paddle webhook handler
 func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 	var err error
-
-	logger.Dev("paddle webhook test : %v ", r.Header.Get("Paddle-Webhook-Test"))
 
 	if r.Header.Get("Paddle-Webhook-Test") != "true" {
 
