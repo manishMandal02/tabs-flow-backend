@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -272,6 +271,7 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 		IsRead:    false,
 		Timestamp: time.Now().UTC().Unix(),
 		SnoozedTab: &snoozedTabNotification{
+			URL:       snoozedTab.URL,
 			SnoozedAt: p.SnoozedTabId,
 			Title:     snoozedTab.Title,
 			Icon:      snoozedTab.Icon,
@@ -289,7 +289,7 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 		return nil
 	}
 
-	t, err := json.Marshal(snoozedTab)
+	t, err := json.Marshal(notification)
 
 	if err != nil {
 		logger.Error("error marshalling snoozedTab", err)
@@ -317,7 +317,6 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 
 // * helpers
 func sendWebPushNotification(userId string, s *PushSubscription, body []byte) error {
-
 	ws := &web_push.Subscription{
 		Endpoint: s.Endpoint,
 		Keys: web_push.Keys{
@@ -331,12 +330,7 @@ func sendWebPushNotification(userId string, s *PushSubscription, body []byte) er
 		VAPIDPrivateKey: config.VAPID_PRIVATE_KEY,
 		VAPIDPublicKey:  config.VAPID_PUBLIC_KEY,
 	}
-
-	var bEnc = make([]byte, base64.StdEncoding.EncodedLen(len(body)))
-
-	base64.StdEncoding.Encode(bEnc, body)
-
-	_, err := web_push.SendNotification(bEnc, ws, o)
+	_, err := web_push.SendNotification(body, ws, o)
 
 	if err != nil {
 		return err
