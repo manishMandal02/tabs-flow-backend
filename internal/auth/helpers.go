@@ -8,7 +8,6 @@ import (
 	"time"
 
 	lambda_events "github.com/aws/aws-lambda-go/events"
-	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/mssola/useragent"
 
 	"github.com/manishMandal02/tabsflow-backend/config"
@@ -17,53 +16,30 @@ import (
 )
 
 // * helpers
-// generate new token
-func generateToken(email, userId, sessionId string) (string, error) {
-	// Create a new JWT token with claims
-	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		// Subject (user email)
-		"sub":        email,
-		"user_id":    userId,
-		"session_id": sessionId,
-		// Issuer
-		"iss": "tabsflow-app",
-		// Expiration time
-		"exp": time.Now().AddDate(0, 0, config.JWT_TOKEN_EXPIRY_IN_DAYS).Unix(),
-		// Issued at
-		"iat": time.Now().Unix(),
-	})
-
-	tokenStr, err := claims.SignedString([]byte(config.JWT_SECRET_KEY))
-
-	if err != nil {
-		logger.Error("Error generating JWT token", err)
-		return "", err
-	}
-
-	return tokenStr, nil
-}
-
 // validate jwt token
-func ValidateToken(tokenStr string) (jwt.MapClaims, error) {
+func GetSessionValues(cookieValue string) (string, string, error) {
 
-	token, err := jwt.Parse(tokenStr, func(_ *jwt.Token) (interface{}, error) {
-		return []byte(config.JWT_SECRET_KEY), nil
-	})
+	//cookieValue = id={sessionId}//uid={userId}
 
-	if err != nil {
-		logger.Error("Error parsing JWT token", err)
-		return nil, err
+	sessionValues := strings.Split(cookieValue, "//")
+
+	if len(sessionValues) != 2 {
+		return "", "", errors.New("invalid session value")
 	}
 
-	if !token.Valid {
-		return nil, errors.New("invalid token")
+	sessionId := strings.Split(sessionValues[0], "=")[1]
+
+	userId := strings.Split(sessionValues[1], "=")[1]
+
+	if sessionId == "" || userId == "" {
+		return "", "", errors.New("invalid session value")
 	}
 
-	return token.Claims.(jwt.MapClaims), nil
+	return sessionId, userId, nil
 }
 
 // parse cookie
-func parseCookiesStr(cookieHeader string) map[string]string {
+func parseCookiesStrToMap(cookieHeader string) map[string]string {
 
 	cookies := make(map[string]string)
 	if cookieHeader == "" {
@@ -82,26 +58,15 @@ func parseCookiesStr(cookieHeader string) map[string]string {
 	return cookies
 }
 
-type createSessionRes struct {
-	token  string
-	cookie *http.Cookie
-	data   struct {
-		UserId  string `json:"userId"`
-		NewUser bool   `json:"isNewUser"`
-	}
+type checkNewUserRes = struct {
+	UserId  string `json:"userId"`
+	NewUser bool   `json:"isNewUser"`
 }
 
-func createNewSession(email, userAgent, origin string, aR authRepository) (*createSessionRes, error) {
-
-	//  check if user exits
+func checkIfNewUser(email string, aR authRepository) (*checkNewUserRes, error) {
 	userId, err := aR.userIdByEmail(email)
 
-	type respData struct {
-		UserId  string `json:"userId"`
-		NewUser bool   `json:"isNewUser"`
-	}
-
-	var resData *respData
+	var res checkNewUserRes
 
 	if err != nil || userId == "" {
 		// new user
@@ -116,28 +81,29 @@ func createNewSession(email, userAgent, origin string, aR authRepository) (*crea
 			return nil, err
 		}
 
-		resData = &respData{
-			UserId:  newUserId,
-			NewUser: true,
-		}
-
-		userId = newUserId
+		res.NewUser = true
+		res.UserId = newUserId
 	} else {
 		// old user
-		resData = &respData{
-			UserId:  userId,
-			NewUser: false,
-		}
+		res.NewUser = false
+		res.UserId = userId
 	}
+
+	return &res, nil
+}
+
+func createNewSession(userId, userAgent string, aR authRepository) (*http.Cookie, error) {
 
 	ua := useragent.New(userAgent)
 
 	browser, _ := ua.Browser()
 
+	sId := utils.GenerateID()
+
 	session := session{
-		Email: email,
-		Id:    utils.GenerateRandomString(20),
-		TTL:   time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS).Unix(),
+		UserId: userId,
+		Id:     sId,
+		TTL:    time.Now().AddDate(0, 0, config.USER_SESSION_EXPIRY_DAYS).Unix(),
 		DeviceInfo: &deviceInfo{
 			Browser:  browser,
 			OS:       ua.OS(),
@@ -146,23 +112,18 @@ func createNewSession(email, userAgent, origin string, aR authRepository) (*crea
 		},
 	}
 
-	err = aR.createSession(&session)
+	err := aR.createSession(&session)
 
 	if err != nil {
 		logger.Error(errMsg.createSession, err)
 		return nil, err
 	}
 
-	newToken, err := generateToken(email, userId, session.Id)
-
-	if err != nil {
-		logger.Error(errMsg.createToken, err)
-		return nil, err
-	}
+	sValue := fmt.Sprintf("id=%s//uid=%s", sId, userId)
 
 	cookie := &http.Cookie{
 		Name:     "session",
-		Value:    newToken,
+		Value:    sValue,
 		HttpOnly: true,
 		Secure:   true,
 		Path:     "/",
@@ -170,10 +131,7 @@ func createNewSession(email, userAgent, origin string, aR authRepository) (*crea
 		SameSite: http.SameSiteNoneMode,
 	}
 
-	return &createSessionRes{
-		cookie: cookie,
-		data:   *resData,
-	}, nil
+	return cookie, nil
 }
 
 // generate policy for lambda authorizer

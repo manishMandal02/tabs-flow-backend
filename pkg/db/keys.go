@@ -1,14 +1,15 @@
 package db
 
 const (
-	PK_NAME string = "PK"
-	SK_NAME string = "SK"
+	PK_NAME      string = "PK"
+	SK_NAME      string = "SK"
+	TTL_KEY_NAME string = "TTL"
 )
 
 // sort keys
-type keySuffix func(s string) string
+type dynamicKey func(s string) string
 
-func generateKey(base string) keySuffix {
+func generateKey(base string) dynamicKey {
 	return func(id string) string {
 		return base + id
 	}
@@ -25,12 +26,12 @@ var SORT_KEY = struct {
 	P_LinkPreview            string
 	P_AutoDiscard            string
 	NotificationSubscription string
-	Notifications            keySuffix
-	Space                    keySuffix
-	TabsInSpace              keySuffix
-	GroupsInSpace            keySuffix
-	SnoozedTabs              keySuffix
-	Notes                    keySuffix
+	Notifications            dynamicKey
+	Space                    dynamicKey
+	TabsInSpace              dynamicKey
+	GroupsInSpace            dynamicKey
+	SnoozedTabs              dynamicKey
+	Notes                    dynamicKey
 }{
 	Profile:                  "U#Profile",
 	Subscription:             "U#Subscription",
@@ -51,17 +52,17 @@ var SORT_KEY = struct {
 }
 
 var SORT_KEY_SESSIONS = struct {
-	Session keySuffix
-	OTP     keySuffix
-	UserId  keySuffix
+	Session dynamicKey
+	OTP     dynamicKey
+	UserId  dynamicKey
 }{
-	Session: generateKey("Session#"),
+	Session: generateKey("S#"),
 	OTP:     generateKey("OTP#"),
 	UserId:  generateKey("UserId#"),
 }
 
 var SORT_KEY_SEARCH_INDEX = struct {
-	Note keySuffix
+	Note dynamicKey
 }{
 	Note: generateKey("N#"),
 }

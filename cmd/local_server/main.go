@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/auth"
@@ -26,34 +25,18 @@ func authorizer(next http.Handler) http.Handler {
 			return
 		}
 
-		token, err := r.Cookie("session")
+		c, err := r.Cookie("session")
 
 		if err != nil {
 			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		claims, err := auth.ValidateToken(token.Value)
+		sessionId, userId, err := auth.GetSessionValues(c.Value)
 
-		if err != nil {
+		if err != nil || sessionId == "" || userId == "" {
 			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
 
-			return
-		}
-
-		_, emailOK := claims["sub"]
-		userId, userIdOK := claims["user_id"].(string)
-		_, sIdOK := claims["session_id"]
-		expiryTime, expiryOK := claims["exp"].(float64)
-
-		if !emailOK || !sIdOK || !expiryOK || !userIdOK {
-			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		if int64(expiryTime) < time.Now().Unix() {
-			// token expired, redirect to login
-			http_api.ErrorRes(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
@@ -62,6 +45,7 @@ func authorizer(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+
 }
 
 func main() {

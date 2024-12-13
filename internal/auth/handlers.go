@@ -88,7 +88,6 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&b)
 
 	userAgent := r.Header.Get("User-Agent")
-	origin := r.Header.Get("Origin")
 
 	if err != nil {
 		logger.Error("Error decoding request body for verify otp", err)
@@ -112,16 +111,26 @@ func (h *authHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// create new session and set to cookie
-	res, err := createNewSession(b.Email, userAgent, origin, h.r)
+	// check if user exists
+	resData, err := checkIfNewUser(b.Email, h.r)
+
+	if err != nil {
+		http_api.ErrorRes(w, errMsg.googleAuth, http.StatusBadGateway)
+		return
+	}
+
+	// create new session
+	cookie, err := createNewSession(resData.UserId, userAgent, h.r)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.createSession, http.StatusInternalServerError)
 		return
 	}
 
-	http.SetCookie(w, res.cookie)
-	http_api.SuccessResMsgWithBody(w, "OTP verified successfully", res.data)
+	// set session cookie
+	http.SetCookie(w, cookie)
+
+	http_api.SuccessResMsgWithBody(w, "OTP verified successfully", resData)
 }
 
 func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
@@ -130,28 +139,37 @@ func (h *authHandler) googleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userAgent := r.Header.Get("User-Agent")
-	origin := r.Header.Get("Origin")
 
 	decoder := json.NewDecoder(r.Body)
 
 	err := decoder.Decode(&b)
+
 	if err != nil {
 		logger.Error("Error decoding request body for google auth", err)
 		http_api.ErrorRes(w, errMsg.googleAuth, http.StatusBadRequest)
 		return
 	}
 
-	// create new session and set to cookie
-	res, err := createNewSession(b.Email, userAgent, origin, h.r)
+	// check if user exists
+	resData, err := checkIfNewUser(b.Email, h.r)
 
 	if err != nil {
-		logger.Error(errMsg.createSession, errors.New(errMsg.createSession))
+		http_api.ErrorRes(w, errMsg.googleAuth, http.StatusBadGateway)
 		return
 	}
 
-	http.SetCookie(w, res.cookie)
-	http.SetCookie(w, res.cookie)
-	http_api.SuccessResMsgWithBody(w, "OTP verified successfully", res.data)
+	// create new session
+	cookie, err := createNewSession(resData.UserId, userAgent, h.r)
+
+	if err != nil {
+		http_api.ErrorRes(w, errMsg.createSession, http.StatusInternalServerError)
+		return
+	}
+
+	// set session cookie
+	http.SetCookie(w, cookie)
+
+	http_api.SuccessResMsgWithBody(w, "OTP verified successfully", resData)
 }
 
 func (h *authHandler) getUserId(w http.ResponseWriter, r *http.Request) {
@@ -204,24 +222,21 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := ValidateToken(c.Value)
+	sId, userId, err := GetSessionValues(c.Value)
 
 	if err != nil {
-		logger.Error(errMsg.validateSession, err)
+		logger.Error(errMsg.ValidateSession, err)
 		logoutResponse()
 		return
 	}
 
-	email, okEmail := claims["sub"].(string)
-	sId, okSID := claims["session_id"].(string)
-
-	if !okEmail || !okSID {
-		logger.Error(errMsg.validateSession, errors.New(errMsg.invalidToken))
+	if sId == "" || userId == "" {
+		logger.Error(errMsg.ValidateSession, errors.New(errMsg.invalidSessionValue))
 		logoutResponse()
 		return
 	}
 
-	err = h.r.deleteSession(email, sId)
+	err = h.r.deleteSession(userId, sId)
 
 	if err != nil {
 		logger.Error(errMsg.deleteSession, err)
@@ -246,57 +261,42 @@ func (h *authHandler) lambdaAuthorizer(ev *lambda_events.APIGatewayCustomAuthori
 		cookieHeader = ev.Headers["cookie"]
 	}
 
-	cookies := parseCookiesStr(cookieHeader)
+	cookies := parseCookiesStrToMap(cookieHeader)
 
 	if len(cookies) == 0 {
-		logger.Error("No cookies found in header", errors.New(errMsg.invalidToken))
+		logger.Error("No cookies found in header", errors.New(errMsg.invalidSessionValue))
 		return nil, errors.New("Unauthorized")
 	}
 
-	claims, err := ValidateToken(cookies["session"])
+	sId, userId, err := GetSessionValues(cookies["session"])
 
 	if err != nil {
-		logger.Error("Error validating JWT token", errors.New(errMsg.invalidToken))
+		logger.Error("Error getting session values from session cookie", errors.New(errMsg.invalidSessionValue))
 		return nil, errors.New("Unauthorized")
-	}
-
-	email, emailOK := claims["sub"].(string)
-	userId, userIdOK := claims["user_id"].(string)
-	sId, sIdOK := claims["session_id"].(string)
-	expiryTime, expiryOK := claims["exp"].(float64)
-
-	if !emailOK || !sIdOK || !expiryOK || !userIdOK {
-		logger.Error("Error getting token claims", errors.New(errMsg.invalidToken))
-		return nil, errors.New("Unauthorized")
-	}
-
-	if int64(expiryTime) > time.Now().Unix() {
-		// token valid, allow access
-		return generatePolicy(userId, "Allow", ev.MethodArn, userId, nil), nil
 	}
 
 	// validate session
-	isValid, err := h.r.validateSession(email, sId)
+	isValid, err := h.r.ValidateSession(userId, sId)
 
 	if err != nil {
-		logger.Error("Error validating session", errors.New(errMsg.validateSession))
+		logger.Error("Error validating session", errors.New(errMsg.ValidateSession))
 		return nil, errors.New("Unauthorized")
 	}
 
 	// if session, valid then refresh token and allow access
 	if !isValid {
-		logger.Error("Error validating session", errors.New(errMsg.validateSession))
-		return nil, errors.New("Usnauthorized")
+		logger.Error("Error validating session", errors.New(errMsg.ValidateSession))
+		return nil, errors.New("Unauthorized")
 	}
 
-	res, err := createNewSession(email, ev.Headers["User-Agent"], ev.Headers["Origin"], h.r)
+	cookie, err := createNewSession(userId, ev.Headers["User-Agent"], h.r)
 
 	if err != nil {
 		return nil, errors.New("Unauthorized")
 	}
 
 	newCookies := map[string]string{
-		"session": res.token,
+		"session": cookie.Value,
 	}
 
 	return generatePolicy(userId, "Allow", ev.MethodArn, userId, newCookies), nil

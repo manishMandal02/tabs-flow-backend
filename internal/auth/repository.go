@@ -20,7 +20,7 @@ type authRepository interface {
 	attachUserId(data *emailWithUserId) error
 	userIdByEmail(email string) (string, error)
 	validateOTP(email, otp string) (bool, error)
-	validateSession(email, id string) (bool, error)
+	ValidateSession(email, id string) (bool, error)
 	createSession(s *session) error
 	deleteSession(email, sessionId string) error
 }
@@ -41,9 +41,9 @@ func (r *authRepo) saveOTP(data *emailOTP) error {
 	ttl := strconv.FormatInt(data.TTL, 10)
 
 	saveItem := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: data.Email},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.OTP(data.OTP)},
-		"TTL":      &types.AttributeValueMemberS{Value: ttl},
+		db.PK_NAME:      &types.AttributeValueMemberS{Value: data.Email},
+		db.SK_NAME:      &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.OTP(data.OTP)},
+		db.TTL_KEY_NAME: &types.AttributeValueMemberN{Value: ttl},
 	}
 
 	_, err := r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -77,30 +77,23 @@ func (r *authRepo) validateOTP(email, otp string) (bool, error) {
 		return false, errors.New(errMsg.validateOTP)
 	}
 
-	if response.Item == nil || response.Item["TTL"] == nil {
+	if response.Item == nil || response.Item[db.TTL_KEY_NAME] == nil {
 		return false, nil
 	}
 
 	// check if OTP has expired
-	var ttl struct {
-		TTL string
+	var ttlAtr struct {
+		TTL int64
 	}
 
-	err = attributevalue.UnmarshalMap(response.Item, &ttl)
+	err = attributevalue.UnmarshalMap(response.Item, &ttlAtr)
 
 	if err != nil {
 		logger.Errorf("Couldn't unmarshal OTP ttl from db for email: %#v: \n[Error]: %v", email, err)
 		return false, errors.New(errMsg.inValidOTP)
 	}
 
-	ttlInt, err := strconv.ParseInt(ttl.TTL, 10, 64)
-
-	if err != nil {
-		logger.Errorf("Couldn't convert TTL to int for email: %#v: \n[Error]: %v", email, err)
-		return false, errors.New(errMsg.inValidOTP)
-	}
-
-	if ttlInt < int64(time.Now().Unix()) {
+	if ttlAtr.TTL < time.Now().Unix() {
 		return false, errors.New(errMsg.expiredOTP)
 	}
 
@@ -181,13 +174,14 @@ func (r *authRepo) userIdByEmail(email string) (string, error) {
 func (r *authRepo) createSession(s *session) error {
 
 	item := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: s.Email},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(s.Id)},
-		"TTL":      &types.AttributeValueMemberS{Value: strconv.FormatInt(s.TTL, 10)},
+		db.PK_NAME:      &types.AttributeValueMemberS{Value: s.UserId},
+		db.SK_NAME:      &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(s.Id)},
+		db.TTL_KEY_NAME: &types.AttributeValueMemberN{Value: strconv.FormatInt(s.TTL, 10)},
+		"CreatedAt":     &types.AttributeValueMemberN{Value: strconv.FormatInt(time.Now().Unix(), 10)},
 		"DeviceInfo": &types.AttributeValueMemberM{
 			Value: map[string]types.AttributeValue{
-				"browser":  &types.AttributeValueMemberS{Value: s.DeviceInfo.Browser},
 				"os":       &types.AttributeValueMemberS{Value: s.DeviceInfo.OS},
+				"browser":  &types.AttributeValueMemberS{Value: s.DeviceInfo.Browser},
 				"platform": &types.AttributeValueMemberS{Value: s.DeviceInfo.Platform},
 				"isMobile": &types.AttributeValueMemberBOOL{Value: s.DeviceInfo.IsMobile},
 			},
@@ -200,17 +194,17 @@ func (r *authRepo) createSession(s *session) error {
 	})
 
 	if err != nil {
-		logger.Errorf("Couldn't create session for email: %#v. \n[Error]: %v", s.Email, err)
+		logger.Errorf("Couldn't create session for userId: %#v. \n[Error]: %v", s.UserId, err)
 		return errors.New(errMsg.createSession)
 	}
 
 	return nil
 }
 
-func (r *authRepo) deleteSession(email, id string) error {
+func (r *authRepo) deleteSession(userId, sId string) error {
 	key := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: email},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(id)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(sId)},
 	}
 
 	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
@@ -219,7 +213,7 @@ func (r *authRepo) deleteSession(email, id string) error {
 	})
 
 	if err != nil {
-		logger.Errorf("Couldn't delete session for user with email: %#v: \n[Error]: %v", email, err)
+		logger.Errorf("Couldn't delete session for user with userId: %#v: \n[Error]: %v", userId, err)
 
 		return errors.New(errMsg.deleteSession)
 	}
@@ -227,10 +221,10 @@ func (r *authRepo) deleteSession(email, id string) error {
 	return nil
 }
 
-func (r *authRepo) validateSession(email, id string) (bool, error) {
+func (r *authRepo) ValidateSession(userId, sId string) (bool, error) {
 	key := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: email},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(id)},
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY_SESSIONS.Session(sId)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -239,8 +233,8 @@ func (r *authRepo) validateSession(email, id string) (bool, error) {
 	})
 
 	if err != nil {
-		logger.Errorf("Couldn't get session from db, for email: %#v: \n[Error]: %v", email, err)
-		return false, errors.New(errMsg.validateSession)
+		logger.Errorf("Couldn't get session from db, for userId: %#v: \n[Error]: %v", userId, err)
+		return false, errors.New(errMsg.ValidateSession)
 	}
 
 	var userSession session
@@ -248,16 +242,16 @@ func (r *authRepo) validateSession(email, id string) (bool, error) {
 	err = attributevalue.UnmarshalMap(response.Item, &userSession)
 
 	if err != nil {
-		logger.Errorf("Couldn't unmarshal session expiry from db for email: %#v: \n[Error]: %v", email, err)
-		return false, errors.New(errMsg.validateSession)
+		logger.Errorf("Couldn't unmarshal session expiry from db for userId: %#v: \n[Error]: %v", userId, err)
+		return false, errors.New(errMsg.ValidateSession)
 	}
 
 	if userSession.Id == "" {
-		return false, errors.New(errMsg.validateSession)
+		return false, errors.New(errMsg.ValidateSession)
 	}
 
 	if userSession.TTL < time.Now().Unix() {
-		return false, errors.New(errMsg.validateSession)
+		return false, errors.New(errMsg.ValidateSession)
 	}
 
 	return true, nil

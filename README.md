@@ -89,7 +89,7 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 
 | Partition Key (PK) | Sort Key (SK)                          | Item Attributes                                          |
 | ------------------ | -------------------------------------- | -------------------------------------------------------- |
-| UserId             | U#Profile                              | Email, FullName, ProfilePic                              |
+| {UserId}             | U#Profile                              | Email, FullName, ProfilePic                              |
 |                    | U#Subscription                         | Id, PlanId, Plan, Status, Start, End, NextBillingDate    |
 |                    | P#General                              | IsDisabled, DiscardAfter, WhitelistedDomains             |
 |                    | P#Notes                                | IsDisabled, BubblePos, ShowOnAllSites                    |
@@ -106,15 +106,15 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 
 ## Data Access Patterns (Search Table)
 
-| Access Pattern       | Attributes Retrieved |
-| -------------------- | -------------------- |
-| Get NoteIds by query | NoteId               |
+| Access Pattern              | Attributes Retrieved |
+| --------------------------- | -------------------- |
+| Get NoteIds by search terms | NoteId               |
 
 ## Notes Search Table Design (DynamoDB)
 
 | Partition Key (PK) | Sort Key (SK) | Item Attributes                                  |
 | ------------------ | ------------- | ------------------------------------------------ |
-| UserId#Term        | N#NoteId      | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt |
+| {UserId}#{Term}        | N#NoteId      | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt |
 
 ## Data Access Patterns (Sessions Table)
 
@@ -126,11 +126,12 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 
 ## Sessions Table Design (DynamoDB)
 
-| Partition Key (PK) | Sort Key (SK)       | Item Attributes            |
-| ------------------ | ------------------- | -------------------------- |
-| EmailId            | UserId#{userId}     |                            |
-|                    | OTP#{otp}           | TTL                        |
-|                    | Session#{sessionId} | CreatedAt, TTL, DeviceInfo |
+| Partition Key (PK) | Sort Key (SK)   | Item Attributes            |
+| ------------------ | --------------- | -------------------------- |
+| {EmailId}          | UserId#{userId} |                            |
+|                    | OTP#{otp}       | TTL                        |
+|                    |                 |                            |
+| {UserId}           | S#{sessionId}   | CreatedAt, DeviceInfo, TTL |
 
 ## Data Types
 

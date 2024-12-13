@@ -219,8 +219,11 @@ func verifyUserIdFromAuthService(user *User, reqHostUrl string, c http_api.Clien
 		return false, err
 	}
 
+	logger.Dev("userIdData: %v", userIdData)
+	logger.Dev("user.Id: %v", user.Id)
+
 	if userIdData.Data.UserId != user.Id {
-		return true, fmt.Errorf("User Id mismatch for email: %v. \n [Error]: %v", user.Email, err)
+		return true, fmt.Errorf("User Id mismatch for email: %v", user.Email)
 
 	}
 

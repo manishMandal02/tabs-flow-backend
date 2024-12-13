@@ -52,7 +52,7 @@ func newTestSetup() *testSetup {
 }
 
 // helper
-func mockClientSuccessRes(userId string) func(*mockClient) {
+func mockClientAuthAPISuccessRes(userId string) func(*mockClient) {
 	return func(mockClient *mockClient) {
 		mockClient.On("Do", mock.Anything).Return(&http.Response{
 			StatusCode: http.StatusOK,
@@ -64,6 +64,14 @@ func mockClientSuccessRes(userId string) func(*mockClient) {
 					"email": "test@test.com"
 				}
 				}`, userId))),
+		}, nil)
+	}
+}
+
+func mockClientSpacesAPISuccessRes() func(*mockClient) {
+	return func(mockClient *mockClient) {
+		mockClient.On("Do", mock.Anything).Return(&http.Response{
+			StatusCode: http.StatusOK,
 		}, nil)
 	}
 }
@@ -161,7 +169,7 @@ func getUserByIDTestCases() []TestCase {
 			name:           "GET-/users/me > user not found",
 			method:         "GET",
 			path:           "/me",
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusNotFound,
 			expectedBody: map[string]interface{}{"success": false,
 				"message": users.ErrMsg.UserNotFound},
 			mockAuthHeader: func(r *http.Request) { r.Header.Set("UserId", testUser.Id) },
@@ -188,6 +196,7 @@ func getUserByIDTestCases() []TestCase {
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDBGetUser(mockDB)
 			},
+			setupMockClient: mockClientSpacesAPISuccessRes(),
 		},
 	}
 }
@@ -279,7 +288,7 @@ func createUserTestCases() []TestCase {
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 			},
-			setupMockClient: mockClientSuccessRes("123-wrong-user-id"),
+			setupMockClient: mockClientAuthAPISuccessRes("123-wrong-user-id"),
 		},
 		{
 			name:           "POST-/users/ > error inserting data into dynamodb",
@@ -289,7 +298,7 @@ func createUserTestCases() []TestCase {
 			expectedStatus: http.StatusBadGateway,
 			expectedBody: map[string]interface{}{"success": false,
 				"message": users.ErrMsg.CreateUser},
-			setupMockClient: mockClientSuccessRes(testUser.Id),
+			setupMockClient: mockClientAuthAPISuccessRes(testUser.Id),
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 				mockDB.On("PutItem", mock.Anything, mock.AnythingOfType("*dynamodb.PutItemInput"), mock.Anything).Return(nil, errors.New("error inserting data into dynamodb"))
@@ -303,7 +312,7 @@ func createUserTestCases() []TestCase {
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody: map[string]interface{}{"success": false,
 				"message": users.ErrMsg.CreateUser},
-			setupMockClient: mockClientSuccessRes(testUser.Id),
+			setupMockClient: mockClientAuthAPISuccessRes(testUser.Id),
 			setupMockDB: func(mockDB *DynamoDBClientMock) {
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Return(&dynamodb.GetItemOutput{}, nil)
 				mockDB.On("PutItem", mock.Anything, mock.AnythingOfType("*dynamodb.PutItemInput"), mock.Anything).Return(&dynamodb.PutItemOutput{}, nil)
@@ -321,7 +330,7 @@ func createUserTestCases() []TestCase {
 			body:            testUser,
 			expectedStatus:  http.StatusOK,
 			expectedBody:    map[string]interface{}{"success": true, "message": "user created"},
-			setupMockClient: mockClientSuccessRes(testUser.Id),
+			setupMockClient: mockClientAuthAPISuccessRes(testUser.Id),
 			setupMockDBWithAssertions: func(t *testing.T, mockDB *DynamoDBClientMock) {
 
 				mockDB.On("GetItem", mock.Anything, mock.AnythingOfType("*dynamodb.GetItemInput"), mock.Anything).Run(
@@ -361,8 +370,8 @@ func createUserTestCases() []TestCase {
 				).Return(&sqs.SendMessageOutput{MessageId: aws.String("123")}, nil)
 
 			},
-		}}
-
+		},
+	}
 }
 
 func updateUserTestCases() []TestCase {
@@ -820,6 +829,7 @@ func TestUsersService(t *testing.T) {
 
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("Origin", config.AllowedOrigins[0])
+			req.Header.Set("Cookie", "test=1")
 			// recorder
 			w := httptest.NewRecorder()
 
