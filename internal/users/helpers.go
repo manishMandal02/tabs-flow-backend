@@ -162,7 +162,7 @@ func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
 	}
 
 	//  check if the user with this id
-	userExists, err := r.getUserByID(id)
+	userExists, _, err := r.getUserByID(id)
 
 	if err != nil {
 		if err.Error() == ErrMsg.UserNotFound {

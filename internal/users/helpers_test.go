@@ -142,7 +142,7 @@ func TestUnMarshalPreferences(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := unMarshalPreferences(tt.input)
+			actual, _, err := unMarshalPreferences(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("err \n[actual] = %v, \n[want]= %v", err, tt.wantErr)
 				return

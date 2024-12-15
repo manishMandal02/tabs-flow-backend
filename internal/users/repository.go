@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
@@ -13,17 +14,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 type repository interface {
-	getUserByID(id string) (*User, error)
-	insertUser(user *User) error
-	updateUser(id, name string) error
+	getUserByID(id string) (*User, *http_api.Metadata, error)
+	insertUser(user *User) (*http_api.Metadata, error)
+	updateUser(id, name string) (*http_api.Metadata, error)
 	deleteAccount(id string) error
-	getAllPreferences(id string) (*Preferences, error)
+	getAllPreferences(id string) (*Preferences, *http_api.Metadata, error)
 	setPreferences(userId, sk string, pData interface{}) error
-	updatePreferences(userId, sk string, pData interface{}) error
+	updatePreferences(userId, sk string, pData interface{}) (*http_api.Metadata, error)
 	getSubscription(userId string) (*subscription, error)
 	setSubscription(userId string, s *subscription) error
 	updateSubscription(userId string, sData *subscription) error
@@ -40,7 +42,7 @@ func newRepository(db *db.DDB) repository {
 }
 
 // profile
-func (r *userRepo) getUserByID(id string) (*User, error) {
+func (r *userRepo) getUserByID(id string) (*User, *http_api.Metadata, error) {
 
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: id},
@@ -54,34 +56,45 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 
 	if err != nil {
 		logger.Errorf("Couldn't query for userId: %v. \n[Error]: %v", id, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if response == nil || response.Item == nil {
-		return nil, errors.New(ErrMsg.UserNotFound)
+		return nil, nil, errors.New(ErrMsg.UserNotFound)
 	}
 
 	if _, ok := response.Item["PK"]; !ok {
-		return nil, errors.New(ErrMsg.UserNotFound)
+		return nil, nil, errors.New(ErrMsg.UserNotFound)
 	}
 
 	user := &User{}
+
+	updatedAt, err := db.GetUpdatedAtTime(response.Item)
+
+	if err != nil {
+		logger.Error("Error getting updatedAt time", err)
+		return nil, nil, err
+	}
+
+	m := &http_api.Metadata{
+		UpdatedAt: updatedAt,
+	}
 
 	err = attributevalue.UnmarshalMap(response.Item, &user)
 
 	if err != nil {
 		logger.Errorf("Couldn't unmarshal query result for user_id: %v. \n[Error]: %v", id, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if user.Id == "" {
-		return nil, errors.New(ErrMsg.UserNotFound)
+		return nil, nil, errors.New(ErrMsg.UserNotFound)
 	}
 
-	return user, nil
+	return user, m, nil
 }
 
-func (r *userRepo) insertUser(user *User) error {
+func (r *userRepo) insertUser(user *User) (*http_api.Metadata, error) {
 	profile := userWithSK{
 		User: user,
 		SK:   db.SORT_KEY.Profile,
@@ -89,9 +102,15 @@ func (r *userRepo) insertUser(user *User) error {
 
 	item, err := attributevalue.MarshalMap(profile)
 
+	m := &http_api.Metadata{
+		UpdatedAt: time.Now().UnixMilli(),
+	}
+
+	item["UpdatedAt"] = &types.AttributeValueMemberN{Value: strconv.FormatInt(m.UpdatedAt, 10)}
+
 	if err != nil {
 		logger.Errorf("Couldn't marshal user: %#v. \n[Error]: %v", user, err)
-		return err
+		return nil, err
 	}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -101,17 +120,22 @@ func (r *userRepo) insertUser(user *User) error {
 
 	if err != nil {
 		logger.Errorf("Couldn't put item for userId: %v. \n[Error]: %v", user.Id, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return m, nil
 }
 
-func (r userRepo) updateUser(id, name string) error {
+func (r userRepo) updateUser(id, name string) (*http_api.Metadata, error) {
+
+	m := &http_api.Metadata{
+		UpdatedAt: time.Now().UnixMilli(),
+	}
 
 	key := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: id},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Profile},
+		db.PK_NAME:  &types.AttributeValueMemberS{Value: id},
+		db.SK_NAME:  &types.AttributeValueMemberS{Value: db.SORT_KEY.Profile},
+		"UpdatedAt": &types.AttributeValueMemberN{Value: strconv.FormatInt(m.UpdatedAt, 10)},
 	}
 
 	// build update expression
@@ -120,7 +144,7 @@ func (r userRepo) updateUser(id, name string) error {
 
 	if err != nil {
 		logger.Errorf("Couldn't build expression for updateUser query for the user_id: %v. \n[Error]: %v", id, err)
-		return err
+		return nil, err
 	}
 
 	// execute the query
@@ -134,10 +158,10 @@ func (r userRepo) updateUser(id, name string) error {
 
 	if err != nil {
 		logger.Errorf("Couldn't updateUser, user_id: %v. \n[Error]: %v", id, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return m, nil
 }
 
 // delete user account with all their data
@@ -195,7 +219,7 @@ func (r userRepo) deleteAccount(id string) error {
 }
 
 // preferences
-func (r userRepo) getAllPreferences(id string) (*Preferences, error) {
+func (r userRepo) getAllPreferences(id string) (*Preferences, *http_api.Metadata, error) {
 	// primary key - partition+sort key
 	keyCondition := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(id)), expression.Key("SK").BeginsWith(db.SORT_KEY.PreferencesBase))
 
@@ -203,7 +227,7 @@ func (r userRepo) getAllPreferences(id string) (*Preferences, error) {
 
 	if err != nil {
 		logger.Errorf("Couldn't build getPreferences expression for userId: %#v. \n[Error]: %v", id, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	response, err := r.db.Client.Query(context.TODO(), &dynamodb.QueryInput{
@@ -215,19 +239,19 @@ func (r userRepo) getAllPreferences(id string) (*Preferences, error) {
 
 	if err != nil {
 		logger.Errorf("Couldn't get preferences for userId : %#v. \n[Error]: %v", id, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(response.Items) < 1 {
-		return nil, errors.New(ErrMsg.PreferencesGet)
+		return nil, nil, errors.New(ErrMsg.PreferencesGet)
 	}
-	p, err := unMarshalPreferences(response)
+	p, m, err := unMarshalPreferences(response)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return p, nil
+	return p, m, nil
 }
 
 func (r userRepo) setPreferences(userId, sk string, pData interface{}) error {
@@ -251,11 +275,15 @@ func (r userRepo) setPreferences(userId, sk string, pData interface{}) error {
 	return nil
 }
 
-func (r userRepo) updatePreferences(userId, sk string, pData interface{}) error {
+func (r userRepo) updatePreferences(userId, sk string, pData interface{}) (*http_api.Metadata, error) {
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
 		"SK": &types.AttributeValueMemberS{Value: sk},
+	}
+
+	m := &http_api.Metadata{
+		UpdatedAt: time.Now().UnixMilli(),
 	}
 
 	var update expression.UpdateBuilder
@@ -267,7 +295,7 @@ func (r userRepo) updatePreferences(userId, sk string, pData interface{}) error 
 		v = v.Elem()
 	} else {
 		logger.Error("unexpected type", errors.New(v.Kind().String()))
-		return errors.ErrUnsupported
+		return nil, errors.ErrUnsupported
 	}
 
 	t := v.Type()
@@ -282,10 +310,12 @@ func (r userRepo) updatePreferences(userId, sk string, pData interface{}) error 
 		update = update.Set(expression.Name(field.Name), expression.Value(v.Field(i).Interface()))
 	}
 
+	update.Set(expression.Name("UpdatedAt"), expression.Value(m.UpdatedAt))
+
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
@@ -298,10 +328,10 @@ func (r userRepo) updatePreferences(userId, sk string, pData interface{}) error 
 
 	if err != nil {
 		logger.Errorf("Couldn't update preferences for userId: %v. \n[Error]: %v", userId, err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return m, nil
 }
 
 // subscription
@@ -412,9 +442,13 @@ func (r userRepo) updateSubscription(userId string, sData *subscription) error {
 }
 
 // * helper
-func unMarshalPreferences(res *dynamodb.QueryOutput) (*Preferences, error) {
+func unMarshalPreferences(res *dynamodb.QueryOutput) (*Preferences, *http_api.Metadata, error) {
 
-	w := func(item map[string]types.AttributeValue, v interface{}) error {
+	m := http_api.Metadata{
+		UpdatedAtMap: map[string]int64{},
+	}
+
+	unmarshal := func(item map[string]types.AttributeValue, v interface{}) error {
 
 		if err := attributevalue.UnmarshalMap(item, &v); err != nil {
 			return err
@@ -423,7 +457,18 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*Preferences, error) {
 		return nil
 	}
 
-	var err error
+	getUpdatedAt := func(item map[string]types.AttributeValue, key string) error {
+		u, err := db.GetUpdatedAtTime(item)
+
+		if err != nil {
+			logger.Error("Error getting updatedAt time", err)
+			return err
+		}
+		m.UpdatedAtMap[key] = u
+		return nil
+	}
+
+	var err, err1 error
 
 	p := Preferences{}
 
@@ -436,27 +481,34 @@ func unMarshalPreferences(res *dynamodb.QueryOutput) (*Preferences, error) {
 
 		switch sk {
 		case "P#General":
-			err = w(item, &p.General)
+			err = unmarshal(item, &p.General)
+			err1 = getUpdatedAt(item, "general")
+
 		case "P#CmdPalette":
-			err = w(item, &p.CmdPalette)
+			err = unmarshal(item, &p.CmdPalette)
+			err1 = getUpdatedAt(item, "cmdPalette")
 
 		case "P#Notes":
-			err = w(item, &p.Notes)
+			err = unmarshal(item, &p.Notes)
+			err1 = getUpdatedAt(item, "notes")
 
 		case "P#AutoDiscard":
-			err = w(item, &p.AutoDiscard)
+			err = unmarshal(item, &p.AutoDiscard)
+			err1 = getUpdatedAt(item, "autoDiscard")
 
 		case "P#LinkPreview":
-			err = w(item, &p.LinkPreview)
+			err = unmarshal(item, &p.LinkPreview)
+			err1 = getUpdatedAt(item, "linkPreview")
+
 		default:
 			err = errors.New("invalid preferences SK")
 		}
 	}
 
-	if err != nil {
+	if err != nil || err1 != nil {
 		logger.Error("Couldn't unmarshal preferences", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &p, nil
+	return &p, &m, nil
 }
