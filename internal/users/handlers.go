@@ -44,7 +44,7 @@ func (h handler) userById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, metadata, err := h.r.getUserByID(id)
+	user, err := h.r.getUserByID(id)
 
 	if err != nil {
 		if err.Error() == ErrMsg.UserNotFound {
@@ -55,7 +55,7 @@ func (h handler) userById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http_api.SuccessResDataWithMetadata(w, user, metadata)
+	http_api.SuccessResData(w, user)
 }
 
 func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +77,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//  check if the user with this id
-	userExists, _, err := h.r.getUserByID(user.Id)
+	userExists, err := h.r.getUserByID(user.Id)
 
 	if err != nil && err.Error() != ErrMsg.UserNotFound {
 		http_api.ErrorRes(w, ErrMsg.GetUser, http.StatusBadGateway)
@@ -105,7 +105,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metadata, err := h.r.insertUser(user)
+	err = h.r.insertUser(user)
 
 	if err != nil {
 		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusBadGateway)
@@ -131,7 +131,7 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http_api.SuccessResMsgWithMetadata(w, "user created", metadata)
+	http_api.SuccessResMsg(w, "user created")
 }
 
 func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
@@ -149,14 +149,14 @@ func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := h.r.updateUser(id, n.Name)
+	err = h.r.updateUser(id, n.Name)
 
 	if err != nil {
 		http_api.ErrorRes(w, ErrMsg.UpdateUser, http.StatusBadGateway)
 		return
 	}
 
-	http_api.SuccessResMsgWithMetadata(w, "user updated", m)
+	http_api.SuccessResMsg(w, "user updated")
 }
 
 func (h handler) deleteUser(w http.ResponseWriter, r *http.Request) {
@@ -178,14 +178,14 @@ func (h handler) getPreferences(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
 
-	preferences, m, err := h.r.getAllPreferences(id)
+	preferences, err := h.r.getAllPreferences(id)
 
 	if err != nil {
 		http_api.ErrorRes(w, ErrMsg.PreferencesGet, http.StatusBadRequest)
 		return
 	}
 
-	http_api.SuccessResDataWithMetadata(w, preferences, m)
+	http_api.SuccessResData(w, preferences)
 
 }
 
@@ -214,13 +214,13 @@ func (h handler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := h.r.updatePreferences(id, sk, *subPref)
+	err = h.r.updatePreferences(id, sk, *subPref)
 
 	if err != nil {
 		http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
 		return
 	}
-	http_api.SuccessResMsgWithMetadata(w, "user preferences updated", m)
+	http_api.SuccessResMsg(w, "user preferences updated")
 }
 
 // subscription handlers

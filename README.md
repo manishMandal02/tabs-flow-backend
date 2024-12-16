@@ -32,7 +32,7 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 
 ## Technologies
 
-- Programming Language: Golang (for services) | TypeScript for CDK infra
+- Programming Languages: Golang (for services) | TypeScript for CDK infra
 
 - Cloud Provider: AWS
 
@@ -89,7 +89,7 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 
 | Partition Key (PK) | Sort Key (SK)                          | Item Attributes                                                     |
 | ------------------ | -------------------------------------- | ------------------------------------------------------------------- |
-| {UserId}           | U#Profile                              | Email, FullName, ProfilePic, UpdatedAt                              |
+| {UserId}           | U#Profile                              | Email, FullName, ProfilePic                                         |
 |                    | U#Subscription                         | Id, PlanId, Plan, Status, Start, End, NextBillingDate               |
 |                    | P#General                              | OpenSpace, DeleteUnsavedSpace, UpdatedAt                            |
 |                    | P#Notes                                | IsDisabled, BubblePos, ShowOnAllSites, UpdatedAt                    |
