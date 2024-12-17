@@ -13,6 +13,7 @@ type space struct {
 	Emoji          string `json:"emoji" validate:"required"`
 	WindowId       int    `json:"windowId" validate:"required,number"`
 	ActiveTabIndex int    `json:"activeTabIndex" validate:"number"`
+	UpdatedAt      int64  `json:"updatedAt" validate:"number"`
 }
 
 func (s space) validate() error {

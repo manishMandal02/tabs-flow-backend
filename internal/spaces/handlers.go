@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
@@ -32,14 +33,18 @@ func (h *spaceHandler) setUserDefaultSpace(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.r.setGroupsForSpace(userId, defaultSpaceId, &defaultUserGroup)
+	m := &http_api.Metadata{
+		UpdatedAt: time.Now().UnixMilli(),
+	}
+
+	err = h.r.setGroupsForSpace(userId, defaultSpaceId, &defaultUserGroup, m)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
 		return
 	}
 
-	err = h.r.setTabsForSpace(userId, defaultSpaceId, &defaultUserTabs)
+	err = h.r.setTabsForSpace(userId, defaultSpaceId, &defaultUserTabs, m)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
@@ -88,7 +93,6 @@ func (h *spaceHandler) spacesByUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err.Error() == errMsg.spaceNotFound {
 			http_api.SuccessResData(w, []string{})
-
 			return
 		}
 		logger.Error("error getting spaces", err)
@@ -114,6 +118,7 @@ func (h *spaceHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// validate space
 	err = s.validate()
 
 	if err != nil {
@@ -200,7 +205,7 @@ func (h *spaceHandler) getTabsInSpace(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("spaceId")
 
-	tabs, err := h.r.getTabsForSpace(userId, spaceId)
+	tabs, m, err := h.r.getTabsForSpace(userId, spaceId)
 
 	if err != nil {
 		logger.Error("error getting tabs for space", err)
@@ -208,7 +213,7 @@ func (h *spaceHandler) getTabsInSpace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http_api.SuccessResData(w, tabs)
+	http_api.SuccessResDataWithMetadata(w, tabs, m)
 }
 
 func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
@@ -237,7 +242,11 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.r.setTabsForSpace(userId, spaceId, &data.Tabs)
+	m := &http_api.Metadata{
+		UpdatedAt: time.Now().UnixMilli(),
+	}
+
+	err = h.r.setTabsForSpace(userId, spaceId, &data.Tabs, m)
 
 	if err != nil {
 		logger.Error("error setting tabs for space", err)
@@ -245,7 +254,7 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http_api.SuccessResMsg(w, "tabs set successfully")
+	http_api.SuccessResMsgWithMetadata(w, "tabs set successfully", m)
 }
 
 // groups
@@ -258,7 +267,7 @@ func (h *spaceHandler) getGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groups, err := h.r.getGroupsForSpace(userId, spaceId)
+	groups, m, err := h.r.getGroupsForSpace(userId, spaceId)
 
 	if err != nil {
 		logger.Error("error getting groups for space", err)
@@ -266,7 +275,7 @@ func (h *spaceHandler) getGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	http_api.SuccessResData(w, groups)
+	http_api.SuccessResDataWithMetadata(w, groups, m)
 }
 
 func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) {
@@ -294,7 +303,11 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.r.setGroupsForSpace(userId, spaceId, &data.Groups)
+	m := &http_api.Metadata{
+		UpdatedAt: time.Now().UnixMilli(),
+	}
+
+	err = h.r.setGroupsForSpace(userId, spaceId, &data.Groups, m)
 
 	if err != nil {
 		logger.Error("error setting groups for space", err)
@@ -302,7 +315,7 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	http_api.SuccessResMsg(w, "groups set successfully")
+	http_api.SuccessResMsgWithMetadata(w, "groups set successfully", m)
 
 }
 

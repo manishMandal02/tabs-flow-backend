@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
@@ -22,10 +23,10 @@ type spaceRepository interface {
 	getSpacesByUser(userId string) (*[]space, error)
 	updateSpace(userId string, s *space) error
 	deleteSpace(userId, spaceId string) error
-	setTabsForSpace(userId, spaceId string, t *[]tab) error
-	getTabsForSpace(userId, spaceId string) (*[]tab, error)
-	setGroupsForSpace(userId, spaceId string, g *[]group) error
-	getGroupsForSpace(userId, spaceId string) (*[]group, error)
+	setTabsForSpace(userId, spaceId string, t *[]tab, m *http_api.Metadata) error
+	setGroupsForSpace(userId, spaceId string, g *[]group, m *http_api.Metadata) error
+	getTabsForSpace(userId, spaceId string) (*[]tab, *http_api.Metadata, error)
+	getGroupsForSpace(userId, spaceId string) (*[]group, *http_api.Metadata, error)
 	addSnoozedTab(userId, spaceId string, t *SnoozedTab) error
 	getAllSnoozedTabsByUser(userId string, lastSnoozedTabID int64) (*[]SnoozedTab, error)
 	geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]SnoozedTab, error)
@@ -53,6 +54,7 @@ func (r spaceRepo) createSpace(userId string, s *space) error {
 
 	av[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
 	av[db.SK_NAME] = &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(s.Id)}
+	av["UpdatedAt"] = &types.AttributeValueMemberN{Value: strconv.FormatInt(s.UpdatedAt, 10)}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -215,7 +217,7 @@ func (r spaceRepo) deleteSpace(userId, spaceId string) error {
 }
 
 // tabs
-func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
+func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab, m *http_api.Metadata) error {
 
 	tabs, err := attributevalue.MarshalListWithOptions(t)
 
@@ -225,9 +227,10 @@ func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
 	}
 
 	item := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
-		"Tabs":     &types.AttributeValueMemberL{Value: tabs},
+		db.PK_NAME:  &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME:  &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
+		"Tabs":      &types.AttributeValueMemberL{Value: tabs},
+		"UpdatedAt": &types.AttributeValueMemberN{Value: strconv.FormatInt(m.UpdatedAt, 10)},
 	}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
@@ -243,7 +246,7 @@ func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab) error {
 	return nil
 }
 
-func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
+func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, *http_api.Metadata, error) {
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
 		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
@@ -256,18 +259,19 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 
 	if err != nil {
 		logger.Errorf("Couldn't get tabs for space for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 	if len(response.Item) == 0 {
-		return nil, errors.New(errMsg.tabsGet)
+		return nil, nil, errors.New(errMsg.tabsGet)
 	}
 
+	// tabs
 	tabsAttr, ok := response.Item["Tabs"]
 
 	if !ok {
 		errStr := fmt.Sprintf("Tab attribute not found for spaceId: %v for userId: %v", spaceId, userId)
 		logger.Error(errStr, err)
-		return nil, errors.New(errStr)
+		return nil, nil, errors.New(errStr)
 	}
 
 	tabs := []tab{}
@@ -276,14 +280,26 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, error) {
 
 	if err != nil {
 		logger.Errorf("Couldn't unmarshal tabs for space for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &tabs, nil
+	// get updatedAt time for tabs
+	updatedAtAttr, err := strconv.ParseInt(response.Item["UpdatedAt"].(*types.AttributeValueMemberN).Value, 10, 64)
+
+	if err != nil {
+		logger.Errorf("Couldn't get updatedAt for tabs for userId: %v. \n[Error]: %v", userId, err)
+		return nil, nil, err
+	}
+
+	m := &http_api.Metadata{
+		UpdatedAt: updatedAtAttr,
+	}
+
+	return &tabs, m, nil
 }
 
 // groups
-func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
+func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group, m *http_api.Metadata) error {
 	groups, err := attributevalue.MarshalList(g)
 
 	if err != nil {
@@ -292,9 +308,10 @@ func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
 	}
 
 	item := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(spaceId)},
-		"Groups":   &types.AttributeValueMemberL{Value: groups},
+		db.PK_NAME:  &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME:  &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(spaceId)},
+		"Groups":    &types.AttributeValueMemberL{Value: groups},
+		"UpdatedAt": &types.AttributeValueMemberN{Value: strconv.FormatInt(m.UpdatedAt, 10)},
 	}
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
@@ -310,7 +327,7 @@ func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group) error {
 
 }
 
-func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
+func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, *http_api.Metadata, error) {
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
 		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(spaceId)},
@@ -322,12 +339,12 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	})
 
 	if err != nil {
-		logger.Errorf("Couldn't get groups for space for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		logger.Errorf("Couldn't get groups for space for the userId: %v. \n[Error]: %v", userId, err)
+		return nil, nil, err
 	}
 
 	if len(response.Item) == 0 {
-		return nil, errors.New(errMsg.groupsGet)
+		return nil, nil, errors.New(errMsg.groupsGet)
 	}
 
 	groupsAttr, ok := response.Item["Groups"]
@@ -335,7 +352,7 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	if !ok {
 		errStr := fmt.Sprintf("Groups attribute not found for spaceId: %v for userId: %v", spaceId, userId)
 		logger.Error(errStr, err)
-		return nil, errors.New(errStr)
+		return nil, nil, errors.New(errStr)
 	}
 
 	groups := []group{}
@@ -343,11 +360,23 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, error) {
 	err = attributevalue.Unmarshal(groupsAttr, &groups)
 
 	if err != nil {
-		logger.Errorf("Couldn't unmarshal groups for space for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		logger.Errorf("Couldn't unmarshal groups for space for the userId: %v. \n[Error]: %v", userId, err)
+		return nil, nil, err
 	}
 
-	return &groups, nil
+	// get updatedAt time for groups
+	updatedAtAttr, err := strconv.ParseInt(response.Item["UpdatedAt"].(*types.AttributeValueMemberN).Value, 10, 64)
+
+	if err != nil {
+		logger.Errorf("Couldn't get updatedAt for groups for the userId: %v. \n[Error]: %v", userId, err)
+		return nil, nil, err
+	}
+
+	m := &http_api.Metadata{
+		UpdatedAt: updatedAtAttr,
+	}
+
+	return &groups, m, nil
 
 }
 

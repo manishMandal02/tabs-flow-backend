@@ -91,11 +91,11 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 | ------------------ | -------------------------------------- | ------------------------------------------------------------------- |
 | {UserId}           | U#Profile                              | Email, FullName, ProfilePic                                         |
 |                    | U#Subscription                         | Id, PlanId, Plan, Status, Start, End, NextBillingDate               |
-|                    | P#General                              | OpenSpace, DeleteUnsavedSpace, UpdatedAt                            |
-|                    | P#Notes                                | IsDisabled, BubblePos, ShowOnAllSites, UpdatedAt                    |
-|                    | P#CmdPalette                           | IsDisabled, Search, DisabledCommands, UpdatedAt                     |
-|                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size, UpdatedAt                            |
-|                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains, UpdatedAt             |
+|                    | P#General                              | OpenSpace, DeleteUnsavedSpace                                       |
+|                    | P#Notes                                | IsDisabled, BubblePos, ShowOnAllSites                               |
+|                    | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                                |
+|                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                                       |
+|                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains                        |
 |                    | U#Notification#{Id/CreatedAt}          | Type, Timestamp, Note{}, SnoozedTab{}                               |
 |                    | U#NotificationSubscription             | UserId,Endpoint, AuthKey, P256dhKey                                 |
 |                    | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, ActiveTabIndex, UpdatedAt |
