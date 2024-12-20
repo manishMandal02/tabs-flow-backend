@@ -28,6 +28,7 @@ func (s space) validate() error {
 }
 
 type tab struct {
+	Id      string `json:"id"`
 	URL     string `json:"url"`
 	Title   string `json:"title"`
 	Index   int    `json:"index"`
@@ -98,6 +99,7 @@ var defaultUserTabs = []tab{
 var errMsg = struct {
 	userDefaultSpace    string
 	spaceNotFound       string
+	dataConflict        string
 	spaceGet            string
 	spaceId             string
 	spaceCreate         string
@@ -115,6 +117,7 @@ var errMsg = struct {
 }{
 	userDefaultSpace:    "Error setting default space",
 	spaceNotFound:       "Space not found",
+	dataConflict:        "data_conflict",
 	spaceGet:            "Error getting space",
 	spaceId:             "Invalid space id",
 	spaceCreate:         "Error creating space",

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
-	"strconv"
 	"sync"
 	"time"
 
@@ -27,18 +26,6 @@ func getAllStaticSKs() []string {
 		SORT_KEY.P_LinkPreview,
 		SORT_KEY.P_AutoDiscard,
 	}
-}
-
-func GetUpdatedAtTime(item map[string]types.AttributeValue) (int64, error) {
-	updatedAtStr := item["UpdatedAt"].(*types.AttributeValueMemberN).Value
-
-	updatedAtInt, err := strconv.ParseInt(updatedAtStr, 10, 64)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return updatedAtInt, nil
 }
 
 // query dynamodb with sort key prefixes to get all dynamic sort keys

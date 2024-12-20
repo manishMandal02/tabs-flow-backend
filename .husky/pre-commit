@@ -6,4 +6,4 @@ then
   nvm use
 fi;
 
-make lint-all
+make lint

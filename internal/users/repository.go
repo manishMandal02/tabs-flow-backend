@@ -67,11 +67,6 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 
 	user := &User{}
 
-	if err != nil {
-		logger.Error("Error getting updatedAt time", err)
-		return nil, err
-	}
-
 	err = attributevalue.UnmarshalMap(response.Item, &user)
 
 	if err != nil {

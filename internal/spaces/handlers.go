@@ -2,6 +2,7 @@ package spaces
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -226,7 +227,8 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Tabs []tab `json:"tabs"`
+		Tabs          []tab `json:"tabs"`
+		LastUpdatedAt int64 `json:"lastUpdatedAt"`
 	}{}
 
 	err := json.NewDecoder(r.Body).Decode(&data)
@@ -240,6 +242,32 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 	if len(data.Tabs) < 1 {
 		http_api.ErrorRes(w, errMsg.tabsSet, http.StatusBadRequest)
 		return
+	}
+
+	// check for data conflict
+	currentTabs, metadata, err := h.r.getTabsForSpace(userId, spaceId)
+
+	if err != nil {
+		logger.Error("error getting tabs for space", err)
+		http_api.ErrorRes(w, errMsg.tabsGet, http.StatusBadGateway)
+		return
+	}
+
+	if metadata.UpdatedAt != data.LastUpdatedAt {
+
+		err = checkForDataConflict(*currentTabs, data.Tabs)
+
+		if err != nil {
+			logger.Error("error checking for data conflict", err)
+
+			if err.Error() == errMsg.dataConflict {
+				http_api.ErrorRes(w, errMsg.dataConflict, http.StatusBadRequest)
+				return
+			}
+
+			http_api.ErrorRes(w, errMsg.tabsSet, http.StatusBadRequest)
+			return
+		}
 	}
 
 	m := &http_api.Metadata{
@@ -287,7 +315,8 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	data := struct {
-		Groups []group `json:"groups"`
+		Groups        []group `json:"groups"`
+		LastUpdatedAt int64   `json:"lastUpdatedAt"`
 	}{}
 
 	err := json.NewDecoder(r.Body).Decode(&data)
@@ -300,6 +329,21 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 
 	if len(data.Groups) < 1 {
 		http_api.ErrorRes(w, errMsg.groupsSet, http.StatusBadRequest)
+		return
+	}
+
+	// check for data conflict
+	_, metadata, err := h.r.getGroupsForSpace(userId, spaceId)
+
+	if err != nil {
+		logger.Error("error getting groups for space", err)
+		http_api.ErrorRes(w, errMsg.groupsGet, http.StatusBadGateway)
+		return
+	}
+
+	if metadata.UpdatedAt != data.LastUpdatedAt {
+		// different data
+		http_api.ErrorRes(w, errMsg.dataConflict, http.StatusBadRequest)
 		return
 	}
 
@@ -520,4 +564,35 @@ func newUserIdMiddleware() http_api.Handler {
 
 		r.SetPathValue("userId", userId)
 	}
+}
+
+// check for data conflict while setting tabs for space
+func checkForDataConflict(currentTabs []tab, tabs []tab) error {
+
+	// different data
+
+	if len(tabs) < len(currentTabs) {
+		// some tabs were removed, raise conflict
+		return errors.New(errMsg.dataConflict)
+	}
+
+	// auto resolve conflict if new tabs were added and without removing any other
+	// new tabs added
+	// check if all other tabs are same
+	for _, tab := range currentTabs {
+		found := false
+		for _, newTab := range tabs {
+			if tab.Id == newTab.Id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			// tab not found
+			return errors.New(errMsg.dataConflict)
+		}
+	}
+
+	// new tabs were added without removing any tabs
+	return nil
 }

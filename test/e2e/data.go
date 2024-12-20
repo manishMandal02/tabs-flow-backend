@@ -28,6 +28,7 @@ var space = map[string]interface{}{
 
 var tabs = []map[string]interface{}{
 	{
+		"id":      123312121,
 		"url":     "https://github.com",
 		"title":   "GitHub",
 		"index":   0,
@@ -35,6 +36,7 @@ var tabs = []map[string]interface{}{
 		"icon":    "https://github.githubassets.com/favicons/favicon.svg",
 	},
 	{
+		"id":      657467432,
 		"url":     "https://twitter.com",
 		"title":   "Twitter",
 		"index":   1,

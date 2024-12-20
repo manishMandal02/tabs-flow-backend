@@ -27,7 +27,7 @@ lint-ts:
 lint-go:
 	go vet ./... && golangci-lint run ./... && testifylint --enable-all ./...
 
-lint-all: lint-go lint-ts 
+lint: lint-go lint-ts 
 
 # cdk 
 cdk-synth: 
