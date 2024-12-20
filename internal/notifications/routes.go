@@ -26,6 +26,7 @@ func Router(db *db.DDB) http_api.IRouter {
 
 	notificationsRouter.GET("/my", h.getUserNotifications)
 	notificationsRouter.GET("/:id", h.get)
+	notificationsRouter.POST("/publish-event", h.publishEvent)
 	notificationsRouter.DELETE("/:id", h.delete)
 
 	// serve API routes

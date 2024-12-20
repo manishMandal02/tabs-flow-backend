@@ -57,6 +57,30 @@ func (h *notificationHandler) getUserNotifications(w http.ResponseWriter, r *htt
 	http_api.SuccessResData(w, notifications)
 }
 
+func (h *notificationHandler) publishEvent(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+
+	event := &WebPushEvent[map[string]string]{}
+
+	err := json.NewDecoder(r.Body).Decode(&event)
+
+	if err != nil {
+		logger.Error("error decoding notification", err)
+		http_api.ErrorRes(w, errMsg.notificationPublishEvent, http.StatusBadRequest)
+		return
+	}
+
+	err = event.send(userId, h.r)
+
+	if err != nil {
+		http_api.ErrorRes(w, errMsg.notificationPublishEvent, http.StatusBadGateway)
+		return
+	}
+
+	http_api.SuccessResMsg(w, "event published successfully")
+}
+
+// notification subscription
 func (h *notificationHandler) subscribe(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 

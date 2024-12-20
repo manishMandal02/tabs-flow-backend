@@ -1,13 +1,11 @@
 package notifications
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
-	web_push "github.com/SherClockHolmes/webpush-go"
 	lambda_events "github.com/aws/aws-lambda-go/events"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/internal/notes"
@@ -184,12 +182,6 @@ func scheduleSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	db := db.New()
 	r := newRepository(db)
-	s, err := r.getNotificationSubscription(p.UserId)
-
-	if err != nil && err.Error() != errMsg.notificationsSubscribeEmpty {
-
-		return err
-	}
 
 	note, err := getNote(db, p.UserId, p.NoteId)
 
@@ -198,7 +190,7 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 	}
 
 	// create notification
-	notification := notification{
+	n := &notification{
 		Id:        strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Type:      NotificationTypeNoteRemainder,
 		IsRead:    false,
@@ -210,37 +202,27 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 		},
 	}
 
-	err = r.create(p.UserId, &notification)
+	err = r.create(p.UserId, n)
 
 	if err != nil {
 		return err
 	}
 
-	// user has not subscribed for notifications
-	if s == nil {
-		return nil
+	pushEvent := &WebPushEvent[notification]{
+		Event:   PushNotificationEventTypeNotification,
+		Payload: n,
 	}
 
-	n, err := json.Marshal(note)
+	err = pushEvent.send(p.UserId, r)
 
 	if err != nil {
-		logger.Error("error marshalling note", err)
 		return err
-	}
-
-	err = sendWebPushNotification(p.UserId, s, n)
-
-	if err != nil {
-		logger.Error("error sending web push notification", err)
-		return err
-
 	}
 
 	// remove remainder at
 	err = removeNoteRemainder(db, p.UserId, p.NoteId)
 
 	if err != nil {
-		logger.Error("error removing note remainder", err)
 		return err
 	}
 
@@ -252,11 +234,6 @@ func triggerNoteRemainder(p *events.ScheduleNoteRemainderPayload) error {
 func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	db := db.New()
 	r := newRepository(db)
-	s, err := r.getNotificationSubscription(p.UserId)
-
-	if err != nil && err.Error() != errMsg.notificationsSubscribeEmpty {
-		return err
-	}
 
 	snoozedTab, err := getSnoozedTab(db, p.UserId, p.SpaceId, p.SnoozedTabId)
 
@@ -265,7 +242,7 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 	}
 
 	// create notification
-	notification := notification{
+	n := &notification{
 		Id:        strconv.FormatInt(time.Now().UTC().Unix(), 10),
 		Type:      NotificationTypeUnSnoozedType,
 		IsRead:    false,
@@ -278,37 +255,27 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 		},
 	}
 
-	err = r.create(p.UserId, &notification)
+	err = r.create(p.UserId, n)
 
 	if err != nil {
 		return err
 	}
 
-	// user has not subscribed for notifications
-	if s == nil {
-		return nil
+	pushEvent := &WebPushEvent[notification]{
+		Event:   PushNotificationEventTypeNotification,
+		Payload: n,
 	}
 
-	t, err := json.Marshal(notification)
+	err = pushEvent.send(p.UserId, r)
 
 	if err != nil {
-		logger.Error("error marshalling snoozedTab", err)
 		return err
-	}
-
-	err = sendWebPushNotification(p.UserId, s, t)
-
-	if err != nil {
-		logger.Error("error sending web push notification", err)
-		return err
-
 	}
 
 	// delete snoozed tab
 	err = deleteSnoozedTab(db, p.UserId, p.SpaceId, p.SnoozedTabId)
 
 	if err != nil {
-		logger.Error("error deleting snoozed tab", err)
 		return err
 	}
 	return nil
@@ -316,30 +283,6 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 }
 
 // * helpers
-func sendWebPushNotification(userId string, s *PushSubscription, body []byte) error {
-	ws := &web_push.Subscription{
-		Endpoint: s.Endpoint,
-		Keys: web_push.Keys{
-			Auth:   s.AuthKey,
-			P256dh: s.P256dhKey,
-		},
-	}
-	o := &web_push.Options{
-		TTL:             300,
-		Subscriber:      userId,
-		VAPIDPrivateKey: config.VAPID_PRIVATE_KEY,
-		VAPIDPublicKey:  config.VAPID_PUBLIC_KEY,
-	}
-	_, err := web_push.SendNotification(body, ws, o)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
 func getNote(db *db.DDB, userId, noteId string) (*notes.Note, error) {
 
 	r := notes.NewNoteRepository(db, nil)
@@ -380,6 +323,7 @@ func removeNoteRemainder(db *db.DDB, userId, noteId string) error {
 	err := r.RemoveNoteRemainder(userId, noteId)
 
 	if err != nil {
+		logger.Error("error removing note remainder", err)
 		return err
 	}
 
@@ -400,6 +344,7 @@ func deleteSnoozedTab(db *db.DDB, userId, spaceId, snoozedTabId string) error {
 	err = r.DeleteSnoozedTab(userId, spaceId, snoozedTabIdInt)
 
 	if err != nil {
+		logger.Error("error deleting snoozed tab", err)
 		return err
 	}
 

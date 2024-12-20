@@ -1,6 +1,12 @@
 package notifications
 
-import "github.com/go-playground/validator/v10"
+import (
+	"encoding/json"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
+	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
+)
 
 type NotificationType string
 
@@ -33,24 +39,7 @@ type notification struct {
 	SnoozedTab *snoozedTabNotification    `json:"snoozedTab,omitempty"`
 }
 
-var errMsg = struct {
-	notificationGet              string
-	notificationDelete           string
-	notificationsEmpty           string
-	notificationsSubscribe       string
-	notificationsSubscribeEmpty  string
-	notificationsUnsubscribe     string
-	notificationsSubscriptionGet string
-}{
-	notificationDelete:           "error deleting notification",
-	notificationGet:              "error getting notifications",
-	notificationsEmpty:           "no notifications found",
-	notificationsSubscribe:       "error subscribing to notifications",
-	notificationsUnsubscribe:     "error unsubscribing from notifications",
-	notificationsSubscribeEmpty:  "Not subscribed to notifications",
-	notificationsSubscriptionGet: "error getting notification subscription",
-}
-
+// notification subscription
 type PushSubscription struct {
 	Endpoint  string `json:"endpoint,omitempty" validate:"required"`
 	AuthKey   string `json:"authKey,omitempty" validate:"required"`
@@ -66,4 +55,75 @@ func (p PushSubscription) validate() error {
 	}
 
 	return nil
+}
+
+// push notification event
+type PushNotificationEventType string
+
+const (
+	PushNotificationEventTypeNotification       PushNotificationEventType = "USER_NOTIFICATION"
+	PushNotificationEventTypeProfileUpdated     PushNotificationEventType = "PROFILE_UPDATED"
+	PushNotificationEventTypePreferencesUpdated PushNotificationEventType = "PREFERENCES_UPDATED"
+	PushNotificationEventTypeSpacesUpdated      PushNotificationEventType = "SPACES_UPDATED"
+	PushNotificationEventTypeTabsUpdated        PushNotificationEventType = "TABS_UPDATED"
+	PushNotificationEventTypeGroupsUpdated      PushNotificationEventType = "GROUPS_UPDATED"
+)
+
+type WebPushEvent[T any] struct {
+	Event   PushNotificationEventType
+	Payload *T
+}
+
+func (n *WebPushEvent[T]) send(userId string, r notificationRepository) error {
+	if r == nil {
+		db := db.New()
+		r = newRepository(db)
+	}
+
+	s, err := r.getNotificationSubscription(userId)
+
+	if err != nil && err.Error() != errMsg.notificationsSubscribeEmpty {
+		return err
+	}
+
+	// user has not subscribed for notifications
+	if s == nil {
+		logger.Errorf("No notification subscription found for userId: %s", userId)
+		return nil
+	}
+
+	b, err := json.Marshal(n)
+
+	if err != nil {
+		logger.Error("error marshalling WebPushEvent", err)
+		return err
+	}
+
+	err = sendWebPushNotification(userId, s, b)
+
+	if err != nil {
+		logger.Error("error sending web push notification", err)
+		return err
+	}
+	return nil
+}
+
+var errMsg = struct {
+	notificationGet              string
+	notificationPublishEvent     string
+	notificationDelete           string
+	notificationsEmpty           string
+	notificationsSubscribe       string
+	notificationsSubscribeEmpty  string
+	notificationsUnsubscribe     string
+	notificationsSubscriptionGet string
+}{
+	notificationDelete:           "error deleting notification",
+	notificationGet:              "error getting notifications",
+	notificationPublishEvent:     "error sending notifications",
+	notificationsEmpty:           "no notifications found",
+	notificationsSubscribe:       "error subscribing to notifications",
+	notificationsUnsubscribe:     "error unsubscribing from notifications",
+	notificationsSubscribeEmpty:  "Not subscribed to notifications",
+	notificationsSubscriptionGet: "error getting notification subscription",
 }
