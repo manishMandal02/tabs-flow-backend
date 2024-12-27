@@ -21,6 +21,7 @@ type snoozedTabNotification struct {
 	URL       string `json:"url"`
 	Title     string `json:"title"`
 	Icon      string `json:"icon"`
+	SpaceId   string `json:"spaceId"`
 }
 
 type noteRemainderNotification struct {
@@ -61,12 +62,13 @@ func (p PushSubscription) validate() error {
 type PushNotificationEventType string
 
 const (
-	PushNotificationEventTypeNotification       PushNotificationEventType = "USER_NOTIFICATION"
-	PushNotificationEventTypeProfileUpdated     PushNotificationEventType = "PROFILE_UPDATED"
-	PushNotificationEventTypePreferencesUpdated PushNotificationEventType = "PREFERENCES_UPDATED"
-	PushNotificationEventTypeSpacesUpdated      PushNotificationEventType = "SPACES_UPDATED"
-	PushNotificationEventTypeTabsUpdated        PushNotificationEventType = "TABS_UPDATED"
-	PushNotificationEventTypeGroupsUpdated      PushNotificationEventType = "GROUPS_UPDATED"
+	PushNotificationEventTypeNotification        PushNotificationEventType = "USER_NOTIFICATION"
+	PushNotificationEventTypeSubscriptionUpdated PushNotificationEventType = "SUBSCRIPTION_UPDATED"
+	PushNotificationEventTypeProfileUpdated      PushNotificationEventType = "PROFILE_UPDATED"
+	PushNotificationEventTypePreferencesUpdated  PushNotificationEventType = "PREFERENCES_UPDATED"
+	PushNotificationEventTypeSpacesUpdated       PushNotificationEventType = "SPACES_UPDATED"
+	PushNotificationEventTypeTabsUpdated         PushNotificationEventType = "TABS_UPDATED"
+	PushNotificationEventTypeGroupsUpdated       PushNotificationEventType = "GROUPS_UPDATED"
 )
 
 type WebPushEvent[T any] struct {

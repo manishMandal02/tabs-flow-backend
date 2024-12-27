@@ -17,13 +17,12 @@ var TestUser = users.User{
 // spaces
 
 var space = map[string]interface{}{
-	"id":             "E34Y321",
-	"title":          "Work",
-	"theme":          "Green",
-	"emoji":          "💼",
-	"isSaved":        true,
-	"windowId":       7890678432,
-	"activeTabIndex": 1,
+	"id":       "E34Y321",
+	"title":    "Work",
+	"theme":    "Green",
+	"emoji":    "💼",
+	"isSaved":  true,
+	"windowId": 7890678432,
 }
 
 var tabs = []map[string]interface{}{

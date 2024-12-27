@@ -201,6 +201,63 @@ func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 	http_api.SuccessResMsg(w, "space deleted successfully")
 }
 
+// space active tab index
+
+func (h *spaceHandler) setActiveTab(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+	spaceId := r.PathValue("spaceId")
+
+	if spaceId == "" {
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
+		return
+	}
+
+	data := struct {
+		TabIndex int64 `json:"tabIndex"`
+	}{}
+
+	err := json.NewDecoder(r.Body).Decode(&data)
+
+	if err != nil {
+		logger.Error("error decoding body", err)
+		http_api.ErrorRes(w, errMsg.spaceActiveTabIndexSet, http.StatusBadRequest)
+		return
+	}
+
+	if data.TabIndex < 0 {
+		data.TabIndex = 0
+	}
+
+	err = h.r.setActiveTabIndex(userId, spaceId, data.TabIndex)
+
+	if err != nil {
+		logger.Error("error setting active tab index", err)
+		http_api.ErrorRes(w, errMsg.spaceActiveTabIndexSet, http.StatusBadGateway)
+		return
+	}
+
+	http_api.SuccessResMsg(w, "active tab index set successfully")
+}
+
+func (h *spaceHandler) getActiveTab(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+	spaceId := r.PathValue("spaceId")
+
+	if spaceId == "" {
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
+		return
+	}
+	activeTabIndex, err := h.r.getActiveTabIndex(userId, spaceId)
+
+	if err != nil {
+		logger.Error("error getting active tab index", err)
+		http_api.ErrorRes(w, errMsg.spaceActiveTabIndexGet, http.StatusBadGateway)
+		return
+	}
+	http_api.SuccessResData(w, activeTabIndex)
+
+}
+
 // tabs
 func (h *spaceHandler) getTabsInSpace(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")

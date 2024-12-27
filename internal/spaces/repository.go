@@ -23,6 +23,8 @@ type spaceRepository interface {
 	getSpacesByUser(userId string) (*[]space, error)
 	updateSpace(userId string, s *space) error
 	deleteSpace(userId, spaceId string) error
+	setActiveTabIndex(userId, spaceId string, tabIndex int64) error
+	getActiveTabIndex(userId, spaceId string) (int64, error)
 	setTabsForSpace(userId, spaceId string, t *[]tab, m *http_api.Metadata) error
 	setGroupsForSpace(userId, spaceId string, g *[]group, m *http_api.Metadata) error
 	getTabsForSpace(userId, spaceId string) (*[]tab, *http_api.Metadata, error)
@@ -210,6 +212,56 @@ func (r spaceRepo) deleteSpace(userId, spaceId string) error {
 
 	if err != nil {
 		logger.Errorf("Couldn't delete space for userId: %v. \n[Error]: %v", userId, err)
+		return err
+	}
+
+	return nil
+}
+
+// space active tab index
+func (r spaceRepo) getActiveTabIndex(userId, spaceId string) (int64, error) {
+	key := map[string]types.AttributeValue{
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SpaceActiveTab(spaceId)},
+	}
+	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: &r.db.TableName,
+		Key:       key,
+	})
+
+	if err != nil {
+		logger.Errorf("Couldn't get active tab index for spaceId: %v. \n[Error]: %v", spaceId, err)
+		return 0, err
+	}
+
+	if len(response.Item) == 0 {
+		return 0, errors.New(errMsg.spaceActiveTabIndexGet)
+	}
+
+	var activeTabIndex int64
+	err = attributevalue.Unmarshal(response.Item["ActiveTabIndex"], &activeTabIndex)
+
+	if err != nil {
+		logger.Errorf("Couldn't unmarshal active tab index for spaceId: %v. \n[Error]: %v", spaceId, err)
+		return 0, err
+	}
+	return activeTabIndex, nil
+}
+
+func (r spaceRepo) setActiveTabIndex(userId, spaceId string, activeTabIndex int64) error {
+	item := map[string]types.AttributeValue{
+		db.PK_NAME:       &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME:       &types.AttributeValueMemberS{Value: db.SORT_KEY.SpaceActiveTab(spaceId)},
+		"ActiveTabIndex": &types.AttributeValueMemberN{Value: strconv.FormatInt(activeTabIndex, 10)},
+	}
+
+	_, err := r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: &r.db.TableName,
+		Item:      item,
+	})
+
+	if err != nil {
+		logger.Errorf("Couldn't set active tab index for spaceId: %v. \n[Error]: %v", spaceId, err)
 		return err
 	}
 

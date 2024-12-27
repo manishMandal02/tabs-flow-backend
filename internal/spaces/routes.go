@@ -28,6 +28,11 @@ func Router(db *db.DDB, q *events.Queue) http_api.IRouter {
 	spacesRouter.PATCH("/", sh.update)
 	spacesRouter.DELETE("/:spaceId", sh.delete)
 
+	// active tab index
+
+	spacesRouter.GET("/:spaceId/active-tab", sh.getActiveTab)
+	spacesRouter.POST("/:spaceId/active-tab", sh.setActiveTab)
+
 	// tabs
 	spacesRouter.GET("/:spaceId/tabs", sh.getTabsInSpace)
 	spacesRouter.POST("/:spaceId/tabs", sh.setTabsInSpace)

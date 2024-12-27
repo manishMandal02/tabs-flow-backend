@@ -19,7 +19,7 @@ import (
 type repository interface {
 	getUserByID(id string) (*User, error)
 	insertUser(user *User) error
-	updateUser(id, name string) error
+	updateUser(id, firstName, lastName string) error
 	deleteAccount(id string) error
 	getAllPreferences(id string) (*Preferences, error)
 	setPreferences(userId, sk string, pData interface{}) error
@@ -107,7 +107,7 @@ func (r *userRepo) insertUser(user *User) error {
 	return nil
 }
 
-func (r userRepo) updateUser(id, name string) error {
+func (r userRepo) updateUser(id, firsName, lastName string) error {
 
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: id},
@@ -115,7 +115,8 @@ func (r userRepo) updateUser(id, name string) error {
 	}
 
 	// build update expression
-	updateExpr := expression.Set(expression.Name("FullName"), expression.Value(name))
+	updateExpr := expression.Set(expression.Name("FirstName"), expression.Value(firsName))
+	updateExpr.Set(expression.Name("LastName"), expression.Value(lastName))
 	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
 
 	if err != nil {

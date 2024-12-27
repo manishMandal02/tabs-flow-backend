@@ -84,36 +84,36 @@ type subscription struct {
 }
 
 type generalP struct {
-	OpenSpace           string `json:"openSpace,omitempty" dynamodbav:"OpenSpace"`
-	DeleteUnsavedSpaces string `json:"deleteUnsavedSpaces,omitempty" dynamodbav:"DeleteUnsavedSpaces"`
+	OpenSpace           string `json:"openSpace" dynamodbav:"OpenSpace"`
+	DeleteUnsavedSpaces string `json:"deleteUnsavedSpaces" dynamodbav:"DeleteUnsavedSpaces"`
 }
 
 type searchP struct {
-	Bookmarks bool `json:"bookmarks,omitempty" dynamodbav:"Bookmarks"`
-	Notes     bool `json:"notes,omitempty" dynamodbav:"Notes"`
+	Bookmarks bool `json:"bookmarks" dynamodbav:"Bookmarks"`
+	Notes     bool `json:"notes" dynamodbav:"Notes"`
 }
 
 type cmdPaletteP struct {
-	IsDisabled       bool     `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
-	Search           searchP  `json:"search,omitempty" dynamodbav:"Search"`
-	DisabledCommands []string `json:"disabledCommands,omitempty" dynamodbav:"DisabledCommands"`
+	IsDisabled       bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
+	Search           searchP  `json:"search" dynamodbav:"Search"`
+	DisabledCommands []string `json:"disabledCommands" dynamodbav:"DisabledCommands"`
 }
 
 type notesP struct {
-	IsDisabled     bool   `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
-	BubblePos      string `json:"bubblePos,omitempty" dynamodbav:"BubblePos"`
-	ShowOnAllSites bool   `json:"showOnAllSites,omitempty" dynamodbav:"ShowOnAllSites"`
+	IsDisabled     bool   `json:"isDisabled" dynamodbav:"IsDisabled"`
+	BubblePos      string `json:"bubblePos" dynamodbav:"BubblePos"`
+	ShowOnAllSites bool   `json:"showOnAllSites" dynamodbav:"ShowOnAllSites"`
 }
 type autoDiscardP struct {
-	IsDisabled              bool     `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
-	DiscardTabsAfterIdleMin int32    `json:"DiscardTabsAfterIdleMin,omitempty" dynamodbav:"DiscardTabsAfterIdleMin"`
-	WhitelistedDomains      []string `json:"whitelistedDomains,omitempty" dynamodbav:"WhitelistedDomains"`
+	IsDisabled              bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
+	DiscardTabsAfterIdleMin int32    `json:"DiscardTabsAfterIdleMin" dynamodbav:"DiscardTabsAfterIdleMin"`
+	WhitelistedDomains      []string `json:"whitelistedDomains" dynamodbav:"WhitelistedDomains"`
 }
 
 type linkPreviewP struct {
-	IsDisabled  bool   `json:"isDisabled,omitempty" dynamodbav:"IsDisabled"`
-	OpenTrigger string `json:"openTrigger,omitempty" dynamodbav:"openTrigger"`
-	Size        string `json:"size,omitempty" dynamodbav:"Size"`
+	IsDisabled  bool   `json:"isDisabled" dynamodbav:"IsDisabled"`
+	OpenTrigger string `json:"openTrigger" dynamodbav:"openTrigger"`
+	Size        string `json:"size" dynamodbav:"Size"`
 }
 
 type Preferences struct {

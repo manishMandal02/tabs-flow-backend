@@ -252,6 +252,7 @@ func triggerSnoozedTab(p *events.ScheduleSnoozedTabPayload) error {
 			SnoozedAt: p.SnoozedTabId,
 			Title:     snoozedTab.Title,
 			Icon:      snoozedTab.Icon,
+			SpaceId:   p.SpaceId,
 		},
 	}
 

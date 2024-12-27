@@ -138,7 +138,8 @@ func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	var n struct {
-		Name string `json:"fullName"`
+		FirstName string `json:"firstName" validate:"required"`
+		LastName  string `json:"lastName" validate:"required"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&n)
@@ -149,7 +150,7 @@ func (h handler) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.r.updateUser(id, n.Name)
+	err = h.r.updateUser(id, n.FirstName, n.LastName)
 
 	if err != nil {
 		http_api.ErrorRes(w, ErrMsg.UpdateUser, http.StatusBadGateway)

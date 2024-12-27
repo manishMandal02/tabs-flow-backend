@@ -28,6 +28,7 @@ var SORT_KEY = struct {
 	NotificationSubscription string
 	Notifications            dynamicKey
 	Space                    dynamicKey
+	SpaceActiveTab           dynamicKey
 	TabsInSpace              dynamicKey
 	GroupsInSpace            dynamicKey
 	SnoozedTabs              dynamicKey
@@ -45,6 +46,7 @@ var SORT_KEY = struct {
 	NotificationSubscription: "U#NotificationSubscription",
 	Notifications:            generateKey("U#Notification#"),
 	Space:                    generateKey("S#Info#"),
+	SpaceActiveTab:           generateKey("S#ActiveTab#"),
 	TabsInSpace:              generateKey("S#Tabs#"),
 	GroupsInSpace:            generateKey("S#Groups#"),
 	SnoozedTabs:              generateKey("S#SnoozedTabs#"),

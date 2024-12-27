@@ -6,14 +6,13 @@ import (
 )
 
 type space struct {
-	Id             string `json:"id" validate:"required"`
-	Title          string `json:"title" validate:"required"`
-	Theme          string `json:"theme" validate:"required"`
-	IsSaved        bool   `json:"isSaved" validate:"required"`
-	Emoji          string `json:"emoji" validate:"required"`
-	WindowId       int    `json:"windowId" validate:"required,number"`
-	ActiveTabIndex int    `json:"activeTabIndex" validate:"number"`
-	UpdatedAt      int64  `json:"updatedAt" validate:"number"`
+	Id        string `json:"id" validate:"required"`
+	Title     string `json:"title" validate:"required"`
+	Theme     string `json:"theme" validate:"required"`
+	IsSaved   bool   `json:"isSaved" validate:"required"`
+	Emoji     string `json:"emoji" validate:"required"`
+	WindowId  int    `json:"windowId" validate:"required,number"`
+	UpdatedAt int64  `json:"updatedAt" validate:"number"`
 }
 
 func (s space) validate() error {
@@ -54,13 +53,12 @@ type SnoozedTab struct {
 var defaultSpaceId = "default2024"
 
 var defaultUserSpace = space{
-	Id:             defaultSpaceId,
-	Title:          config.DEFAULT_SPACE_TITLE,
-	Theme:          "#38bdf8",
-	IsSaved:        true,
-	Emoji:          "🗂️",
-	WindowId:       0,
-	ActiveTabIndex: 1,
+	Id:       defaultSpaceId,
+	Title:    config.DEFAULT_SPACE_TITLE,
+	Theme:    "#38bdf8",
+	IsSaved:  true,
+	Emoji:    "🗂️",
+	WindowId: 0,
 }
 
 var defaultUserGroup = []group{
@@ -97,39 +95,43 @@ var defaultUserTabs = []tab{
 }
 
 var errMsg = struct {
-	userDefaultSpace    string
-	spaceNotFound       string
-	dataConflict        string
-	spaceGet            string
-	spaceId             string
-	spaceCreate         string
-	spaceUpdate         string
-	spaceDelete         string
-	spaceGetAllByUser   string
-	tabsGet             string
-	tabsSet             string
-	groupsGet           string
-	groupsSet           string
-	snoozedTabsCreate   string
-	snoozedTabsGet      string
-	snoozedTabsNotFound string
-	snoozedTabsDelete   string
+	userDefaultSpace       string
+	spaceNotFound          string
+	dataConflict           string
+	spaceGet               string
+	spaceId                string
+	spaceCreate            string
+	spaceUpdate            string
+	spaceDelete            string
+	spaceActiveTabIndexGet string
+	spaceActiveTabIndexSet string
+	spaceGetAllByUser      string
+	tabsGet                string
+	tabsSet                string
+	groupsGet              string
+	groupsSet              string
+	snoozedTabsCreate      string
+	snoozedTabsGet         string
+	snoozedTabsNotFound    string
+	snoozedTabsDelete      string
 }{
-	userDefaultSpace:    "Error setting default space",
-	spaceNotFound:       "Space not found",
-	dataConflict:        "data_conflict",
-	spaceGet:            "Error getting space",
-	spaceId:             "Invalid space id",
-	spaceCreate:         "Error creating space",
-	spaceUpdate:         "Error updating space",
-	spaceDelete:         "Error deleting space",
-	spaceGetAllByUser:   "Error getting spaces for user",
-	tabsGet:             "Error getting tabs",
-	tabsSet:             "Error setting tabs",
-	groupsGet:           "Error getting groups",
-	groupsSet:           "Error setting groups",
-	snoozedTabsNotFound: "Snoozed not found",
-	snoozedTabsCreate:   "Error creating snoozed tab",
-	snoozedTabsGet:      "Error getting snoozed tabs",
-	snoozedTabsDelete:   "Error deleting snoozed tab",
+	userDefaultSpace:       "Error setting default space",
+	spaceNotFound:          "Space not found",
+	dataConflict:           "data_conflict",
+	spaceGet:               "Error getting space",
+	spaceId:                "Invalid space id",
+	spaceCreate:            "Error creating space",
+	spaceUpdate:            "Error updating space",
+	spaceDelete:            "Error deleting space",
+	spaceActiveTabIndexGet: "Error getting active tab index",
+	spaceActiveTabIndexSet: "Error setting active tab index",
+	spaceGetAllByUser:      "Error getting spaces for user",
+	tabsGet:                "Error getting tabs",
+	tabsSet:                "Error setting tabs",
+	groupsGet:              "Error getting groups",
+	groupsSet:              "Error setting groups",
+	snoozedTabsNotFound:    "Snoozed not found",
+	snoozedTabsCreate:      "Error creating snoozed tab",
+	snoozedTabsGet:         "Error getting snoozed tabs",
+	snoozedTabsDelete:      "Error deleting snoozed tab",
 }
