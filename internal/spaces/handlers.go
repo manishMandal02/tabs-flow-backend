@@ -170,7 +170,7 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.r.updateSpace(userId, &s)
+	err = h.r.createSpace(userId, &s)
 
 	if err != nil {
 		logger.Error("error updating space", err)

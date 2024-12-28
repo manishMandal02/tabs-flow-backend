@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -21,7 +20,6 @@ type spaceRepository interface {
 	createSpace(userId string, s *space) error
 	getSpaceById(userId, spaceId string) (*space, error)
 	getSpacesByUser(userId string) (*[]space, error)
-	updateSpace(userId string, s *space) error
 	deleteSpace(userId, spaceId string) error
 	setActiveTabIndex(userId, spaceId string, tabIndex int64) error
 	getActiveTabIndex(userId, spaceId string) (int64, error)
@@ -64,7 +62,7 @@ func (r spaceRepo) createSpace(userId string, s *space) error {
 	})
 
 	if err != nil {
-		logger.Errorf("Couldn't create space: %v. \n[Error]: %v", s, err)
+		logger.Errorf("Couldn't Put space: %v. \n[Error]: %v", s, err)
 		return err
 	}
 
@@ -144,58 +142,6 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 	}
 
 	return &spaces, nil
-}
-
-func (r spaceRepo) updateSpace(userId string, s *space) error {
-	key := map[string]types.AttributeValue{
-		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(s.Id)},
-	}
-
-	var update expression.UpdateBuilder
-
-	// iterate over the fields of the struct
-	v := reflect.ValueOf(s)
-
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	} else {
-		logger.Error("unexpected type", errors.New(v.Kind().String()))
-		return errors.ErrUnsupported
-	}
-
-	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
-		field := t.Field(i)
-		fieldValue := v.Field(i)
-
-		if fieldValue.IsZero() {
-			continue
-		}
-
-		update = update.Set(expression.Name(field.Name), expression.Value(v.Field(i).Interface()))
-	}
-
-	expr, err := expression.NewBuilder().WithUpdate(update).Build()
-
-	if err != nil {
-		return err
-	}
-
-	_, err = r.db.Client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
-		TableName:                 &r.db.TableName,
-		Key:                       key,
-		ExpressionAttributeNames:  expr.Names(),
-		ExpressionAttributeValues: expr.Values(),
-		UpdateExpression:          expr.Update(),
-	})
-
-	if err != nil {
-		logger.Errorf("Couldn't update space for userId: %v. \n[Error]: %v", userId, err)
-		return err
-	}
-
-	return nil
 }
 
 func (r spaceRepo) deleteSpace(userId, spaceId string) error {

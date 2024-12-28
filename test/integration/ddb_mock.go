@@ -74,3 +74,11 @@ func (m *DynamoDBClientMock) BatchWriteItem(ctx context.Context, input *dynamodb
 	}
 	return args.Get(0).(*dynamodb.BatchWriteItemOutput), args.Error(1)
 }
+
+func (m *DynamoDBClientMock) TransactWriteItems(ctx context.Context, input *dynamodb.TransactWriteItemsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.TransactWriteItemsOutput, error) {
+	args := m.Called(ctx, input, optFns)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*dynamodb.TransactWriteItemsOutput), args.Error(1)
+}
