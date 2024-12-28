@@ -29,9 +29,8 @@ func Router(db *db.DDB, q *events.Queue) http_api.IRouter {
 	spacesRouter.DELETE("/:spaceId", sh.delete)
 
 	// active tab index
-
-	spacesRouter.GET("/:spaceId/active-tab", sh.getActiveTab)
-	spacesRouter.POST("/:spaceId/active-tab", sh.setActiveTab)
+	spacesRouter.GET("/:spaceId/active-tab-index", sh.getActiveTab)
+	spacesRouter.POST("/:spaceId/active-tab-index", sh.setActiveTab)
 
 	// tabs
 	spacesRouter.GET("/:spaceId/tabs", sh.getTabsInSpace)
