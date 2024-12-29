@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -19,19 +21,20 @@ import (
 type spaceRepository interface {
 	createSpace(userId string, s *space) error
 	getSpaceById(userId, spaceId string) (*space, error)
-	getSpacesByUser(userId string) (*[]space, error)
-	deleteSpace(userId, spaceId string) error
+	getSpacesByUser(userId string) ([]space, error)
+	deleteSpace(userId, spaceId, backupSpaceId string) error
 	setActiveTabIndex(userId, spaceId string, tabIndex int64) error
 	getActiveTabIndex(userId, spaceId string) (int64, error)
-	setTabsForSpace(userId, spaceId string, t *[]tab, m *http_api.Metadata) error
-	setGroupsForSpace(userId, spaceId string, g *[]group, m *http_api.Metadata) error
-	getTabsForSpace(userId, spaceId string) (*[]tab, *http_api.Metadata, error)
-	getGroupsForSpace(userId, spaceId string) (*[]group, *http_api.Metadata, error)
+	setTabsForSpace(userId, spaceId string, t []tab, m *http_api.Metadata) error
+	setGroupsForSpace(userId, spaceId string, g []group, m *http_api.Metadata) error
+	getTabsForSpace(userId, spaceId string) ([]tab, *http_api.Metadata, error)
+	getGroupsForSpace(userId, spaceId string) ([]group, *http_api.Metadata, error)
 	addSnoozedTab(userId, spaceId string, t *SnoozedTab) error
-	getAllSnoozedTabsByUser(userId string, lastSnoozedTabID int64) (*[]SnoozedTab, error)
-	geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]SnoozedTab, error)
-	DeleteSnoozedTab(userId, spaceId string, snoozedAt int64) error
+	getAllSnoozedTabsByUser(userId string, lastSnoozedTabID int64) ([]SnoozedTab, *http_api.Metadata, error)
+	geSnoozedTabsInSpace(userId, spaceId string, limit int32, lastSnoozedTabId int64) ([]SnoozedTab, *http_api.Metadata, error)
 	GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*SnoozedTab, error)
+	switchSnoozedTabSpace(userId, spaceId, newSpaceId string) error
+	DeleteSnoozedTab(userId, spaceId string, snoozedAt int64) error
 }
 
 type spaceRepo struct {
@@ -69,7 +72,7 @@ func (r spaceRepo) createSpace(userId string, s *space) error {
 	return nil
 }
 
-func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
+func (r *spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
@@ -106,7 +109,7 @@ func (r spaceRepo) getSpaceById(userId, spaceId string) (*space, error) {
 	return s, nil
 }
 
-func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
+func (r *spaceRepo) getSpacesByUser(userId string) ([]space, error) {
 
 	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(userId)), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY.Space("")))
 
@@ -141,20 +144,51 @@ func (r spaceRepo) getSpacesByUser(userId string) (*[]space, error) {
 		return nil, err
 	}
 
-	return &spaces, nil
+	return spaces, nil
 }
 
-func (r spaceRepo) deleteSpace(userId, spaceId string) error {
+func (r *spaceRepo) deleteSpace(userId, spaceId, backupSpaceId string) error {
 
-	key := map[string]types.AttributeValue{
-		"PK": &types.AttributeValueMemberS{Value: userId},
-		"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(spaceId)},
+	var transactItems []types.TransactWriteItem
+
+	deleteKeys := []map[string]types.AttributeValue{
+		{
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
+		},
+		{
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(spaceId)},
+		},
+		{
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SpaceActiveTab(spaceId)},
+		},
+		{
+			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(spaceId)},
+		},
 	}
 
-	_, err := r.db.Client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
-		TableName: &r.db.TableName,
-		Key:       key,
-	})
+	for _, key := range deleteKeys {
+		transactItems = append(transactItems, types.TransactWriteItem{
+			Delete: &types.Delete{
+				TableName: &r.db.TableName,
+				Key:       key,
+			},
+		})
+	}
+
+	err := r.db.TransactionWriter(transactItems)
+
+	if err != nil {
+		logger.Errorf("Couldn't delete space for userId: %v. \n[Error]: %v", userId, err)
+		return err
+	}
+
+	// move snoozed tabs to backup space
+
+	err = r.switchSnoozedTabSpace(userId, spaceId, backupSpaceId)
 
 	if err != nil {
 		logger.Errorf("Couldn't delete space for userId: %v. \n[Error]: %v", userId, err)
@@ -165,7 +199,7 @@ func (r spaceRepo) deleteSpace(userId, spaceId string) error {
 }
 
 // space active tab index
-func (r spaceRepo) getActiveTabIndex(userId, spaceId string) (int64, error) {
+func (r *spaceRepo) getActiveTabIndex(userId, spaceId string) (int64, error) {
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
 		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SpaceActiveTab(spaceId)},
@@ -194,7 +228,7 @@ func (r spaceRepo) getActiveTabIndex(userId, spaceId string) (int64, error) {
 	return activeTabIndex, nil
 }
 
-func (r spaceRepo) setActiveTabIndex(userId, spaceId string, activeTabIndex int64) error {
+func (r *spaceRepo) setActiveTabIndex(userId, spaceId string, activeTabIndex int64) error {
 	item := map[string]types.AttributeValue{
 		db.PK_NAME:       &types.AttributeValueMemberS{Value: userId},
 		db.SK_NAME:       &types.AttributeValueMemberS{Value: db.SORT_KEY.SpaceActiveTab(spaceId)},
@@ -215,7 +249,7 @@ func (r spaceRepo) setActiveTabIndex(userId, spaceId string, activeTabIndex int6
 }
 
 // tabs
-func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab, m *http_api.Metadata) error {
+func (r *spaceRepo) setTabsForSpace(userId, spaceId string, t []tab, m *http_api.Metadata) error {
 
 	tabs, err := attributevalue.MarshalListWithOptions(t)
 
@@ -244,7 +278,7 @@ func (r spaceRepo) setTabsForSpace(userId, spaceId string, t *[]tab, m *http_api
 	return nil
 }
 
-func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, *http_api.Metadata, error) {
+func (r *spaceRepo) getTabsForSpace(userId, spaceId string) ([]tab, *http_api.Metadata, error) {
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
 		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
@@ -293,11 +327,11 @@ func (r spaceRepo) getTabsForSpace(userId, spaceId string) (*[]tab, *http_api.Me
 		UpdatedAt: updatedAtAttr,
 	}
 
-	return &tabs, m, nil
+	return tabs, m, nil
 }
 
 // groups
-func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group, m *http_api.Metadata) error {
+func (r *spaceRepo) setGroupsForSpace(userId, spaceId string, g []group, m *http_api.Metadata) error {
 	groups, err := attributevalue.MarshalList(g)
 
 	if err != nil {
@@ -325,7 +359,7 @@ func (r spaceRepo) setGroupsForSpace(userId, spaceId string, g *[]group, m *http
 
 }
 
-func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, *http_api.Metadata, error) {
+func (r *spaceRepo) getGroupsForSpace(userId, spaceId string) ([]group, *http_api.Metadata, error) {
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
 		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(spaceId)},
@@ -374,28 +408,28 @@ func (r spaceRepo) getGroupsForSpace(userId, spaceId string) (*[]group, *http_ap
 		UpdatedAt: updatedAtAttr,
 	}
 
-	return &groups, m, nil
+	return groups, m, nil
 
 }
 
 // snoozed tabs
-func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *SnoozedTab) error {
+func (r *spaceRepo) addSnoozedTab(userId, spaceId string, t *SnoozedTab) error {
 
-	snoozedTabs, err := attributevalue.MarshalMap(*t)
+	snoozedTab, err := attributevalue.MarshalMap(*t)
 
 	if err != nil {
 		logger.Errorf("Couldn't marshal snoozed tabs: %v. \n[Error]: %v", t, err)
 		return err
 	}
 
-	sk := fmt.Sprintf("%s#%v", db.SORT_KEY.SnoozedTabs(spaceId), t.SnoozedAt)
+	sk := fmt.Sprintf("%s#%v", db.SORT_KEY.SnoozedTab(spaceId), t.SnoozedAt)
 
-	snoozedTabs[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
-	snoozedTabs[db.SK_NAME] = &types.AttributeValueMemberS{Value: sk}
+	snoozedTab[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
+	snoozedTab[db.SK_NAME] = &types.AttributeValueMemberS{Value: sk}
 
 	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
 		TableName: &r.db.TableName,
-		Item:      snoozedTabs,
+		Item:      snoozedTab,
 	})
 	if err != nil {
 		logger.Errorf("Couldn't add snoozed tab for userId: %v. \n[Error]: %v", userId, err)
@@ -405,13 +439,13 @@ func (r spaceRepo) addSnoozedTab(userId, spaceId string, t *SnoozedTab) error {
 	return nil
 }
 
-func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*SnoozedTab, error) {
+func (r *spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*SnoozedTab, error) {
 
 	skSuffix := fmt.Sprintf("%s#%v", spaceId, snoozedAt)
 
 	key := map[string]types.AttributeValue{
 		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTabs(skSuffix)},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTab(skSuffix)},
 	}
 
 	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
@@ -440,15 +474,15 @@ func (r spaceRepo) GetSnoozedTab(userId, spaceId string, snoozedAt int64) (*Snoo
 
 }
 
-func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64) (*[]SnoozedTab, error) {
+func (r *spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64) ([]SnoozedTab, *http_api.Metadata, error) {
 
-	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(userId)), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY.SnoozedTabs("")))
+	key := expression.KeyAnd(expression.Key(db.PK_NAME).Equal(expression.Value(userId)), expression.Key(db.SK_NAME).BeginsWith(db.SORT_KEY.SnoozedTab("")))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
 		logger.Errorf("Couldn't build getSnoozedTabs expression for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	var startKey map[string]types.AttributeValue
@@ -456,7 +490,7 @@ func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64
 	if lastSnoozedTabId != 0 {
 		startKey = map[string]types.AttributeValue{
 			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTabs(fmt.Sprintf("%v", lastSnoozedTabId))},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTab(fmt.Sprintf("%v", lastSnoozedTabId))},
 		}
 	}
 
@@ -471,11 +505,11 @@ func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64
 
 	if err != nil {
 		logger.Errorf("Couldn't get snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(response.Items) < 1 {
-		return nil, errors.New(errMsg.snoozedTabsNotFound)
+		return nil, nil, errors.New(errMsg.snoozedTabsNotFound)
 	}
 
 	snoozedTabs := []SnoozedTab{}
@@ -484,21 +518,31 @@ func (r spaceRepo) getAllSnoozedTabsByUser(userId string, lastSnoozedTabId int64
 
 	if err != nil {
 		logger.Errorf("Couldn't unmarshal snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &snoozedTabs, nil
+	lastSK := ""
+
+	if len(response.LastEvaluatedKey) > 0 {
+		lastSK = response.LastEvaluatedKey[db.SK_NAME].(*types.AttributeValueMemberS).Value
+	}
+
+	m := &http_api.Metadata{
+		LastKey: lastSK,
+	}
+
+	return snoozedTabs, m, nil
 }
 
-func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId int64) (*[]SnoozedTab, error) {
+func (r *spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, limit int32, lastSnoozedTabId int64) ([]SnoozedTab, *http_api.Metadata, error) {
 
-	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(db.SORT_KEY.SnoozedTabs(spaceId)))
+	key := expression.KeyAnd(expression.Key("PK").Equal(expression.Value(userId)), expression.Key("SK").BeginsWith(db.SORT_KEY.SnoozedTab(spaceId)))
 
 	expr, err := expression.NewBuilder().WithKeyCondition(key).Build()
 
 	if err != nil {
 		logger.Errorf("Couldn't build getSnoozedTabs expression for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	var startKey map[string]types.AttributeValue
@@ -506,7 +550,7 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 	if lastSnoozedTabId != 0 {
 		startKey = map[string]types.AttributeValue{
 			db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTabs(fmt.Sprintf("%s#%v", spaceId, lastSnoozedTabId))},
+			db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTab(fmt.Sprintf("%s#%v", spaceId, lastSnoozedTabId))},
 		}
 	}
 
@@ -515,17 +559,17 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		KeyConditionExpression:    expr.KeyCondition(),
-		Limit:                     aws.Int32(10),
+		Limit:                     aws.Int32(limit),
 		ExclusiveStartKey:         startKey,
 	})
 
 	if err != nil {
 		logger.Errorf("Couldn't get snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(response.Items) < 1 {
-		return nil, errors.New(errMsg.snoozedTabsGet)
+		return nil, nil, errors.New(errMsg.snoozedTabsGet)
 	}
 	snoozedTabs := []SnoozedTab{}
 
@@ -533,14 +577,129 @@ func (r spaceRepo) geSnoozedTabsInSpace(userId, spaceId string, lastSnoozedTabId
 
 	if err != nil {
 		logger.Errorf("Couldn't unmarshal snoozed tabs for userId: %v. \n[Error]: %v", userId, err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &snoozedTabs, nil
+	lastSK := ""
+
+	if len(response.LastEvaluatedKey) > 0 {
+		lastSK = response.LastEvaluatedKey[db.SK_NAME].(*types.AttributeValueMemberS).Value
+	}
+
+	m := &http_api.Metadata{
+		LastKey: lastSK,
+	}
+
+	return snoozedTabs, m, nil
 }
 
-func (r spaceRepo) DeleteSnoozedTab(userId, spaceId string, snoozedAt int64) error {
-	sk := fmt.Sprintf("%s#%s", db.SORT_KEY.SnoozedTabs(spaceId), strconv.FormatInt(snoozedAt, 10))
+func (r *spaceRepo) switchSnoozedTabSpace(userId, spaceId, newSpaceId string) error {
+
+	var errs []error
+	var updatedSnoozedTabs []SnoozedTab
+
+	for {
+		tabs, m, err := r.geSnoozedTabsInSpace(userId, spaceId, 200, 0)
+
+		if err != nil {
+			return err
+		}
+
+		updatedSnoozedTabs = append(updatedSnoozedTabs, tabs...)
+
+		// if there are no more tabs to fetch, stop the loop
+		if m.LastKey == "" {
+			break
+		}
+	}
+
+	if len(updatedSnoozedTabs) < 1 {
+		return errors.New(errMsg.snoozedTabsNotFound)
+	}
+
+	// context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	// channel to collect errors from goroutines
+	errChan := make(chan error, (len(updatedSnoozedTabs) * 2))
+
+	// delete the snoozed tabs from old space
+
+	delReqs := []types.WriteRequest{}
+
+	for _, s := range updatedSnoozedTabs {
+		delReqs = append(delReqs, types.WriteRequest{
+			DeleteRequest: &types.DeleteRequest{
+				Key: map[string]types.AttributeValue{
+					"PK": &types.AttributeValueMemberS{Value: userId},
+					"SK": &types.AttributeValueMemberS{Value: db.SORT_KEY.SnoozedTab(fmt.Sprintf("%s#%v", spaceId, s.SnoozedAt))},
+				},
+			},
+		})
+	}
+
+	// execute batch delete requests
+	r.db.BatchWriter(ctx, r.db.TableName, &wg, errChan, delReqs)
+
+	// collect errors from goroutines
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		logger.Errorf("Couldn't delete snoozed tabs from old space for userId: %v. \n[Error]: %v", userId, errs)
+		return errs[0]
+	}
+
+	// add snoozed tabs to new space id
+	putReqs := []types.WriteRequest{}
+
+	for _, s := range updatedSnoozedTabs {
+
+		snoozedTab, err := attributevalue.MarshalMap(s)
+
+		sk := fmt.Sprintf("%s#%v", db.SORT_KEY.SnoozedTab(spaceId), s.SnoozedAt)
+
+		snoozedTab[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
+		snoozedTab[db.SK_NAME] = &types.AttributeValueMemberS{Value: sk}
+
+		if err != nil {
+			logger.Errorf("Couldn't marshal snoozed tab for userId: %v. \n[Error]: %v", userId, err)
+			return err
+		}
+
+		putReqs = append(putReqs, types.WriteRequest{
+			PutRequest: &types.PutRequest{
+				Item: snoozedTab,
+			},
+		})
+	}
+
+	r.db.BatchWriter(ctx, r.db.TableName, &wg, errChan, putReqs)
+
+	// Wait for all goroutines to complete
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	// collect errors from goroutines
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	// Return combined errors if any
+	if len(errs) > 0 {
+		return fmt.Errorf("Couldn't move snoozed tabs to new space  for userId: %v. \n[Error]: %v", userId, errs)
+	}
+
+	return nil
+}
+
+func (r *spaceRepo) DeleteSnoozedTab(userId, spaceId string, snoozedAt int64) error {
+	sk := fmt.Sprintf("%s#%s", db.SORT_KEY.SnoozedTab(spaceId), strconv.FormatInt(snoozedAt, 10))
 
 	key := map[string]types.AttributeValue{
 		"PK": &types.AttributeValueMemberS{Value: userId},
@@ -559,3 +718,5 @@ func (r spaceRepo) DeleteSnoozedTab(userId, spaceId string, snoozedAt int64) err
 
 	return nil
 }
+
+//* helpers

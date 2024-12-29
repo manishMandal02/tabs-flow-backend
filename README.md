@@ -80,30 +80,30 @@ TabsFlow Backend is a serverless application built on AWS, designed to manage ta
 | Get Spaces by userId        | Spaces             |
 | Get Tabs by spaceId         | Tabs               |
 | Get Groups by spaceId       | Tabs               |
-| Get SnoozedTabs by spaceId  | SnoozedTabs        |
+| Get SnoozedTab by spaceId   | SnoozedTab         |
 | Get Notes by userId         | Notes              |
 | Get Notifications by userId | Notifications      |
 | Get Subscription by userId  | Subscription       |
 
 ## Main Table Design (DynamoDB)
 
-| Partition Key (PK) | Sort Key (SK)                          | Item Attributes                                          |
-| ------------------ | -------------------------------------- | -------------------------------------------------------- |
-| {UserId}           | U#Profile                              | Email, FullName, ProfilePic                              |
-|                    | U#Subscription                         | Id, PlanId, Plan, Status, Start, End, NextBillingDate    |
-|                    | P#General                              | OpenSpace, DeleteUnsavedSpace                            |
-|                    | P#Notes                                | IsDisabled, BubblePos, ShowOnAllSites                    |
-|                    | P#CmdPalette                           | IsDisabled, Search, DisabledCommands                     |
-|                    | P#LinkPreview                          | IsDisabled, OpenTrigger, Size                            |
-|                    | P#AutoDiscard                          | IsDisabled, DiscardAfter, WhitelistedDomains             |
-|                    | U#Notification#{Id/CreatedAt}          | Type, Timestamp, Note{}, SnoozedTab{}                    |
-|                    | U#NotificationSubscription             | UserId,Endpoint, AuthKey, P256dhKey                      |
-|                    | S#Info#{SpaceId}                       | Title, Emoji, Theme, ActiveTab, windowId, UpdatedAt      |
-|                    | S#ActiveTab#{SpaceId}                  | ActiveTabIndex                                           |
-|                    | S#Tabs#{SpaceId}                       | []{ Index, Title, URL, FaviconURL, GroupId }, UpdatedAt  |
-|                    | S#Groups#{SpaceId}                     | []{ Title, Color, Collapsed }, UpdatedAt                 |
-|                    | S#SnoozedTabs#{SpaceId}#{Id/SnoozedAt} | SpaceId, Title, URL, FaviconURL, SnoozedUntil, SnoozedAt |
-|                    | N#{NoteId/CreatedAt}                   | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt         |
+| Partition Key (PK) | Sort Key (SK)                       | Item Attributes                                          |
+| ------------------ | ----------------------------------- | -------------------------------------------------------- |
+| {UserId}           | U#Profile                           | Email, FullName, ProfilePic                              |
+|                    | U#Subscription                      | Id, PlanId, Plan, Status, Start, End, NextBillingDate    |
+|                    | P#General                           | OpenSpace, DeleteUnsavedSpace                            |
+|                    | P#Notes                             | IsDisabled, BubblePos, ShowOnAllSites                    |
+|                    | P#CmdPalette                        | IsDisabled, Search, DisabledCommands                     |
+|                    | P#LinkPreview                       | IsDisabled, OpenTrigger, Size                            |
+|                    | P#AutoDiscard                       | IsDisabled, DiscardAfter, WhitelistedDomains             |
+|                    | U#Notification#{Id/CreatedAt}       | Type, Timestamp, Note{}, SnoozedTab{}                    |
+|                    | U#NotificationSubscription          | UserId,Endpoint, AuthKey, P256dhKey                      |
+|                    | S#Info#{SpaceId}                    | Title, Emoji, Theme, ActiveTab, windowId, UpdatedAt      |
+|                    | S#ActiveTab#{SpaceId}               | ActiveTabIndex                                           |
+|                    | S#Tabs#{SpaceId}                    | []{ Index, Title, URL, FaviconURL, GroupId }, UpdatedAt  |
+|                    | S#Groups#{SpaceId}                  | []{ Title, Color, Collapsed }, UpdatedAt                 |
+|                    | SnoozedTab#{SpaceId}#{Id/SnoozedAt} | SpaceId, Title, URL, FaviconURL, SnoozedUntil, SnoozedAt |
+|                    | N#{NoteId/CreatedAt}                | Id, SpaceId, Title, Note, RemainderAt, UpdatedAt         |
 
 ## Data Access Patterns (Search Table)
 

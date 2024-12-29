@@ -113,6 +113,7 @@ var errMsg = struct {
 	snoozedTabsCreate      string
 	snoozedTabsGet         string
 	snoozedTabsNotFound    string
+	snoozedTabsSwitchSpace string
 	snoozedTabsDelete      string
 }{
 	userDefaultSpace:       "Error setting default space",
@@ -133,5 +134,6 @@ var errMsg = struct {
 	snoozedTabsNotFound:    "Snoozed not found",
 	snoozedTabsCreate:      "Error creating snoozed tab",
 	snoozedTabsGet:         "Error getting snoozed tabs",
+	snoozedTabsSwitchSpace: "Error switching snoozed tab space",
 	snoozedTabsDelete:      "Error deleting snoozed tab",
 }

@@ -31,7 +31,7 @@ var SORT_KEY = struct {
 	SpaceActiveTab           dynamicKey
 	TabsInSpace              dynamicKey
 	GroupsInSpace            dynamicKey
-	SnoozedTabs              dynamicKey
+	SnoozedTab               dynamicKey
 	Notes                    dynamicKey
 }{
 	Profile:                  "U#Profile",
@@ -49,7 +49,7 @@ var SORT_KEY = struct {
 	SpaceActiveTab:           generateKey("S#ActiveTab#"),
 	TabsInSpace:              generateKey("S#Tabs#"),
 	GroupsInSpace:            generateKey("S#Groups#"),
-	SnoozedTabs:              generateKey("S#SnoozedTabs#"),
+	SnoozedTab:               generateKey("SnoozedTab#"),
 	Notes:                    generateKey("N#"),
 }
 

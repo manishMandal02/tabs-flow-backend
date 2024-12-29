@@ -43,6 +43,7 @@ func Router(db *db.DDB, q *events.Queue) http_api.IRouter {
 	// snoozed tabs
 	spacesRouter.POST("/:spaceId/snoozed-tabs", sh.createSnoozedTab)
 	spacesRouter.GET("/:spaceId/snoozed-tabs/:id", sh.getSnoozedTab)
+	spacesRouter.PATCH("/:spaceId/snoozed-tabs/switch-space", sh.switchSnoozedTabSpace)
 	// query param: snoozedAt={timestamp}
 	spacesRouter.GET("/snoozed-tabs/my", sh.getSnoozedTabByUser)
 	// query param: snoozedAt={timestamp}

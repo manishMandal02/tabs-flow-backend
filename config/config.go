@@ -14,7 +14,7 @@ import (
 )
 
 //TODO: Use transaction for delete/insert operations at critical points, ex: user created, space created,
-// space deleted, user deleted, etc.
+// user deleted, etc.
 // TODO: Fire push events for data changes, ex: space created, space deleted,
 // tab added to an open space from mobile app, user subscription changes,etc.
 

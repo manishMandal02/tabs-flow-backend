@@ -19,7 +19,8 @@ type ErrorBody struct {
 }
 
 type Metadata struct {
-	UpdatedAt int64 `json:"updatedAt,omitempty"`
+	UpdatedAt int64  `json:"updatedAt,omitempty"`
+	LastKey   string `json:"lastKey,omitempty"`
 }
 
 type APIResponse struct {

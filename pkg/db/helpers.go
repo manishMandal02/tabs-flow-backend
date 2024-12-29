@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -39,7 +38,7 @@ func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 		SORT_KEY.Space(""),
 		SORT_KEY.TabsInSpace(""),
 		SORT_KEY.GroupsInSpace(""),
-		SORT_KEY.SnoozedTabs(""),
+		SORT_KEY.SnoozedTab(""),
 		SORT_KEY.Notes(""),
 	}
 
@@ -92,54 +91,18 @@ func (db *DDB) GetAllSKs(pk string) ([]string, error) {
 	return sortKeys, nil
 }
 
-func (db *DDB) TransactionPut(keys []map[string]types.AttributeValue) error {
-	var transactItems []types.TransactWriteItem
+func (db *DDB) TransactionWriter(items []types.TransactWriteItem) error {
 
-	for _, key := range keys {
-		transactItems = append(transactItems, types.TransactWriteItem{
-			Put: &types.Put{
-				TableName:           &db.TableName,
-				Item:                key,
-				ConditionExpression: aws.String("attribute_not_exists(PK)"),
-			},
-		})
-	}
 	input := &dynamodb.TransactWriteItemsInput{
-		TransactItems: transactItems,
+		TransactItems: items,
 	}
 
 	// Execute the transaction
 	_, err := db.Client.TransactWriteItems(context.TODO(), input)
 
 	if err != nil {
-		return fmt.Errorf("error executing transaction [TransactionPut] [Error]: %v", err)
+		return fmt.Errorf("[TransactionWriter] error executing transaction [Error]: %v", err)
 	}
-	return nil
-}
-
-func (db *DDB) TransactionDelete(keys []map[string]types.AttributeValue) error {
-	var transactItems []types.TransactWriteItem
-
-	for _, key := range keys {
-		transactItems = append(transactItems, types.TransactWriteItem{
-			Delete: &types.Delete{
-				TableName: &db.TableName,
-				Key:       key,
-			},
-		})
-	}
-
-	input := &dynamodb.TransactWriteItemsInput{
-		TransactItems: transactItems,
-	}
-
-	// Execute the transaction
-	_, err := db.Client.TransactWriteItems(context.TODO(), input)
-
-	if err != nil {
-		return fmt.Errorf("error executing transaction [TransactionPut] [Error]: %v", err)
-	}
-
 	return nil
 }
 

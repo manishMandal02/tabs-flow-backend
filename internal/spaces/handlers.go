@@ -38,14 +38,14 @@ func (h *spaceHandler) setUserDefaultSpace(w http.ResponseWriter, r *http.Reques
 		UpdatedAt: time.Now().UnixMilli(),
 	}
 
-	err = h.r.setGroupsForSpace(userId, defaultSpaceId, &defaultUserGroup, m)
+	err = h.r.setGroupsForSpace(userId, defaultSpaceId, defaultUserGroup, m)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
 		return
 	}
 
-	err = h.r.setTabsForSpace(userId, defaultSpaceId, &defaultUserTabs, m)
+	err = h.r.setTabsForSpace(userId, defaultSpaceId, defaultUserTabs, m)
 
 	if err != nil {
 		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
@@ -183,6 +183,8 @@ func (h *spaceHandler) update(w http.ResponseWriter, r *http.Request) {
 
 func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 
+	backupSpaceId := r.URL.Query().Get("backupSpaceId")
+
 	spaceId := r.PathValue("spaceId")
 	userId := r.PathValue("userId")
 
@@ -190,14 +192,26 @@ func (h *spaceHandler) delete(w http.ResponseWriter, r *http.Request) {
 		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
 		return
 	}
+	// if backup space  id is not provided, then move snoozed tabs to a random space
+	if backupSpaceId == "" {
 
-	err := h.r.deleteSpace(userId, spaceId)
+		spaces, err := h.r.getSpacesByUser(userId)
+
+		if err != nil {
+			http_api.ErrorRes(w, errMsg.spaceGet, http.StatusBadGateway)
+			return
+		}
+		backupSpaceId = spaces[0].Id
+	}
+
+	err := h.r.deleteSpace(userId, spaceId, backupSpaceId)
 
 	if err != nil {
 		logger.Error("error deleting space", err)
 		http_api.ErrorRes(w, errMsg.spaceDelete, http.StatusBadGateway)
 		return
 	}
+
 	http_api.SuccessResMsg(w, "space deleted successfully")
 }
 
@@ -312,7 +326,7 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 
 	if metadata.UpdatedAt != data.LastUpdatedAt {
 
-		err = checkForDataConflict(*currentTabs, data.Tabs)
+		err = checkForDataConflict(currentTabs, data.Tabs)
 
 		if err != nil {
 			logger.Error("error checking for data conflict", err)
@@ -331,7 +345,7 @@ func (h *spaceHandler) setTabsInSpace(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: time.Now().UnixMilli(),
 	}
 
-	err = h.r.setTabsForSpace(userId, spaceId, &data.Tabs, m)
+	err = h.r.setTabsForSpace(userId, spaceId, data.Tabs, m)
 
 	if err != nil {
 		logger.Error("error setting tabs for space", err)
@@ -408,7 +422,7 @@ func (h *spaceHandler) setGroupsInSpace(w http.ResponseWriter, r *http.Request) 
 		UpdatedAt: time.Now().UnixMilli(),
 	}
 
-	err = h.r.setGroupsForSpace(userId, spaceId, &data.Groups, m)
+	err = h.r.setGroupsForSpace(userId, spaceId, data.Groups, m)
 
 	if err != nil {
 		logger.Error("error setting groups for space", err)
@@ -519,14 +533,14 @@ func (h *spaceHandler) getSnoozedTabsBySpace(w http.ResponseWriter, r *http.Requ
 	}
 
 	// return all snoozed tabs for space
-	sT, err := h.r.geSnoozedTabsInSpace(userId, spaceId, lastSnoozedTabId)
+	sT, m, err := h.r.geSnoozedTabsInSpace(userId, spaceId, 12, lastSnoozedTabId)
 
 	if err != nil {
 		logger.Error("error getting snoozed tabs for space", err)
 		http_api.ErrorRes(w, errMsg.snoozedTabsGet, http.StatusBadGateway)
 		return
 	}
-	http_api.SuccessResData(w, sT)
+	http_api.SuccessResDataWithMetadata(w, sT, m)
 }
 
 func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request) {
@@ -546,7 +560,7 @@ func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	sT, err := h.r.getAllSnoozedTabsByUser(userId, lastSnoozedTabId)
+	sT, m, err := h.r.getAllSnoozedTabsByUser(userId, lastSnoozedTabId)
 
 	if err != nil {
 		if err.Error() == errMsg.snoozedTabsNotFound {
@@ -559,7 +573,38 @@ func (h spaceHandler) getSnoozedTabByUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	http_api.SuccessResData(w, sT)
+	http_api.SuccessResDataWithMetadata(w, sT, m)
+}
+
+func (h *spaceHandler) switchSnoozedTabSpace(w http.ResponseWriter, r *http.Request) {
+	userId := r.PathValue("userId")
+	spaceId := r.PathValue("spaceId")
+
+	if spaceId == "" {
+		http_api.ErrorRes(w, errMsg.spaceId, http.StatusBadRequest)
+		return
+	}
+
+	var data struct {
+		NewSpaceId string `json:"newSpaceId"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&data)
+
+	if err != nil {
+		logger.Error("error decoding data", err)
+		http_api.ErrorRes(w, errMsg.snoozedTabsSwitchSpace, http.StatusBadRequest)
+		return
+	}
+
+	err = h.r.switchSnoozedTabSpace(userId, spaceId, data.NewSpaceId)
+
+	if err != nil {
+		logger.Error("error switching snoozed tab space", err)
+		http_api.ErrorRes(w, errMsg.snoozedTabsSwitchSpace, http.StatusBadGateway)
+		return
+	}
+
 }
 
 func (h *spaceHandler) DeleteSnoozedTab(w http.ResponseWriter, r *http.Request) {

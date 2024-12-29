@@ -157,7 +157,7 @@ func (r userRepo) deleteAccount(id string) error {
 	var wg sync.WaitGroup
 
 	// context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	reqs := []types.WriteRequest{}
