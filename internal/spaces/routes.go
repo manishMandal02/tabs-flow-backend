@@ -21,7 +21,6 @@ func Router(db *db.DDB, q *events.Queue) http_api.IRouter {
 	spacesRouter.Use(userIdMiddleware)
 
 	// spaces
-	spacesRouter.GET("/set-default", sh.setUserDefaultSpace)
 	spacesRouter.POST("/", sh.create)
 	spacesRouter.GET("/my", sh.spacesByUser)
 	spacesRouter.GET("/:id", sh.get)

@@ -6,20 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	paddle "github.com/PaddleHQ/paddle-go-sdk"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/manishMandal02/tabsflow-backend/config"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
-	"github.com/manishMandal02/tabsflow-backend/pkg/events"
 	"github.com/manishMandal02/tabsflow-backend/pkg/http_api"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 	"github.com/manishMandal02/tabsflow-backend/pkg/utils"
 )
 
-// middleware to get userId from header ( set by authorizer after validating jwt token claims)
-// also check if user exits
+// gets userId from header set by authorizer, also checks if user exits
 func newUserIdMiddleware(ur repository) http_api.Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId := r.Header.Get("UserId")
@@ -33,7 +32,8 @@ func newUserIdMiddleware(ur repository) http_api.Handler {
 	}
 }
 
-func setDefaultUserPreferences(userId string, r repository) error {
+// maps default user preferences to dbb items
+func getPrefDBItems(userId string) ([]map[string]types.AttributeValue, error) {
 
 	pref := make(map[string]interface{})
 
@@ -43,115 +43,24 @@ func setDefaultUserPreferences(userId string, r repository) error {
 	pref[db.SORT_KEY.P_LinkPreview] = &defaultUserPref.LinkPreview
 	pref[db.SORT_KEY.P_AutoDiscard] = &defaultUserPref.AutoDiscard
 
-	var wg sync.WaitGroup
+	var pData []map[string]types.AttributeValue
 
 	for k, v := range pref {
-		wg.Add(1)
-		go func(userId, k string, v interface{}) {
-			defer wg.Done()
-			err := r.setPreferences(userId, k, v)
-			if err != nil {
-				logger.Errorf("Error setting default preferences for userId: %v\n. data: %v.  \n[Error]: %v", userId, v, err)
-			}
-		}(userId, k, v)
-	}
+		av, err := attributevalue.MarshalMap(v)
 
-	wg.Wait()
+		if err != nil {
+			return nil, fmt.Errorf("getPrefDBItems() ~ couldn't marshal preferences for user_id: %v. \n[Error]: %v", userId, err)
+		}
+		// set keys
+		av[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
+		av[db.SK_NAME] = &types.AttributeValueMemberS{Value: k}
 
-	return nil
-
-}
-
-// set default user data (preferences, subscription)
-func setDefaultUserData(user *User, r repository, emailQueue *events.Queue) error {
-	// set default preferences for user
-	err := setDefaultUserPreferences(user.Id, r)
-
-	if err != nil {
-		return err
-	}
-
-	today := time.Now().UTC()
-
-	trialEndDate := time.Date(
-		today.Year(),
-		today.Month(),
-		today.Day()+config.TRAIL_DAYS,
-		23, // hour
-		59, // min
-		59, // sec
-		0,  // nano sec
-		time.UTC,
-	)
-
-	//  start trail subscription
-	s := &subscription{
-		Plan:   SubscriptionPlanTrial,
-		Status: SubscriptionStatusActive,
-		Start:  today.Unix(),
-		End:    trialEndDate.Unix(),
-	}
-
-	err = r.setSubscription(user.Id, s)
-
-	if err != nil {
-		return err
-	}
-
-	// send USER_REGISTERED event to email service to send welcome email
-	event := events.New(events.EventTypeUserRegistered, &events.UserRegisteredPayload{
-		Email:        user.Email,
-		Name:         user.FirstName,
-		TrailEndDate: trialEndDate.Format(time.DateOnly),
-	})
-
-	err = emailQueue.AddMessage(event)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
-// set default spaces and tabs
-func setDefaultUserSpaces(reqHostUrl string, c http_api.Client, cookie string) error {
-
-	if cookie == "" {
-		return errors.New("cookie is empty")
-	}
-
-	p := "https"
-	if config.LOCAL_DEV_ENV {
-		p = "http"
-	}
-
-	if strings.Contains(reqHostUrl, "amazonaws.com") {
-		reqHostUrl += "/test"
+		pData = append(pData, av)
 
 	}
 
-	spacesServiceURL := fmt.Sprintf("%s://%s/spaces/set-default", p, reqHostUrl)
+	return pData, nil
 
-	headers := map[string]string{
-		"Referrer": config.AllowedOrigins[1],
-		"Cookie":   cookie,
-	}
-
-	res, _, err := utils.MakeHTTPRequest(http.MethodGet, spacesServiceURL, headers, nil, c)
-
-	if err != nil {
-		return err
-	}
-
-	logger.Dev("set default spaces response: %v", res)
-
-	if res.StatusCode != http.StatusOK {
-		return errors.New("failed to set default spaces")
-	}
-
-	return nil
 }
 
 func checkUserExits(id string, r repository, w http.ResponseWriter) bool {
@@ -297,7 +206,7 @@ func parsePaddlePlan(priceId string) *SubscriptionPlan {
 	return &plan
 }
 
-type subscriptionData struct {
+type userSubscriptionData struct {
 	userId         string
 	subscriptionId string
 	status         string
@@ -308,7 +217,7 @@ type subscriptionData struct {
 }
 
 // process paddle subscription (create/update) event in webhook
-func subscriptionEventHandler(r repository, data *subscriptionData, isUpdatedEvent bool) error {
+func subscriptionEventHandler(r repository, data *userSubscriptionData, isUpdatedEvent bool) error {
 	// parse date to convert it to unix timestamp for db
 	startDate, err := time.Parse(time.RFC3339, data.startDate)
 	endDate, err2 := time.Parse(time.RFC3339, data.endDate)

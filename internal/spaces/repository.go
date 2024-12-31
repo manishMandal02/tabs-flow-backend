@@ -187,7 +187,6 @@ func (r *spaceRepo) deleteSpace(userId, spaceId, backupSpaceId string) error {
 	}
 
 	// move snoozed tabs to backup space
-
 	err = r.switchSnoozedTabSpace(userId, spaceId, backupSpaceId)
 
 	if err != nil {
@@ -246,88 +245,6 @@ func (r *spaceRepo) setActiveTabIndex(userId, spaceId string, activeTabIndex int
 	}
 
 	return nil
-}
-
-// tabs
-func (r *spaceRepo) setTabsForSpace(userId, spaceId string, t []tab, m *http_api.Metadata) error {
-
-	tabs, err := attributevalue.MarshalListWithOptions(t)
-
-	if err != nil {
-		logger.Errorf("Couldn't marshal tabs: %v. \n[Error]: %v", t, err)
-		return err
-	}
-
-	item := map[string]types.AttributeValue{
-		db.PK_NAME:  &types.AttributeValueMemberS{Value: userId},
-		db.SK_NAME:  &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
-		"Tabs":      &types.AttributeValueMemberL{Value: tabs},
-		"UpdatedAt": &types.AttributeValueMemberN{Value: strconv.FormatInt(m.UpdatedAt, 10)},
-	}
-
-	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: &r.db.TableName,
-		Item:      item,
-	})
-
-	if err != nil {
-		logger.Errorf("Couldn't set tabs for space for userId: %v. \n[Error]: %v", userId, err)
-		return err
-	}
-
-	return nil
-}
-
-func (r *spaceRepo) getTabsForSpace(userId, spaceId string) ([]tab, *http_api.Metadata, error) {
-	key := map[string]types.AttributeValue{
-		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
-		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
-	}
-
-	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
-		TableName: &r.db.TableName,
-		Key:       key,
-	})
-
-	if err != nil {
-		logger.Errorf("Couldn't get tabs for space for userId: %v. \n[Error]: %v", userId, err)
-		return nil, nil, err
-	}
-	if len(response.Item) == 0 {
-		return nil, nil, errors.New(errMsg.tabsGet)
-	}
-
-	// tabs
-	tabsAttr, ok := response.Item["Tabs"]
-
-	if !ok {
-		errStr := fmt.Sprintf("Tab attribute not found for spaceId: %v for userId: %v", spaceId, userId)
-		logger.Error(errStr, err)
-		return nil, nil, errors.New(errStr)
-	}
-
-	tabs := []tab{}
-
-	err = attributevalue.Unmarshal(tabsAttr, &tabs)
-
-	if err != nil {
-		logger.Errorf("Couldn't unmarshal tabs for space for userId: %v. \n[Error]: %v", userId, err)
-		return nil, nil, err
-	}
-
-	// get updatedAt time for tabs
-	updatedAtAttr, err := strconv.ParseInt(response.Item["UpdatedAt"].(*types.AttributeValueMemberN).Value, 10, 64)
-
-	if err != nil {
-		logger.Errorf("Couldn't get updatedAt for tabs for userId: %v. \n[Error]: %v", userId, err)
-		return nil, nil, err
-	}
-
-	m := &http_api.Metadata{
-		UpdatedAt: updatedAtAttr,
-	}
-
-	return tabs, m, nil
 }
 
 // groups
@@ -410,6 +327,88 @@ func (r *spaceRepo) getGroupsForSpace(userId, spaceId string) ([]group, *http_ap
 
 	return groups, m, nil
 
+}
+
+// tabs
+func (r *spaceRepo) setTabsForSpace(userId, spaceId string, t []tab, m *http_api.Metadata) error {
+
+	tabs, err := attributevalue.MarshalListWithOptions(t)
+
+	if err != nil {
+		logger.Errorf("Couldn't marshal tabs: %v. \n[Error]: %v", t, err)
+		return err
+	}
+
+	item := map[string]types.AttributeValue{
+		db.PK_NAME:  &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME:  &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
+		"Tabs":      &types.AttributeValueMemberL{Value: tabs},
+		"UpdatedAt": &types.AttributeValueMemberN{Value: strconv.FormatInt(m.UpdatedAt, 10)},
+	}
+
+	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
+		TableName: &r.db.TableName,
+		Item:      item,
+	})
+
+	if err != nil {
+		logger.Errorf("Couldn't set tabs for space for userId: %v. \n[Error]: %v", userId, err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *spaceRepo) getTabsForSpace(userId, spaceId string) ([]tab, *http_api.Metadata, error) {
+	key := map[string]types.AttributeValue{
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(spaceId)},
+	}
+
+	response, err := r.db.Client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: &r.db.TableName,
+		Key:       key,
+	})
+
+	if err != nil {
+		logger.Errorf("Couldn't get tabs for space for userId: %v. \n[Error]: %v", userId, err)
+		return nil, nil, err
+	}
+	if len(response.Item) == 0 {
+		return nil, nil, errors.New(errMsg.tabsGet)
+	}
+
+	// tabs
+	tabsAttr, ok := response.Item["Tabs"]
+
+	if !ok {
+		errStr := fmt.Sprintf("Tab attribute not found for spaceId: %v for userId: %v", spaceId, userId)
+		logger.Error(errStr, err)
+		return nil, nil, errors.New(errStr)
+	}
+
+	tabs := []tab{}
+
+	err = attributevalue.Unmarshal(tabsAttr, &tabs)
+
+	if err != nil {
+		logger.Errorf("Couldn't unmarshal tabs for space for userId: %v. \n[Error]: %v", userId, err)
+		return nil, nil, err
+	}
+
+	// get updatedAt time for tabs
+	updatedAtAttr, err := strconv.ParseInt(response.Item["UpdatedAt"].(*types.AttributeValueMemberN).Value, 10, 64)
+
+	if err != nil {
+		logger.Errorf("Couldn't get updatedAt for tabs for userId: %v. \n[Error]: %v", userId, err)
+		return nil, nil, err
+	}
+
+	m := &http_api.Metadata{
+		UpdatedAt: updatedAtAttr,
+	}
+
+	return tabs, m, nil
 }
 
 // snoozed tabs

@@ -1,8 +1,15 @@
 package spaces
 
 import (
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/manishMandal02/tabsflow-backend/config"
+	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 )
 
 type space struct {
@@ -50,18 +57,19 @@ type SnoozedTab struct {
 	SnoozedUntil int64  `json:"snoozedUntil,omitempty"`
 }
 
-var defaultSpaceId = "default2024"
-
-var defaultUserSpace = space{
-	Id:       defaultSpaceId,
-	Title:    config.DEFAULT_SPACE_TITLE,
-	Theme:    "#38bdf8",
-	IsSaved:  true,
-	Emoji:    "🗂️",
-	WindowId: 0,
+// initial space for new users
+var defaultSpace = &space{
+	Id:        "default2025",
+	Title:     config.DEFAULT_SPACE_TITLE,
+	Theme:     "#38bdf8",
+	IsSaved:   true,
+	Emoji:     "🗂️",
+	WindowId:  0,
+	UpdatedAt: time.Now().UnixMilli(),
 }
 
-var defaultUserGroup = []group{
+// initial group for new users
+var defaultGroups = []group{
 	{
 		Id:        8499388491,
 		Name:      "Gmail Cleaner",
@@ -70,7 +78,8 @@ var defaultUserGroup = []group{
 	},
 }
 
-var defaultUserTabs = []tab{
+// initial tabs for new users
+var defaultTabs = []tab{
 	{
 		URL:     "https://tabsflow.com",
 		Title:   "TabsFlow",
@@ -92,6 +101,59 @@ var defaultUserTabs = []tab{
 		Icon:    "https://abs.twimg.com/favicons/twitter.2.ico",
 		GroupId: 0,
 	},
+}
+
+// It generates the initial space, groups, and tabs data for the provided userId
+// and returns them as a Dynamodb Items.
+func GetDefaultSpaceData(userId string) ([]map[string]types.AttributeValue, error) {
+	items := []map[string]types.AttributeValue{}
+
+	// set default space
+	space, err := attributevalue.MarshalMap(defaultSpace)
+
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't marshal space. [Error]: %v", err)
+	}
+
+	space[db.PK_NAME] = &types.AttributeValueMemberS{Value: userId}
+	space[db.SK_NAME] = &types.AttributeValueMemberS{Value: db.SORT_KEY.Space(defaultSpace.Id)}
+	space["UpdatedAt"] = &types.AttributeValueMemberN{Value: strconv.FormatInt(defaultSpace.UpdatedAt, 10)}
+
+	items = append(items, space)
+
+	// set default groups
+
+	groups, err := attributevalue.MarshalList(defaultGroups)
+
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't marshal groups. [Error]: %v", err)
+	}
+
+	groupsItem := map[string]types.AttributeValue{
+		db.PK_NAME:  &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME:  &types.AttributeValueMemberS{Value: db.SORT_KEY.GroupsInSpace(defaultSpace.Id)},
+		"Groups":    &types.AttributeValueMemberL{Value: groups},
+		"UpdatedAt": &types.AttributeValueMemberN{Value: strconv.FormatInt(defaultSpace.UpdatedAt, 10)},
+	}
+
+	items = append(items, groupsItem)
+
+	// set default tabs
+	tabs, err := attributevalue.MarshalList(defaultTabs)
+
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't marshal tabs. [Error]: %v", err)
+	}
+
+	tabsItem := map[string]types.AttributeValue{
+		db.PK_NAME: &types.AttributeValueMemberS{Value: userId},
+		db.SK_NAME: &types.AttributeValueMemberS{Value: db.SORT_KEY.TabsInSpace(defaultSpace.Id)},
+		"Tabs":     &types.AttributeValueMemberL{Value: tabs},
+	}
+
+	items = append(items, tabsItem)
+
+	return items, nil
 }
 
 var errMsg = struct {

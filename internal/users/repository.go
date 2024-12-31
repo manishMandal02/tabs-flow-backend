@@ -12,13 +12,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/manishMandal02/tabsflow-backend/internal/spaces"
 	"github.com/manishMandal02/tabsflow-backend/pkg/db"
 	"github.com/manishMandal02/tabsflow-backend/pkg/logger"
 )
 
 type repository interface {
 	getUserByID(id string) (*User, error)
-	insertUser(user *User) error
+	createUserWithDefaults(user *User, trialEndTime int64) error
 	updateUser(id, firstName, lastName string) error
 	deleteAccount(id string) error
 	getAllPreferences(id string) (*Preferences, error)
@@ -81,7 +82,67 @@ func (r *userRepo) getUserByID(id string) (*User, error) {
 	return user, nil
 }
 
-func (r *userRepo) insertUser(user *User) error {
+func (r *userRepo) createUserWithDefaults(user *User, trailEndTime int64) error {
+
+	var transactItems []types.TransactWriteItem
+
+	// default user preferences
+	pref, err := getPrefDBItems(user.Id)
+
+	if err != nil {
+		return err
+	}
+
+	for _, item := range pref {
+		transactItems = append(transactItems, types.TransactWriteItem{
+			Put: &types.Put{
+				TableName: &r.db.TableName,
+				Item:      item,
+			},
+		})
+
+	}
+
+	// user subscription
+	s := map[string]interface{}{
+		db.PK_NAME: user.Id,
+		db.SK_NAME: db.SORT_KEY.Subscription,
+		"Plan":     SubscriptionPlanTrial,
+		"Status":   SubscriptionStatusActive,
+		"Start":    time.Now().Unix(),
+		"End":      trailEndTime,
+	}
+
+	sAV, err := attributevalue.MarshalMap(s)
+
+	if err != nil {
+		return fmt.Errorf("Couldn't marshal subscription for user_id: %v. \n[Error]: %v", user.Id, err)
+	}
+
+	transactItems = append(transactItems, types.TransactWriteItem{
+		Put: &types.Put{
+			TableName: &r.db.TableName,
+			Item:      sAV,
+		},
+	})
+
+	// default user space
+	spaceData, err := spaces.GetDefaultSpaceData(user.Id)
+
+	if err != nil {
+		return fmt.Errorf("Couldn't get default space data for user_id: %v. \n[Error]: %v", user.Id, err)
+	}
+
+	for _, item := range spaceData {
+		transactItems = append(transactItems, types.TransactWriteItem{
+			Put: &types.Put{
+				TableName: &r.db.TableName,
+				Item:      item,
+			},
+		})
+	}
+
+	// user profile
 	profile := userWithSK{
 		User: user,
 		SK:   db.SORT_KEY.Profile,
@@ -90,18 +151,20 @@ func (r *userRepo) insertUser(user *User) error {
 	item, err := attributevalue.MarshalMap(profile)
 
 	if err != nil {
-		logger.Errorf("Couldn't marshal user: %#v. \n[Error]: %v", user, err)
-		return err
+		return fmt.Errorf("Couldn't marshal user: %#v. \n[Error]: %v", user, err)
 	}
 
-	_, err = r.db.Client.PutItem(context.TODO(), &dynamodb.PutItemInput{
-		TableName: &r.db.TableName,
-		Item:      item,
+	transactItems = append(transactItems, types.TransactWriteItem{
+		Put: &types.Put{
+			TableName: &r.db.TableName,
+			Item:      item,
+		},
 	})
 
+	err = r.db.TransactionWriter(transactItems)
+
 	if err != nil {
-		logger.Errorf("Couldn't put item for userId: %v. \n[Error]: %v", user.Id, err)
-		return err
+		return fmt.Errorf("Couldn't create user with default data,  userId: %v. \n[Error]: %v", user.Id, err)
 	}
 
 	return nil

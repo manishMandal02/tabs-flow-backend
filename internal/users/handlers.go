@@ -76,60 +76,71 @@ func (h handler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//  check if the user with this id
+	//  check if the user with this id exits
 	userExists, err := h.r.getUserByID(user.Id)
 
 	if err != nil && err.Error() != ErrMsg.UserNotFound {
+		logger.Errorf("error getting user by id, userId: %v, \n[Error]: %v", user.Id, err)
 		http_api.ErrorRes(w, ErrMsg.GetUser, http.StatusBadGateway)
 		return
 	}
 
+	//  if user exists, return error
 	if userExists != nil {
 		http_api.ErrorRes(w, ErrMsg.UserExists, http.StatusBadRequest)
 		return
 	}
 
-	//  verify if userid received is valid from auth service
+	//  verify if this user's id is valid from auth/session service
 	shouldLogout, err := verifyUserIdFromAuthService(user, r.Host, h.httpClient)
 
 	if err != nil && !shouldLogout {
-		logger.Error("error verifying user id from auth service", err)
+		logger.Errorf("error verifying userId from auth service, userId: %v, \n[Error]: %v", user.Id, err)
 		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
 		return
 	}
 
 	if shouldLogout {
-		logger.Error("error verifying user id from auth service", err)
+		logger.Info("Invalid user session, logging out user")
 		http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
-
 		return
 	}
 
-	err = h.r.insertUser(user)
+	today := time.Now().UTC()
+
+	trialEndTime := time.Date(
+		today.Year(),
+		today.Month(),
+		today.Day()+config.TRAIL_DAYS,
+		23, // hour
+		59, // min
+		59, // sec
+		0,  // nano sec
+		time.UTC,
+	)
+
+	err = h.r.createUserWithDefaults(user, trialEndTime.Unix())
 
 	if err != nil {
 		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusBadGateway)
 		return
 	}
 
-	logger.Info("user saved to db, with userId: %v", user.Id)
+	// send new user event to email service for welcome email
+	event := events.New(events.EventTypeUserRegistered, &events.UserRegisteredPayload{
+		Email:        user.Email,
+		Name:         user.FirstName,
+		TrailEndDate: trialEndTime.Format(time.DateOnly),
+	})
 
-	err = setDefaultUserData(user, h.r, h.emailQueue)
+	err = h.emailQueue.AddMessage(event)
 
 	if err != nil {
-		logger.Error("Error setting user default data", err)
-		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
+		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusBadGateway)
 		return
 	}
 
-	// set default space and tabs
-	err = setDefaultUserSpaces(r.Host, h.httpClient, r.Header.Get("Cookie"))
-
-	if err != nil {
-		logger.Error("Error setting user default space & tabs", err)
-		http_api.ErrorRes(w, ErrMsg.CreateUser, http.StatusInternalServerError)
-		return
-	}
+	logger.Info("user saved to db with default data,  userId: %v", user.Id)
 
 	http_api.SuccessResMsg(w, "user created")
 }
@@ -386,7 +397,7 @@ func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 			userId = "01929a76-ce53-7e0d-b712-41a9fa1178d8"
 		}
 
-		subscriptionData := subscriptionData{
+		subscriptionData := &userSubscriptionData{
 			userId:         userId,
 			subscriptionId: c.ID,
 			priceId:        c.Items[0].Price.ID,
@@ -396,7 +407,7 @@ func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 			nextBillDate:   *c.NextBilledAt,
 		}
 
-		err = subscriptionEventHandler(h.r, &subscriptionData, false)
+		err = subscriptionEventHandler(h.r, subscriptionData, false)
 
 		if err != nil {
 			logger.Error("Error processing SubscriptionCreated event as subscriptionWebhook()", err)
@@ -424,7 +435,7 @@ func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 			userId = "01929a76-ce53-7e0d-b712-41a9fa1178d8"
 		}
 
-		subscriptionData := subscriptionData{
+		subscriptionData := &userSubscriptionData{
 			userId:         userId,
 			subscriptionId: u.ID,
 			priceId:        u.Items[0].Price.ID,
@@ -434,7 +445,7 @@ func (h handler) subscriptionWebhook(w http.ResponseWriter, r *http.Request) {
 			nextBillDate:   *u.NextBilledAt,
 		}
 
-		err = subscriptionEventHandler(h.r, &subscriptionData, true)
+		err = subscriptionEventHandler(h.r, subscriptionData, true)
 
 		if err != nil {
 			logger.Error("Error processing SubscriptionUpdated event as subscriptionWebhook()", err)

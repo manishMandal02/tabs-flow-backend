@@ -24,38 +24,6 @@ func newSpaceHandler(r spaceRepository, q *events.Queue) *spaceHandler {
 	}
 }
 
-func (h *spaceHandler) setUserDefaultSpace(w http.ResponseWriter, r *http.Request) {
-	userId := r.Header.Get("UserId")
-
-	err := h.r.createSpace(userId, &defaultUserSpace)
-
-	if err != nil {
-		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
-		return
-	}
-
-	m := &http_api.Metadata{
-		UpdatedAt: time.Now().UnixMilli(),
-	}
-
-	err = h.r.setGroupsForSpace(userId, defaultSpaceId, defaultUserGroup, m)
-
-	if err != nil {
-		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
-		return
-	}
-
-	err = h.r.setTabsForSpace(userId, defaultSpaceId, defaultUserTabs, m)
-
-	if err != nil {
-		http_api.ErrorRes(w, errMsg.userDefaultSpace, http.StatusBadGateway)
-		return
-	}
-
-	http_api.SuccessResMsg(w, "user default space created successfully")
-
-}
-
 func (h *spaceHandler) get(w http.ResponseWriter, r *http.Request) {
 	userId := r.PathValue("userId")
 	spaceId := r.PathValue("id")
