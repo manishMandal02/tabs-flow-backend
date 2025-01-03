@@ -106,7 +106,7 @@ type notesP struct {
 }
 type autoDiscardP struct {
 	IsDisabled              bool     `json:"isDisabled" dynamodbav:"IsDisabled"`
-	DiscardTabsAfterIdleMin int32    `json:"DiscardTabsAfterIdleMin" dynamodbav:"DiscardTabsAfterIdleMin"`
+	DiscardTabsAfterIdleMin int32    `json:"discardTabsAfterIdleMin" dynamodbav:"DiscardTabsAfterIdleMin"`
 	WhitelistedDomains      []string `json:"whitelistedDomains" dynamodbav:"WhitelistedDomains"`
 }
 

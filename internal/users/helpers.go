@@ -140,32 +140,39 @@ func verifyUserIdFromAuthService(user *User, reqHostUrl string, c http_api.Clien
 }
 
 // unmarshal json to sub preference struct
-func unmarshalSubPref[T any](data json.RawMessage) (*T, error) {
+func unmarshalSubPref[T any](data interface{}) (*T, error) {
 	var pref T
-	if err := json.Unmarshal(data, &pref); err != nil {
-		return &pref, err
+
+	b, err := json.Marshal(data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(b, &pref); err != nil {
+		return nil, err
 	}
 
 	return &pref, nil
 }
 
 // associate req body data to a sub preference struct of a specific type
-func parseSubPreferencesData(perfBody updatePerfBody) (string, *interface{}, error) {
+func parseSubPreferencesData(key string, data interface{}) (string, *interface{}, error) {
 	var subP interface{}
 	var err error
 
-	sk := fmt.Sprintf("P#%s", perfBody.Type)
+	sk := fmt.Sprintf("P#%s", key)
 	switch sk {
 	case db.SORT_KEY.P_General:
-		subP, err = unmarshalSubPref[generalP](perfBody.Data)
+		subP, err = unmarshalSubPref[generalP](data)
 	case db.SORT_KEY.P_CmdPalette:
-		subP, err = unmarshalSubPref[cmdPaletteP](perfBody.Data)
+		subP, err = unmarshalSubPref[cmdPaletteP](data)
 	case db.SORT_KEY.P_AutoDiscard:
-		subP, err = unmarshalSubPref[autoDiscardP](perfBody.Data)
+		subP, err = unmarshalSubPref[autoDiscardP](data)
 	case db.SORT_KEY.P_Notes:
-		subP, err = unmarshalSubPref[notesP](perfBody.Data)
+		subP, err = unmarshalSubPref[notesP](data)
 	case db.SORT_KEY.P_LinkPreview:
-		subP, err = unmarshalSubPref[linkPreviewP](perfBody.Data)
+		subP, err = unmarshalSubPref[linkPreviewP](data)
 	default:
 		err = fmt.Errorf("invalid preference sub type: %s", sk)
 	}

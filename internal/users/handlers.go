@@ -209,9 +209,9 @@ type updatePerfBody struct {
 func (h handler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	var updateB updatePerfBody
+	var data map[string]interface{}
 
-	err := json.NewDecoder(r.Body).Decode(&updateB)
+	err := json.NewDecoder(r.Body).Decode(&data)
 
 	if err != nil {
 		logger.Error("error un_marshaling preferences from req body at updatePreferences()", err)
@@ -219,18 +219,19 @@ func (h handler) updatePreferences(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sk, subPref, err := parseSubPreferencesData(updateB)
+	for key, pref := range data {
+		sk, subPref, err := parseSubPreferencesData(key, pref)
 
-	if err != nil {
-		http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
-		return
-	}
+		if err != nil {
+			http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
+			return
+		}
 
-	err = h.r.updatePreferences(id, sk, *subPref)
-
-	if err != nil {
-		http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
-		return
+		err = h.r.updatePreferences(id, sk, *subPref)
+		if err != nil {
+			http_api.ErrorRes(w, ErrMsg.PreferencesUpdate, http.StatusBadRequest)
+			return
+		}
 	}
 	http_api.SuccessResMsg(w, "user preferences updated")
 }

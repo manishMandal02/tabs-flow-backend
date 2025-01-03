@@ -75,7 +75,7 @@ func TestParseSubPreferencesData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual1, actual2, err := parseSubPreferencesData(tt.perfBody)
+			actual1, actual2, err := parseSubPreferencesData(tt.perfBody.Type, tt.perfBody.Data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("err \n[actual] = %v, \n[want]= %v", err, tt.wantErr)
 				return
